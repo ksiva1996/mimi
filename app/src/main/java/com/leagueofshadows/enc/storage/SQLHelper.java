@@ -42,7 +42,6 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String USER_DATA_USERS_ID = "Users_id";
     static final String USER_DATA_MESSAGES_ID = "Messages_Id";
     static final String USER_DATA_NEW_MESSAGE_COUNT = "Message_count";
-    static final String TIME = "TIME";
 
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
@@ -53,7 +52,6 @@ public class SQLHelper extends SQLiteOpenHelper {
         String CREATE_MESSAGES_TABLE = "CREATE TABLE " + TABLE_MESSAGES + "("
                 + ID + " INTEGER PRIMARY KEY AUTOINCREMENT ,"
                 + MESSAGES_ID + " TEXT ,"
-
                 + MESSAGES_TO + " TEXT ,"
                 +MESSAGES_FROM+"  TEXT ,"
                 + MESSAGES_CONTENT + " TEXT ,"
@@ -68,7 +66,6 @@ public class SQLHelper extends SQLiteOpenHelper {
         String CREATE_ENCRYPTED_MESSAGES_TABLE = "CREATE TABLE " + TABLE_ENCRYPTED_MESSAGES + "("
                 + ID + " INTEGER PRIMARY KEY AUTOINCREMENT ,"
                 + ENCRYPTED_MESSAGES_ID + " TEXT ,"
-
                 + ENCRYPTED_MESSAGES_TO + " TEXT ,"
                 +ENCRYPTED_MESSAGES_FROM+"  TEXT ,"
                 + ENCRYPTED_MESSAGES_CONTENT + " TEXT ,"
@@ -88,8 +85,7 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + ID + " INTEGER PRIMARY KEY  ,"
                 + USER_DATA_USERS_ID + " TEXT ,"
                 + USER_DATA_MESSAGES_ID+"  TEXT ,"
-                + USER_DATA_NEW_MESSAGE_COUNT+"  INTEGER ,"
-                + TIME+" INTEGER"
+                + USER_DATA_NEW_MESSAGE_COUNT+"  INTEGER "
                 + ")";
 
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);

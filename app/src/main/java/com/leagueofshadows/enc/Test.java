@@ -1,7 +1,7 @@
 package com.leagueofshadows.enc;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,12 +9,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
+import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.REST.RESTHelper;
@@ -22,16 +22,19 @@ import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class Test extends AppCompatActivity implements ScrollEndCallback {
+import static com.leagueofshadows.enc.FirebaseReceiver.NEW_MESSAGE;
+import static com.leagueofshadows.enc.REST.RESTHelper.SEND_NOTIFICATION_ENDPOINT;
+import static com.leagueofshadows.enc.REST.RESTHelper.SEND_STATUS_ENDPOINT;
+
+public class Test extends AppCompatActivity implements MessagesRetrievedCallback {
 
     ArrayList<String> chatList;
     ArrayList<Message> messages;
@@ -45,39 +48,42 @@ public class Test extends AppCompatActivity implements ScrollEndCallback {
     long totaltime = 0;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)  {
+    protected void onCreate(Bundle savedInstanceState)   {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.chat_list);
-
-        final RecyclerView recyclerView = findViewById(R.id.recycler_view);
-        chatList = (ArrayList<String>) getChatList();
-        final MainListAdapter mainListAdapter = new MainListAdapter(chatList,this);
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
-        linearLayoutManager.setStackFromEnd(true);
-        recyclerView.setLayoutManager(linearLayoutManager);
-        recyclerView.setAdapter(mainListAdapter);
-        recyclerView.smoothScrollToPosition(14);
-
-        AsyncTask.execute(new Runnable() {
+        setContentView(R.layout.activity_test);
+        findViewById(R.id.token).setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                try {
-                    Thread.sleep(20000);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            chatList.add("item new");
-                            mainListAdapter.notifyDataSetChanged();
-                            recyclerView.smoothScrollToPosition(15);
-                            chatList.set(10,"new item 10");
-                            mainListAdapter.notifyItemChanged(10);
-                        }
-                    });
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            public void onClick(View view) {
+                testfirebase(x);
+                x++;
             }
         });
+        findViewById(R.id.newMessage).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sendNewMessageNotification();
+            }
+        });
+        findViewById(R.id.status).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sendStatus();
+            }
+        });
+
+        startService(new Intent(this,BackgroundWorker.class));
+    }
+
+    private void sendStatus() {
+        SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
+        String currentUserId = sp.getString(Util.userId,null);
+        HashMap<String,String> params = new HashMap<>();
+        params.put("USER_ID",currentUserId);
+        params.put("MESSAGE_ID","testId");
+        params.put("MESSAGE_STATUS","1");
+        RESTHelper restHelper = new RESTHelper(this);
+        restHelper.test("sendNewMessageNotification",params,SEND_STATUS_ENDPOINT,null,null);
+
 
     }
 
@@ -85,6 +91,39 @@ public class Test extends AppCompatActivity implements ScrollEndCallback {
     protected void onResume() {
         super.onResume();
 
+    }
+
+    void sendNewMessageNotification()
+    {
+
+        SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
+        String currentUserId = sp.getString(Util.userId,null);
+
+
+        HashMap<String,String> params = new HashMap<>();
+        params.put("USER_ID",currentUserId);
+        params.put(NEW_MESSAGE,NEW_MESSAGE);
+        RESTHelper restHelper = new RESTHelper(this);
+        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);
+
+    }
+
+    void sendToken()
+    {
+        final String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(this, new OnSuccessListener<InstanceIdResult>() {
+            @Override
+            public void onSuccess(InstanceIdResult instanceIdResult) {
+                String token = instanceIdResult.getToken();
+                Log.e("token",token);
+                HashMap<String,String> params = new HashMap<>();
+                params.put("TOKEN",token);
+                params.put("USER_ID",userId);
+
+                RESTHelper restHelper = new RESTHelper(Test.this);
+                restHelper.test("token sending",params,RESTHelper.TOKEN_UPDATE_ENDPOINT,null,null);
+            }
+        });
     }
 
     public List<String> getChatList() {
@@ -107,9 +146,37 @@ public class Test extends AppCompatActivity implements ScrollEndCallback {
         return chatList;
     }
 
+    void testfirebase(int x)
+    {
+        startTime[x] = Calendar.getInstance().getTimeInMillis();
+        final Message message = new Message(x,"test Message Id"+x,"to"+x,"from"+x
+                ,"message content"+x,"filepath"+x,"timetamp"+x
+                ,Message.MESSAGE_TYPE_ONLYTEXT+x,"sent"+x,"received"+x,"seen"+x);
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    FirebaseHelper firebaseHelper = new FirebaseHelper(Test.this);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     @Override
-    public void scrollEndReached() {
-        Log.e("scroll","end");
+    public void onNewMessage(Message message) {
+
+    }
+
+    @Override
+    public void onUpdateMessageStatus(String messageId, String userId) {
+
+    }
+    @Override
+    public void onCanceled() {
+
     }
 
     static class MainListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -271,26 +338,6 @@ public class Test extends AppCompatActivity implements ScrollEndCallback {
 
         Log.e("total time - ", String.valueOf((float)totaltime/1000));
         Log.e("average time - ",String.valueOf((float)totaltime/(1000*x)));
-    }
-
-    void testfirebase(int x)
-    {
-        startTime[x] = Calendar.getInstance().getTimeInMillis();
-        final Message message = new Message(x,"test Message Id"+x,"to"+x,"from"+x
-                ,"message content"+x,"filepath"+x,"timetamp"+x
-                ,Message.MESSAGE_TYPE_ONLYTEXT+x,"sent"+x,"received"+x,"seen"+x);
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    FirebaseHelper firebaseHelper = new FirebaseHelper(Test.this);
-                    firebaseHelper.sendMessage(message);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     private void load() {

@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.security.auth.DestroyFailedException;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -179,7 +178,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
                         finish();
                     }
                 } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException |
-                        InvalidKeyException | IllegalBlockSizeException | DestroyFailedException |
+                        InvalidKeyException | IllegalBlockSizeException |
                         InvalidAlgorithmParameterException | InvalidKeySpecException |
                         RunningOnMainThreadException e) {
                     progressDialog.dismiss();

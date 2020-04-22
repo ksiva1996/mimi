@@ -3,28 +3,35 @@ package com.leagueofshadows.enc;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.android.volley.Response;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+import com.leagueofshadows.enc.REST.RESTHelper;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.HashMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.security.auth.DestroyFailedException;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import static com.leagueofshadows.enc.ContactsWorker.FLAG;
 import static com.leagueofshadows.enc.ContactsWorker.UPDATE_EXISTING;
 
@@ -52,6 +59,34 @@ public class Login extends AppCompatActivity {
                 }
             }
         });
+
+        sendFirebaseToken();
+
+    }
+
+    private void sendFirebaseToken() {
+
+        final SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
+        boolean tokenSent = sp.contains(Util.TOKEN_SENT);
+        if(!tokenSent) {
+            FirebaseInstanceId.getInstance().getInstanceId().addOnSuccessListener(this, new OnSuccessListener<InstanceIdResult>() {
+                @Override
+                public void onSuccess(InstanceIdResult instanceIdResult) {
+                    String token = instanceIdResult.getToken();
+                    Log.e("token", token);
+                    HashMap<String, String> params = new HashMap<>();
+                    params.put("TOKEN", token);
+                    params.put("USER_ID", sp.getString(Util.userId,null));
+                    RESTHelper restHelper = new RESTHelper(Login.this);
+                    restHelper.test("token sending", params, RESTHelper.TOKEN_UPDATE_ENDPOINT, new Response.Listener<String>() {
+                        @Override
+                        public void onResponse(String response) {
+                            sp.edit().putString(Util.TOKEN_SENT,Util.TOKEN_SENT).apply();
+                        }
+                    }, null);
+                }
+            });
+        }
     }
 
     private void checkPassword(final String p) {
@@ -71,9 +106,18 @@ public class Login extends AppCompatActivity {
                         show();
                         setUp(p);
 
-                        Intent intent1 = new Intent(Login.this,ContactsWorker.class);
-                        intent1.putExtra(FLAG,UPDATE_EXISTING);
-                        startService(intent1);
+                        Intent intent2 = new Intent(Login.this,ContactsWorker.class);
+                        intent2.putExtra(FLAG,UPDATE_EXISTING);
+                        startService(intent2);
+
+                        Intent intent1 = new Intent(Login.this,DecryptMessageWorker.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent1);
+                        }
+                        else {
+                            startService(intent1);
+                        }
+
 
                         Intent intent = new Intent(Login.this,MainActivity.class);
                         startActivity(intent);
@@ -98,7 +142,7 @@ public class Login extends AppCompatActivity {
             PrivateKey privateKey = rsaHelper.getPrivateKey(p);
             App app = (App) getApplication();
             app.setPrivateKey(privateKey);
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException | IllegalBlockSizeException | DestroyFailedException | InvalidAlgorithmParameterException | InvalidKeySpecException | RunningOnMainThreadException e) {
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeySpecException | RunningOnMainThreadException e) {
             e.printStackTrace();
             Log.e("private key",e.toString());
         }

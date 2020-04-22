@@ -3,6 +3,7 @@ package com.leagueofshadows.enc.Crypt;
 import android.content.Context;
 import android.os.Looper;
 import android.util.Base64;
+
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -21,7 +22,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.security.auth.DestroyFailedException;
 
 public class RSAHelper {
 
@@ -43,7 +43,7 @@ public class RSAHelper {
 
     public void generateKeyPair(String Password) throws NoSuchAlgorithmException,
             NoSuchPaddingException, BadPaddingException, InvalidKeyException, IllegalBlockSizeException,
-            DestroyFailedException, InvalidAlgorithmParameterException, InvalidKeySpecException, RunningOnMainThreadException {
+            InvalidAlgorithmParameterException, InvalidKeySpecException, RunningOnMainThreadException {
 
         if(Looper.getMainLooper()==Looper.myLooper()){
             throw new IllegalStateException(threadException);
@@ -72,7 +72,7 @@ public class RSAHelper {
 
     public PrivateKey getPrivateKey(String Password) throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException,
             InvalidKeyException, IllegalBlockSizeException,
-            DestroyFailedException, InvalidAlgorithmParameterException, InvalidKeySpecException, RunningOnMainThreadException {
+            InvalidAlgorithmParameterException, InvalidKeySpecException, RunningOnMainThreadException {
 
         if(Looper.getMainLooper() == Looper.myLooper()) {
             throw new IllegalStateException(threadException);

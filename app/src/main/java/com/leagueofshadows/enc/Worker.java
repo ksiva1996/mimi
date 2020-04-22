@@ -19,7 +19,7 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
-import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -27,9 +27,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -38,7 +40,7 @@ public class Worker extends Service implements CompleteCallback{
 
     public static final String CHANNEL_ID = "service_retrieve";
     public static final int id = 1547;
-    private DatabaseManager databaseManager;
+    private DatabaseManager2 databaseManager;
     FirebaseHelper firebaseHelper;
     ArrayList<EncryptedMessage> encryptedMessages;
 
@@ -62,13 +64,8 @@ public class Worker extends Service implements CompleteCallback{
         startForeground(id,notification);
 
 
-        DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
-        databaseManager = DatabaseManager.getInstance();
-
-        if(databaseManager==null) {
-            DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
-            databaseManager = DatabaseManager.getInstance();
-        }
+        DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
+        databaseManager = DatabaseManager2.getInstance();
 
         firebaseHelper = new FirebaseHelper(getApplicationContext());
         final String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
@@ -160,6 +157,7 @@ public class Worker extends Service implements CompleteCallback{
             }
             catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
                 ex.printStackTrace();
+
             }
         }
     }
@@ -190,7 +188,7 @@ public class Worker extends Service implements CompleteCallback{
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,"not seen");
-                        databaseManager.insertNewMessage(message);
+                        databaseManager.insertNewMessage(message,message.getFrom());
                         databaseManager.deleteEncryptedMessage(e.getId());
 
                         if(app.getMessagesRetrievedCallback()!=null) {

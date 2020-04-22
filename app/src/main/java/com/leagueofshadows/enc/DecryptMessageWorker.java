@@ -18,7 +18,7 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
-import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -40,7 +40,7 @@ public class DecryptMessageWorker extends Service {
     public static final String CHANNEL_ID = "Decrypting service";
     public static final int id = 1648;
     ArrayList<EncryptedMessage> encryptedMessages;
-    DatabaseManager databaseManager;
+    DatabaseManager2 databaseManager;
 
     @Nullable
     @Override
@@ -78,8 +78,8 @@ public class DecryptMessageWorker extends Service {
     }
 
     private void startProcess() {
-        DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
-        databaseManager = DatabaseManager.getInstance();
+        DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
+        databaseManager = DatabaseManager2.getInstance();
         ArrayList<EncryptedMessage> es = databaseManager.getEncryptedMessages();
 
         if(es.isEmpty())
@@ -124,9 +124,6 @@ public class DecryptMessageWorker extends Service {
     }
 
     private synchronized void update(EncryptedMessage e) {
-
-        //TODO : more efficient
-        //TODO : test this
         encryptedMessages.remove(e);
 
         if(encryptedMessages.isEmpty()) {
@@ -148,7 +145,7 @@ public class DecryptMessageWorker extends Service {
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,"not seen");
-                        databaseManager.insertNewMessage(message);
+                        databaseManager.insertNewMessage(message,message.getFrom());
                         databaseManager.deleteEncryptedMessage(e.getId());
 
                         if(app.getMessagesRetrievedCallback()!=null) {
@@ -189,5 +186,4 @@ public class DecryptMessageWorker extends Service {
             notificationManager.createNotificationChannel(serviceChannel);
         }
     }
-
 }

@@ -1,8 +1,5 @@
 package com.leagueofshadows.enc;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,10 +12,13 @@ import android.widget.ListView;
 
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import static com.leagueofshadows.enc.ContactsWorker.FLAG;
 
@@ -63,8 +63,8 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
 
     private void load() {
 
-        DatabaseManager.initializeInstance(new SQLHelper(this));
-        DatabaseManager databaseManager = DatabaseManager.getInstance();
+        DatabaseManager2.initializeInstance(new SQLHelper(this));
+        DatabaseManager2 databaseManager = DatabaseManager2.getInstance();
         users.clear();
         names.clear();
         users = databaseManager.getUsers();

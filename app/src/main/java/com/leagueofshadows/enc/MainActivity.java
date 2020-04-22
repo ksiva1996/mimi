@@ -14,7 +14,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.UserData;
-import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.text.ParseException;
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
 
     ArrayList<UserData> userDataArrayList;
     RecyclerAdapter recyclerAdapter;
-    DatabaseManager databaseManager;
+    DatabaseManager2 databaseManager;
     static String userId;
 
     @Override
@@ -46,8 +46,8 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
 
         userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
         assert userId!=null;
-        DatabaseManager.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager.getInstance();
+        DatabaseManager2.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager2.getInstance();
 
         RecyclerView recyclerView = findViewById(R.id.listView);
         userDataArrayList = new ArrayList<>();
@@ -66,8 +66,9 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
                 startActivity(intent);
             }
         });
-
+        startService(new Intent(this,BackgroundWorker.class));
     }
+
 
     @Override
     protected void onResume() {
@@ -86,13 +87,24 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         loadUserData();
     }
 
+    @Override
+    protected void onDestroy() {
+        stopService(new Intent(this,BackgroundWorker.class));
+        super.onDestroy();
+    }
+
     void loadUserData()
     {
-        userDataArrayList.clear();
-        userDataArrayList.addAll( databaseManager.getUserData());
-        sort(userDataArrayList);
-        Log.e("size", String.valueOf(userDataArrayList.size()));
-        recyclerAdapter.notifyDataSetChanged();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                userDataArrayList.clear();
+                userDataArrayList.addAll( databaseManager.getUserData());
+                sort(userDataArrayList);
+                Log.e("size", String.valueOf(userDataArrayList.size()));
+                recyclerAdapter.notifyDataSetChanged();
+            }
+        });
 
     }
 

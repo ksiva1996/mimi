@@ -4,11 +4,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.leagueofshadows.enc.Crypt.AESHelper;
@@ -21,7 +23,8 @@ import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.REST.RESTHelper;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -30,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -39,6 +43,10 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
+import static com.leagueofshadows.enc.FirebaseReceiver.SEEN_STATUS;
+import static com.leagueofshadows.enc.REST.RESTHelper.USER_ID;
 
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
         PublicKeyCallback, ScrollEndCallback
@@ -50,7 +58,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     User otherUser;
     String otherUserId;
     String currentUserId;
-    DatabaseManager databaseManager;
+    DatabaseManager2 databaseManager;
     SharedPreferences sp;
     FirebaseHelper firebaseHelper;
     EditText messageField;
@@ -71,8 +79,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
         otherUserId = getIntent().getStringExtra(Util.userId);
 
-        DatabaseManager.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager.getInstance();
+        DatabaseManager2.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager2.getInstance();
 
         otherUser = databaseManager.getUser(otherUserId);
 
@@ -132,6 +140,21 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          });
      }
 
+     void sendSeenStatus(Message e)
+     {
+         //TODO :
+         //String currentUserId = sp.getString(Util.userId,null);
+         //String accessToken = sp.getString(ACCESS_TOKEN,null);
+
+         String timeStamp = Calendar.getInstance().getTime().toString();
+         RESTHelper restHelper = new RESTHelper(this);
+         HashMap<String, String> params = new HashMap<>();
+         params.put(SEEN_STATUS, timeStamp);
+         params.put(MESSAGE_ID, e.getMessage_id());
+         params.put(USER_ID,e.getTo());
+         restHelper.test("message seen status", params, RESTHelper.SEND_STATUS_ENDPOINT, null, null);
+     }
+
      void getMessages() {
 
         ArrayList<Message> m = databaseManager.getMessages(otherUser.getId(),messages.size(),100);
@@ -162,6 +185,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          }
 
          app.setMessagesRetrievedCallback(this);
+
          if(messages.isEmpty()) {
              getMessages();
          }
@@ -173,7 +197,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             messages.add(message);
             recyclerAdapter.notifyDataSetChanged();
             listView.smoothScrollToPosition(messages.size()-1);
-            databaseManager.updateMessageId(otherUserId,message.getMessage_id());
         }
         else
         {
@@ -182,13 +205,19 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      }
 
      @Override
-     public void onNewMessage(Message message) {
+     public void onNewMessage(final Message message) {
+
          if(message.getFrom().equals(otherUserId))
          {
-             databaseManager.updateMessageId(otherUserId,message.getMessage_id());
-             messages.add(message);
-             recyclerAdapter.notifyDataSetChanged();
-             listView.smoothScrollToPosition(messages.size()-1);
+             runOnUiThread(new Runnable() {
+                 @Override
+                 public void run() {
+                     messages.add(message);
+                     recyclerAdapter.notifyDataSetChanged();
+                     listView.smoothScrollToPosition(messages.size()-1);
+                 }
+             });
+
          }
          else {
              databaseManager.incrementNewMessageCount(message.getFrom(),message.getMessage_id());
@@ -207,26 +236,31 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      }
 
      @Override
-     public void onUpdateMessageStatus(final String messageId, String userId) {
+     public void onUpdateMessageStatus(final String messageId, final String userId) {
 
-         //TODO: do message status update
-
-        /*if (userId.equals(otherUserId))
+         Log.e("user",userId);
+        if (userId.equals(otherUserId))
         {
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    for (Message m:messages)
+                    int x=-1;
+                    for(int i=messages.size()-1;i>=0;i--)
                     {
-                        if(m.getMessage_id().equals(messageId))
+                        if(messageId.equals(messages.get(i).getMessage_id()))
                         {
-
+                            x=i;
+                            break;
                         }
+                    }
+                    if(x!=-1) {
+                        Message message = databaseManager.getMessage(messageId,otherUserId);
+                        messages.set(x,message);
+                        updateMessage(x);
                     }
                 }
             });
-        }*/
-
+        }
      }
 
      @Override
@@ -278,16 +312,16 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView message;
              TextView time;
              SwipeRevealLayout container;
+             ImageView ticks;
 
              TextSent(View view) {
                  super(view);
                  message = view.findViewById(R.id.message);
                  time = view.findViewById(R.id.time);
                  container = view.findViewById(R.id.container);
+                 ticks = view.findViewById(R.id.user_reply_status);
              }
          }
-
-
 
         RecyclerAdapter(ArrayList<Message> messages,ScrollEndCallback scrollEndCallback,String currentUserId,String otherUserId) {
             this.messages = messages;
@@ -349,6 +383,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 h.message.setText(message.getContent());
                 h.time.setText(formatTime(message
                         .getTimeStamp()));
+                if(message.getReceived()==null)
+                    h.ticks.setVisibility(View.GONE);
+                else
+                    h.ticks.setVisibility(View.VISIBLE);
                 h.container.close(false);
             }
 
@@ -365,5 +403,4 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             return messages.size();
         }
     }
-
 }

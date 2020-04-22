@@ -6,6 +6,7 @@ import android.os.Environment;
 public class Util {
 
 
+    static final String TOKEN_SENT = "TOKEN_SENT";
     static final String loginToken = "loginToken";
 
     static final int keySize = 128;

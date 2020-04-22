@@ -15,9 +15,9 @@ import static com.android.volley.Request.Method.POST;
 public class RESTHelper {
 
     //TODO: add urls
-    public static final String TOKEN_UPDATE_ENDPOINT = "";
-    public static final String SEND_NOTIFICATION_ENDPOINT = "";
-    public static final String SEND_STATUS_ENDPOINT = "";
+    public static final String TOKEN_UPDATE_ENDPOINT = "https://loschat.000webhostapp.com/update_users.php";
+    public static final String SEND_NOTIFICATION_ENDPOINT = "https://loschat.000webhostapp.com/send_message.php";
+    public static final String SEND_STATUS_ENDPOINT = "https://loschat.000webhostapp.com/message_status.php";
 
     public static final String FIREBASE_TOKEN = "FIREBASE_TOKEN";
     public static final String ACCESS_TOKEN = "ACCESS_TOKEN";

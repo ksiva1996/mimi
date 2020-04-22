@@ -174,7 +174,7 @@ public class AESHelper {
 
     }
 
-    public String decryptCheckMessage(@NonNull String message,String password) throws
+    /*public String decryptCheckMessage(@NonNull String message,String password) throws
             InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException,
             IllegalBlockSizeException, InvalidKeySpecException, RunningOnMainThreadException {
 
@@ -201,7 +201,7 @@ public class AESHelper {
         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
         return getBase64(encryptedMessageBytes);
 
-    }
+    }*/
 
     public String DecryptMessage(@NonNull String Base64message,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey) throws NoSuchPaddingException,
             NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
@@ -417,7 +417,8 @@ public class AESHelper {
         return messageDigest.digest(encodedKeyBytes);
     }
 
-    public byte[] getNewIV()
+    @NonNull
+    private byte[] getNewIV()
     {
         byte[] iv = new byte[16];
         secureRandom.nextBytes(iv);
