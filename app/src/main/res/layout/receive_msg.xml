@@ -47,7 +47,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:background="#121212">
+        android:background="@color/mainBackground">
+
+        <ImageView
+            android:id="@+id/imageView2"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:rotation="270"
+            android:src="@drawable/ic_right_angled_triangle"
+            android:tint="#212e36" />
 
         <LinearLayout
             android:id="@+id/incoming_layout_bubble"
@@ -81,13 +89,6 @@
 
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/imageView2"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:rotation="270"
-            android:src="@drawable/ic_right_angled_triangle"
-            android:tint="#212e36" />
 
     </RelativeLayout>
 

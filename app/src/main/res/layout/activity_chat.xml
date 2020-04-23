@@ -4,7 +4,7 @@
     android:id="@+id/chat_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@color/mainBackground"
     tools:context=".ChatActivity">
 
 
@@ -21,9 +21,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginLeft="2dp"
-        android:layout_marginRight="2dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="10dp"
         android:orientation="horizontal">
 
         <ImageButton
@@ -32,7 +32,7 @@
             android:layout_height="50dp"
             android:layout_gravity="bottom"
             android:background="@drawable/input_circle"
-            android:src="@android:drawable/ic_menu_add" />
+            android:src="@android:drawable/stat_sys_upload" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -44,22 +44,19 @@
             android:background="@drawable/to_msg_background"
             android:minHeight="50dp"
             android:orientation="horizontal"
-            android:paddingStart="2dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="15dp">
+            android:padding="10dp">
 
             <EditText
                 android:id="@+id/chat_edit_text"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_gravity="bottom"
-                android:layout_marginStart="12dp"
                 android:background="@null"
-                android:hint="@string/type_your_message"
+                android:hint="Type your message"
                 android:inputType="textMultiLine"
                 android:singleLine="false"
-                android:textColorHint="#c4c0bd"
                 android:textColor="#ccffffff"
+                android:textColorHint="#c4c0bd"
                 android:textSize="18sp" />
 
         </LinearLayout>

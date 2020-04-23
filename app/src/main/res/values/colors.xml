@@ -7,7 +7,7 @@
     <color name="colorPrimaryDark">#1B262C</color>
 
     <color name="mainBackground">#121212</color>
-    <color name="background_tab_pressed">#6633B5E5</color>
+    <color name="background_tab_pressed">#00BCD4</color>
     <color name="colorAccent">#bbe1fa</color>
     <color name="button">#278ea5</color>
     <color name="white">@android:color/white</color>
@@ -16,5 +16,7 @@
     <color name="gray">@android:color/darker_gray</color>
     <color name="transparent">@android:color/transparent</color>
     <color name="orange">@android:color/holo_blue_light</color>
+    <color name="msg_received_time">#10bcc9</color>
+    <color name="main_screen_normal">#919191</color>
 
 </resources>
