@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/mainBackground"
     tools:context=".SplashActivity">
 
     <ImageView
@@ -16,10 +17,12 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="20sp"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:layout_margin="10dp"
         android:padding="10dp"
-        android:layout_below="@+id/icon"/>
+        android:text="@string/created_by"
+        android:textColor="@color/colorAccent"
+        android:textSize="20sp" />
 
 </RelativeLayout>

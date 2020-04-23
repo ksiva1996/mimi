@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="created_by">From L.O.S</string>
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="prompt_password">Password</string>
@@ -28,7 +29,7 @@
     <string name="send_otp">send otp</string>
     <string name="enter_otp">Enter OTP</string>
     <string name="send">send</string>
-    <string name="including_country_code">including country code</string>
+    <string name="including_country_code">Eg. +91 ..... </string>
     <string name="title_activity_login">Sign in</string>
     <string name="type_your_message">Type a message</string>
     <string name="NoRecent">No recent</string>

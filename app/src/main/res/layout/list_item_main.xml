@@ -48,6 +48,7 @@
             android:layout_alignParentLeft="true"
             android:layout_marginRight="15dp"
             android:background="@drawable/round_text"
+            android:backgroundTint="#FFFFFF"
             android:gravity="center"
             android:orientation="horizontal"
             android:padding="3dip"
@@ -75,7 +76,7 @@
             android:layout_marginTop="2dp"
             android:layout_toRightOf="@id/thumbnail"
             android:text="Test Message Here"
-            android:textColor="#919191"
+            android:textColor="@color/main_screen_normal"
             android:textSize="16sp" />
 
         <TextView
@@ -87,7 +88,7 @@
             android:layout_marginRight="5dip"
             android:gravity="right"
             android:text="5:02 pm"
-            android:textColor="#10bcc9"
+            android:textColor="@color/main_screen_normal"
             android:textSize="15dip"
             android:textStyle="bold" />
 
@@ -96,7 +97,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
-            android:layout_marginTop="25dp"
+            android:layout_marginTop="30dp"
             android:background="@drawable/msg_circle"
             android:gravity="center"
             android:text="2"
