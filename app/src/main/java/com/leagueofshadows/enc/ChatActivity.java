@@ -33,7 +33,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -43,10 +42,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
-import static com.leagueofshadows.enc.FirebaseReceiver.SEEN_STATUS;
-import static com.leagueofshadows.enc.REST.RESTHelper.USER_ID;
 
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
         PublicKeyCallback, ScrollEndCallback
@@ -64,6 +59,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     EditText messageField;
     ImageButton send;
     AESHelper aesHelper;
+    RESTHelper restHelper;
     public static  final int RECEIVE_TEXT = 0;
     public static  final int RECEIVE_IMAGE = 1;
     public static  final int RECEIVE_FILE = 2;
@@ -78,9 +74,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         setContentView(R.layout.activity_chat);
 
         otherUserId = getIntent().getStringExtra(Util.userId);
-
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
         DatabaseManager2.initializeInstance(new SQLHelper(this));
         databaseManager = DatabaseManager2.getInstance();
+        databaseManager.setNewMessageCounter(otherUserId);
 
         otherUser = databaseManager.getUser(otherUserId);
 
@@ -97,6 +94,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              e.printStackTrace();
          }
 
+         restHelper = new RESTHelper(this);
          listView = findViewById(R.id.listView);
          LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         listView.setLayoutManager(layoutManager);
@@ -122,6 +120,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  String messageString = messageField.getText().toString();
                  if(!messageString.equals(""))
                  {
+                     messageField.setText("");
                      App app = (App) getApplication();
                      try {
                          String cipherText = aesHelper.encryptMessage(messageString,otherUser.getBase64EncodedPublicKey(),app.getPrivateKey());
@@ -140,26 +139,20 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          });
      }
 
-     void sendSeenStatus(Message e)
-     {
-         //TODO :
-         //String currentUserId = sp.getString(Util.userId,null);
-         //String accessToken = sp.getString(ACCESS_TOKEN,null);
-
-         String timeStamp = Calendar.getInstance().getTime().toString();
-         RESTHelper restHelper = new RESTHelper(this);
-         HashMap<String, String> params = new HashMap<>();
-         params.put(SEEN_STATUS, timeStamp);
-         params.put(MESSAGE_ID, e.getMessage_id());
-         params.put(USER_ID,e.getTo());
-         restHelper.test("message seen status", params, RESTHelper.SEND_STATUS_ENDPOINT, null, null);
-     }
-
      void getMessages() {
 
         ArrayList<Message> m = databaseManager.getMessages(otherUser.getId(),messages.size(),100);
         for (int i = m.size()-1;i>=0;i--) {
-            messages.add(0,m.get(i));
+            Message message = m.get(i);
+            if(message.getSeen()==null&&message.getFrom().equals(currentUserId))
+            {
+
+                String timeStamp = Calendar.getInstance().getTime().toString();
+                message.setSeen(timeStamp);
+                databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId);
+                restHelper.sendSeenStatus(message);
+            }
+            messages.add(0,message);
         }
         listView.post(new Runnable() {
             @Override
@@ -209,6 +202,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
          if(message.getFrom().equals(otherUserId))
          {
+             databaseManager.setNewMessageCounter(otherUserId);
              runOnUiThread(new Runnable() {
                  @Override
                  public void run() {
@@ -217,12 +211,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      listView.smoothScrollToPosition(messages.size()-1);
                  }
              });
-
          }
-         else {
-             databaseManager.incrementNewMessageCount(message.getFrom(),message.getMessage_id());
-         }
-
      }
 
      void updateMessage(final int position)
@@ -299,12 +288,14 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             TextView message;
             TextView time;
             SwipeRevealLayout container;
+            ImageView corner;
 
             TextReceived(View view) {
                 super(view);
                 message = view.findViewById(R.id.message);
                 time = view.findViewById(R.id.time);
                 container = view.findViewById(R.id.container);
+                corner = view.findViewById(R.id.triangle);
             }
         }
 
@@ -313,6 +304,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView time;
              SwipeRevealLayout container;
              ImageView ticks;
+             ImageView corner;
 
              TextSent(View view) {
                  super(view);
@@ -320,6 +312,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  time = view.findViewById(R.id.time);
                  container = view.findViewById(R.id.container);
                  ticks = view.findViewById(R.id.user_reply_status);
+                 corner = view.findViewById(R.id.triangle);
              }
          }
 
@@ -368,6 +361,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
 
             Message message = messages.get(position);
+             boolean flag = false;
+             if (position!=0) {
+                 Message prev = messages.get(position - 1);
+                 flag = check (message, prev);
+             }
             if(message.getFrom().equals(otherUserId))
             {
                 TextReceived h = (TextReceived) holder;
@@ -375,6 +373,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 h.time.setText(formatTime(message
                 .getTimeStamp()));
                 h.container.close(false);
+                if(flag)
+                    h.corner.setVisibility(View.INVISIBLE);
+                else
+                    h.corner.setVisibility(View.VISIBLE);
 
             }
             if(message.getFrom().equals(currentUserId))
@@ -384,16 +386,25 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 h.time.setText(formatTime(message
                         .getTimeStamp()));
                 if(message.getReceived()==null)
-                    h.ticks.setVisibility(View.GONE);
+                    h.ticks.setVisibility(View.INVISIBLE);
                 else
                     h.ticks.setVisibility(View.VISIBLE);
+
                 h.container.close(false);
+
+                if(flag)
+                    h.corner.setVisibility(View.INVISIBLE);
+                else
+                    h.corner.setVisibility(View.VISIBLE);
             }
 
         }
 
-        private String formatTime(String received) {
-            //TODO :
+         private boolean check(Message message, Message prev) {
+             return message.getFrom().equals(prev.getFrom());
+         }
+
+         private String formatTime(String received) {
             received =received.substring(4,16);
             return received;
         }

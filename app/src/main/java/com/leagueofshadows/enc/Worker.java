@@ -19,6 +19,7 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.REST.RESTHelper;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 import java.security.InvalidAlgorithmParameterException;
@@ -187,7 +188,7 @@ public class Worker extends Service implements CompleteCallback{
                         String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PulicKey);
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                e.getTimeStamp(), timeStamp,"not seen");
+                                e.getTimeStamp(), timeStamp,null);
                         databaseManager.insertNewMessage(message,message.getFrom());
                         databaseManager.deleteEncryptedMessage(e.getId());
 
@@ -198,13 +199,14 @@ public class Worker extends Service implements CompleteCallback{
                         }
                         else {
                             showNotification(message);
-                            databaseManager.incrementNewMessageCount(message.getFrom(),message.getMessage_id());
                         }
                         update(e);
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
                             InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
                             DataCorruptedException | RunningOnMainThreadException ex) {
+                        databaseManager.deleteEncryptedMessage(e.getId());
                         update(e);
+                        new RESTHelper(getApplicationContext()).sendResendMessage(e);
                         ex.printStackTrace();
                     }
                 }

@@ -17,12 +17,9 @@ import com.leagueofshadows.enc.Items.UserData;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -113,36 +110,12 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         Collections.sort(userDataArrayList, new Comparator<UserData>() {
             @Override
             public int compare(UserData u1, UserData u2) {
-                Message m1 = u1.getLatestMessage();
-                String s1;
-                String s2;
-                if(m1.getFrom().equals(userId)) {
-                    s1 = m1.getTimeStamp();
-                }
-                else {
-                    s1 = m1.getReceived();
-                }
-                Message m2 = u2.getLatestMessage();
-                if(m1.getFrom().equals(userId)) {
-                    s2 = m2.getTimeStamp();
-                }
-                else {
-                    s2 = m2.getReceived();
-                }
-                SimpleDateFormat simpleDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
-                try {
-                    Date d1 = simpleDateFormat.parse(s1);
-                    Date d2 = simpleDateFormat.parse(s2);
-                    if(d1.after(d2))
-                    {
-                        return -1;
-                    }
-                    else
-                        return 0;
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                return 0;
+                if (u1.getTime()>u1.getTime())
+                    return 1;
+                else if(u1.getTime()==u2.getTime())
+                    return 0;
+                else
+                    return -1;
             }
         });
     }
@@ -245,7 +218,6 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         }
 
         private String formatTime(String received) {
-            //TODO :
             received =received.substring(4,16);
             return received;
         }

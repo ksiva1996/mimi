@@ -22,7 +22,7 @@
         tools:ignore="GoogleAppIndexingWarning">
         <activity android:name=".ContactsActivity">
         </activity>
-        <activity android:name=".ChatActivity" android:windowSoftInputMode="adjustPan">
+        <activity android:name=".ChatActivity" android:windowSoftInputMode="adjustResize">
         </activity>
         <activity
             android:name=".MainActivity"
@@ -49,6 +49,10 @@
 
         <service
             android:name=".Worker"
+            android:enabled="true"
+            android:exported="false" />
+        <service
+            android:name=".ResendMessageWorker"
             android:enabled="true"
             android:exported="false" />
         <service

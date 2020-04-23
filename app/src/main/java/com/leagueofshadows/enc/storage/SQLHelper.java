@@ -42,6 +42,11 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String USER_DATA_USERS_ID = "Users_id";
     static final String USER_DATA_MESSAGES_ID = "Messages_Id";
     static final String USER_DATA_NEW_MESSAGE_COUNT = "Message_count";
+    static final String USER_DATA_TIME = "USER_DATA_TIME";
+
+    static final String TABLE_RESEND_MESSAGE = "Resend_messages";
+    static final String RESEND_MESSAGE_USER_ID = "User_id";
+    static final String RESEND_MESSAGE_MESSAGE_ID = "Messages_Id";
 
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
@@ -85,13 +90,21 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + ID + " INTEGER PRIMARY KEY  ,"
                 + USER_DATA_USERS_ID + " TEXT ,"
                 + USER_DATA_MESSAGES_ID+"  TEXT ,"
-                + USER_DATA_NEW_MESSAGE_COUNT+"  INTEGER "
+                + USER_DATA_NEW_MESSAGE_COUNT+"  INTEGER ,"
+                + USER_DATA_TIME+"  INTEGER "
+                + ")";
+
+        String CREATE_RESEND_MESSAGE_TABLE = "CREATE TABLE " + TABLE_RESEND_MESSAGE + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + RESEND_MESSAGE_MESSAGE_ID + " TEXT ,"
+                + RESEND_MESSAGE_USER_ID+"  TEXT "
                 + ")";
 
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_ENCRYPTED_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_USERS_TABLE);
         sqLiteDatabase.execSQL(CREATE_USER_DATA_TABLE);
+        sqLiteDatabase.execSQL(CREATE_RESEND_MESSAGE_TABLE);
     }
 
 

@@ -82,7 +82,7 @@
         </LinearLayout>
 
         <ImageView
-            android:id="@+id/imageView2"
+            android:id="@+id/triangle"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:rotation="270"

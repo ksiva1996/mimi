@@ -12,6 +12,7 @@ import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Items.UserData;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import androidx.annotation.NonNull;
 
@@ -33,7 +34,10 @@ import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_SENT;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TIMESTAMP;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TO;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TYPE;
+import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_MESSAGE_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_ENCRYPTED_MESSAGES;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_RESEND_MESSAGE;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USERS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USER_DATA;
 import static com.leagueofshadows.enc.storage.SQLHelper.USERS_ID;
@@ -42,6 +46,7 @@ import static com.leagueofshadows.enc.storage.SQLHelper.USERS_NUMBER;
 import static com.leagueofshadows.enc.storage.SQLHelper.USERS_PUBLICKEY;
 import static com.leagueofshadows.enc.storage.SQLHelper.USER_DATA_MESSAGES_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.USER_DATA_NEW_MESSAGE_COUNT;
+import static com.leagueofshadows.enc.storage.SQLHelper.USER_DATA_TIME;
 import static com.leagueofshadows.enc.storage.SQLHelper.USER_DATA_USERS_ID;
 
 public class DatabaseManager2 {
@@ -180,15 +185,17 @@ public class DatabaseManager2 {
         String tableName = getTableName(otherUserId);
         String raw = "SELECT * FROM "+tableName+" WHERE "+MESSAGES_ID+" = ?";
         Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{messageId});
-        cursor.moveToFirst();
+        if (cursor.getCount()!=0) {
+            cursor.moveToFirst();
 
-        Message message = new Message(cursor.getInt(0),cursor.getString(cursor.getColumnIndex(MESSAGES_ID)),cursor.getString(cursor.getColumnIndex(MESSAGES_TO))
-                ,cursor.getString(cursor.getColumnIndex(MESSAGES_FROM)),cursor.getString(cursor.getColumnIndex(MESSAGES_CONTENT)),cursor.getString(cursor.getColumnIndex(MESSAGES_FILEPATH))
-                ,cursor.getString(cursor.getColumnIndex(MESSAGES_TIMESTAMP)),cursor.getInt(cursor.getColumnIndex(MESSAGES_TYPE)),cursor.getString(cursor.getColumnIndex(MESSAGES_SENT))
-                ,cursor.getString(cursor.getColumnIndex(MESSAGES_RECEIVED)),cursor.getString(cursor.getColumnIndex(MESSAGES_SEEN)));
-        cursor.close();
-        return message;
-
+            Message message = new Message(cursor.getInt(0), cursor.getString(cursor.getColumnIndex(MESSAGES_ID)), cursor.getString(cursor.getColumnIndex(MESSAGES_TO))
+                    , cursor.getString(cursor.getColumnIndex(MESSAGES_FROM)), cursor.getString(cursor.getColumnIndex(MESSAGES_CONTENT)), cursor.getString(cursor.getColumnIndex(MESSAGES_FILEPATH))
+                    , cursor.getString(cursor.getColumnIndex(MESSAGES_TIMESTAMP)), cursor.getInt(cursor.getColumnIndex(MESSAGES_TYPE)), cursor.getString(cursor.getColumnIndex(MESSAGES_SENT))
+                    , cursor.getString(cursor.getColumnIndex(MESSAGES_RECEIVED)), cursor.getString(cursor.getColumnIndex(MESSAGES_SEEN)));
+            cursor.close();
+            return message;
+        }
+        return null;
     }
 
     //Encrypted Messages database operations
@@ -361,7 +368,7 @@ public class DatabaseManager2 {
 
     //UserData list
 
-    public void updateMessageId(String userId, String messageId)
+    private void updateMessageId(String userId, String messageId)
     {
         SQLiteDatabase sqLiteDatabase = openDatabase();
 
@@ -369,7 +376,9 @@ public class DatabaseManager2 {
         Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{userId});
 
         ContentValues contentValues = new ContentValues();
+        Long time = Calendar.getInstance().getTimeInMillis();
         contentValues.put(USER_DATA_MESSAGES_ID,messageId);
+        contentValues.put(USER_DATA_TIME,time);
         if(cursor.getCount()==0)
         {
             contentValues.put(USER_DATA_USERS_ID,userId);
@@ -382,7 +391,7 @@ public class DatabaseManager2 {
         cursor.close();
     }
 
-    public void incrementNewMessageCount(String userId,String messageId)
+    private void incrementNewMessageCount(String userId, String messageId)
     {
         SQLiteDatabase sqLiteDatabase = openDatabase();
 
@@ -391,22 +400,21 @@ public class DatabaseManager2 {
 
         ContentValues contentValues = new ContentValues();
         contentValues.put(USER_DATA_MESSAGES_ID,messageId);
-        int count=1;
-        if(cursor.getCount()==0)
-        {
-            contentValues.put(USER_DATA_USERS_ID,userId);
-            contentValues.put(USER_DATA_NEW_MESSAGE_COUNT,count);
-            sqLiteDatabase.insert(TABLE_USER_DATA,null,contentValues);
-        }
-        else
-        {
+
             cursor.moveToFirst();
-            count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
+            int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
             count++;
             contentValues.put(USER_DATA_NEW_MESSAGE_COUNT,count);
             sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{userId});
-        }
-        cursor.close();
+            cursor.close();
+    }
+
+    public void setNewMessageCounter(String userId)
+    {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(USER_DATA_NEW_MESSAGE_COUNT,0);
+        sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{userId});
     }
 
     public ArrayList<UserData> getUserData()
@@ -427,8 +435,8 @@ public class DatabaseManager2 {
                     String messageId = cursor.getString(cursor.getColumnIndex(USER_DATA_MESSAGES_ID));
                     Message message = getMessage(messageId,userId);
                     int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
-
-                    UserData userData = new UserData(user,message,count);
+                    long time = cursor.getLong(cursor.getColumnIndex(USER_DATA_TIME));
+                    UserData userData = new UserData(user,message,count,time);
                     userDataArrayList.add(userData);
                 }while (cursor.moveToNext());
             }
@@ -478,5 +486,44 @@ public class DatabaseManager2 {
         }
         cursor.close();
     }
-    // message status
+
+    //resend message operations
+
+    public void insertResendMessage(String userId,String messageId)
+    {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        ContentValues contentValues = new ContentValues();
+        String raw = "SELECT * FROM "+TABLE_RESEND_MESSAGE +" WHERE "+RESEND_MESSAGE_MESSAGE_ID+" = ? ";
+        Cursor cursor = sqLiteDatabase.rawQuery(raw,new String[]{messageId});
+        if(cursor.getCount()==0) {
+            contentValues.put(RESEND_MESSAGE_MESSAGE_ID,messageId);
+            contentValues.put(RESEND_MESSAGE_USER_ID,userId);
+            sqLiteDatabase.insert(TABLE_RESEND_MESSAGE,null,contentValues);
+        }
+        cursor.close();
+    }
+
+    public ArrayList<Message> getResendMessages()
+    {
+        ArrayList<Message> messages = new ArrayList<>();
+        String raw = "SELECT * FROM "+TABLE_RESEND_MESSAGE;
+        Cursor cursor =openDatabase().rawQuery(raw,null);
+        if(cursor.moveToFirst())
+        {
+            do {
+                Message message = getMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID))
+                        ,cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_USER_ID)));
+                if(message!=null) {
+                    messages.add(message);
+                }
+                else
+                    deleteResendMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID)));
+            }while(cursor.moveToNext());
+        }
+        cursor.close();
+        return messages;
+    }
+    public void deleteResendMessage(String messageId) {
+        openDatabase().delete(TABLE_RESEND_MESSAGE,RESEND_MESSAGE_MESSAGE_ID+" = ?", new String[]{messageId});
+    }
 }

@@ -30,10 +30,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import static com.leagueofshadows.enc.FirebaseReceiver.NEW_MESSAGE;
-import static com.leagueofshadows.enc.REST.RESTHelper.SEND_NOTIFICATION_ENDPOINT;
-import static com.leagueofshadows.enc.REST.RESTHelper.SEND_STATUS_ENDPOINT;
-
 public class Test extends AppCompatActivity implements MessagesRetrievedCallback {
 
     ArrayList<String> chatList;
@@ -82,7 +78,7 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
         params.put("MESSAGE_ID","testId");
         params.put("MESSAGE_STATUS","1");
         RESTHelper restHelper = new RESTHelper(this);
-        restHelper.test("sendNewMessageNotification",params,SEND_STATUS_ENDPOINT,null,null);
+        //restHelper.test("sendNewMessageNotification",params,SEND_STATUS_ENDPOINT,null,null);
 
 
     }
@@ -100,11 +96,11 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
         String currentUserId = sp.getString(Util.userId,null);
 
 
-        HashMap<String,String> params = new HashMap<>();
+       /* HashMap<String,String> params = new HashMap<>();
         params.put("USER_ID",currentUserId);
         params.put(NEW_MESSAGE,NEW_MESSAGE);
         RESTHelper restHelper = new RESTHelper(this);
-        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);
+        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);*/
 
     }
 
@@ -121,7 +117,7 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
                 params.put("USER_ID",userId);
 
                 RESTHelper restHelper = new RESTHelper(Test.this);
-                restHelper.test("token sending",params,RESTHelper.TOKEN_UPDATE_ENDPOINT,null,null);
+                //restHelper.test("token sending",params,RESTHelper.TOKEN_UPDATE_ENDPOINT,null,null);
             }
         });
     }

@@ -144,7 +144,7 @@ public class DecryptMessageWorker extends Service {
                         String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PulicKey);
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                e.getTimeStamp(), timeStamp,"not seen");
+                                e.getTimeStamp(), timeStamp,null);
                         databaseManager.insertNewMessage(message,message.getFrom());
                         databaseManager.deleteEncryptedMessage(e.getId());
 
@@ -155,13 +155,13 @@ public class DecryptMessageWorker extends Service {
                         }
                         else {
                             showNotification(message);
-                            databaseManager.incrementNewMessageCount(message.getFrom(),message.getMessage_id());
                         }
                         update(e);
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
                             InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
                             DataCorruptedException | RunningOnMainThreadException ex) {
                         update(e);
+                        databaseManager.deleteEncryptedMessage(e.getId());
                         ex.printStackTrace();
                     }
                 }
@@ -174,6 +174,13 @@ public class DecryptMessageWorker extends Service {
 
     private void showNotification(Message message) {
         //TODO : figure out notifications
+    }
+
+    private void sendResendNotification(EncryptedMessage e) {
+
+        //TODO : ask the other user to send message with correct public key
+        // this caused likely due to other user sending message before current user signsup
+
     }
 
     private void createNotificationChannel() {

@@ -9,17 +9,13 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
-
 import java.util.ArrayList;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import static com.leagueofshadows.enc.ContactsWorker.FLAG;
 
 public class ContactsActivity extends AppCompatActivity implements CompleteCallback {
@@ -103,7 +99,5 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     }
 
     @Override
-    public void onCanceled() {
-
-    }
+    public void onCanceled() {}
 }

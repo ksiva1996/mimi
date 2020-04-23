@@ -25,37 +25,29 @@ import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 
 import androidx.annotation.NonNull;
-
-import static com.leagueofshadows.enc.FirebaseReceiver.RECEIVED_STATUS;
-import static com.leagueofshadows.enc.REST.RESTHelper.SEND_NOTIFICATION_ENDPOINT;
-import static com.leagueofshadows.enc.REST.RESTHelper.USER_ID;
 
 class FirebaseHelper {
 
     static final String MESSAGE_ID = "MESSAGE_ID";
-    private static final String NEW_MESSAGE = "NEW_MESSAGE";
     private Context context;
     private DatabaseReference databaseReference;
     private DatabaseManager2 databaseManager;
 
-    public static final String Messages = "Messages";
-    static final String Users = "Users";
+    static final String Messages = "Messages";
+    private static final String Users = "Users";
 
     private static final String DeviceOfflineException = "Cannot send Message without internet connection...TODO: offline capability in the next update";
 
-    static final String id = "id";
-    static final String to = "to";
-    static final String from = "from";
-    static final String content = "content";
-    static final String type = "type";
-    static final String filePath = "filePath";
-    static final String timeStamp = "timeStamp";
-    static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
+    private static final String id = "id";
+    private static final String to = "to";
+    private static final String from = "from";
+    private static final String content = "content";
+    private static final String type = "type";
+    private static final String filePath = "filePath";
+    private static final String timeStamp = "timeStamp";
+    private static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
 
 
     FirebaseHelper(Context context)
@@ -66,8 +58,6 @@ class FirebaseHelper {
         FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference();
     }
-
-
 
     void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback) throws DeviceOfflineException {
 
@@ -86,7 +76,8 @@ class FirebaseHelper {
             public void onSuccess(Void aVoid) {
                 message.setSent(timeStamp);
                 databaseManager.insertNewMessage(message,message.getTo());
-                sendNewMessageNotification(encryptedMessage.getTo());
+                RESTHelper restHelper = new RESTHelper(context);
+                restHelper.sendNewMessageNotification(message.getTo());
                 messageSentCallback.onComplete(message,true,null);
             }
         }).addOnFailureListener(new OnFailureListener() {
@@ -110,22 +101,6 @@ class FirebaseHelper {
                 callback.result(false,e.toString());
             }
         });
-    }
-
-    private void sendNewMessageNotification(String toUserId) {
-
-        //SharedPreferences sp = context.getSharedPreferences(Util.preferences,MODE_PRIVATE);
-        //TODO : security
-        //String currentUserId = sp.getString(Util.userId,null);
-        //String accessToken = sp.getString(ACCESS_TOKEN,null);
-
-        HashMap<String,String> params = new HashMap<>();
-
-        params.put(USER_ID,toUserId);
-        params.put(NEW_MESSAGE,NEW_MESSAGE);
-        RESTHelper restHelper = new RESTHelper(context);
-        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);
-
     }
 
     void getNewMessages(String userId, final CompleteCallback completeCallback) throws DeviceOfflineException {
@@ -190,25 +165,17 @@ class FirebaseHelper {
         RESTHelper restHelper = new RESTHelper(context);
 
         for (EncryptedMessage e:encryptedMessages) {
-            Map<String,String> params = new HashMap<>();
-            params.put(MESSAGE_ID,e.getId());
-            String timeStamp = Calendar.getInstance().getTime().toString();
-            params.put(RECEIVED_STATUS,timeStamp);
-            params.put(USER_ID,e.getFrom());
-            params.put("TEMP_USER_ID",e.getTo());
-            restHelper.test("Message Id "+e.getId(),params,RESTHelper.SEND_STATUS_ENDPOINT,null,null);
+            restHelper.sendReceivedStatus(e);
         }
     }
 
-     boolean checkConnection()
-    {
+     boolean checkConnection() {
+
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean connected = false;
-        try
-        {
+        try {
             NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-            if(networkInfo!=null&&networkInfo.isConnected())
-            {
+            if(networkInfo!=null&&networkInfo.isConnected()) {
                 connected = true;
             }
             return connected;
@@ -218,12 +185,4 @@ class FirebaseHelper {
             return false;
         }
     }
-
-    //TODO: delete this
-
-    /*public void sendMessage(Message message) {
-        DatabaseReference ref = databaseReference.child(Messages).child("+919440186376").push();
-        String key = ref.getKey();
-        ref.child(key).setValue(message);
-    }*/
 }

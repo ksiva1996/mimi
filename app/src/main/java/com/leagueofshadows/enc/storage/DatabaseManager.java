@@ -407,7 +407,7 @@ public class DatabaseManager  {
                     Message message = getMessage(messageId);
                     int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
 
-                    UserData userData = new UserData(user,message,count);
+                    UserData userData = new UserData(user,message,count,0);
                     userDataArrayList.add(userData);
                 }while (cursor.moveToNext());
             }

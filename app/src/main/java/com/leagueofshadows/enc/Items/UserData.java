@@ -5,11 +5,14 @@ public class UserData {
     private User user;
     private Message latestMessage;
     private int count;
+    private long time;
 
-    public UserData(User user, Message latestMessage, int count)
+    public UserData(User user, Message latestMessage, int count,long time)
     {
         this.user = user;
         this.latestMessage = latestMessage;
+        this.count = count;
+        this.time = time;
     }
 
 
@@ -35,6 +38,14 @@ public class UserData {
 
     public int getCount() {
         return count;
+    }
+
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 }
 

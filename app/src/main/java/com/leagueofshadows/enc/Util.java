@@ -6,7 +6,7 @@ import android.os.Environment;
 public class Util {
 
 
-    static final String TOKEN_SENT = "TOKEN_SENT";
+    public static final String TOKEN_SENT = "TOKEN_SENT";
     static final String loginToken = "loginToken";
 
     static final int keySize = 128;
@@ -31,12 +31,13 @@ public class Util {
 
     static final String permission = "P";
     public static String CheckMessageEncrypted = "CheckMessageEncrypted";
+    public static String accessToken = "accessToken";
     static String toUserId = "toUserId";
     static String name = "name";
     static String number = "number";
     static String password = "password";
     public static final String CheckMessageIV = "CheckMessageIV";
-    static String userId = "userId";
+    public static String userId = "userId";
     static String PrivateKeyString = "PrivateKeyString";
 
     static final String PublicKeyString = "PublicKeyString";

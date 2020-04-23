@@ -17,6 +17,7 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.RESTHelper;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -26,8 +27,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -36,11 +35,7 @@ import javax.crypto.NoSuchPaddingException;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
-import static com.leagueofshadows.enc.FirebaseHelper.Users;
-import static com.leagueofshadows.enc.FirebaseReceiver.RECEIVED_STATUS;
-import static com.leagueofshadows.enc.REST.RESTHelper.USER_ID;
 
 public class BackgroundWorker extends Service implements com.google.firebase.database.ChildEventListener {
 
@@ -104,10 +99,10 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                         String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                e.getTimeStamp(), timeStamp,"not seen");
+                                e.getTimeStamp(), timeStamp,null);
                         databaseManager.insertNewMessage(message,message.getFrom());
 
-                        sendReceivedStatus(e);
+                        restHelper.sendReceivedStatus(e);
 
                         if(app.getMessagesRetrievedCallback()!=null) {
                             MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
@@ -115,11 +110,12 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                         }
                         else {
                             showNotification(message);
-                            databaseManager.incrementNewMessageCount(message.getFrom(),message.getMessage_id());
                         }
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
                             InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
-                            DataCorruptedException | RunningOnMainThreadException ex) {
+                            DataCorruptedException | RunningOnMainThreadException ex)
+                    {
+                        restHelper.sendResendMessage(e);
                         ex.printStackTrace();
                     }
                 }
@@ -129,17 +125,6 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                 }
             }
         });
-    }
-
-    void sendReceivedStatus(EncryptedMessage e)
-    {
-        Map<String,String> params = new HashMap<>();
-        params.put(MESSAGE_ID,e.getId());
-        String timeStamp = Calendar.getInstance().getTime().toString();
-        params.put(RECEIVED_STATUS,timeStamp);
-        params.put(USER_ID,e.getFrom());
-        params.put("TEMP_USER_ID",e.getTo());
-        restHelper.test("Message Id "+e.getId(),params, RESTHelper.SEND_STATUS_ENDPOINT,null,null);
     }
 
     private void showNotification(Message message) {
@@ -172,6 +157,8 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
             firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
                 @Override
                 public void onSuccess(String Base64PublicKey) {
+                    User user = new User(encryptedMessage.getFrom(),encryptedMessage.getFrom(),encryptedMessage.getFrom(),Base64PublicKey);
+                    databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
                     decryptMessage(encryptedMessage,Base64PublicKey);
                 }
                 @Override

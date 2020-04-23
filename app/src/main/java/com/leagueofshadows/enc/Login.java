@@ -10,7 +10,6 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.android.volley.Response;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
@@ -24,7 +23,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.HashMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -73,17 +71,7 @@ public class Login extends AppCompatActivity {
                 @Override
                 public void onSuccess(InstanceIdResult instanceIdResult) {
                     String token = instanceIdResult.getToken();
-                    Log.e("token", token);
-                    HashMap<String, String> params = new HashMap<>();
-                    params.put("TOKEN", token);
-                    params.put("USER_ID", sp.getString(Util.userId,null));
-                    RESTHelper restHelper = new RESTHelper(Login.this);
-                    restHelper.test("token sending", params, RESTHelper.TOKEN_UPDATE_ENDPOINT, new Response.Listener<String>() {
-                        @Override
-                        public void onResponse(String response) {
-                            sp.edit().putString(Util.TOKEN_SENT,Util.TOKEN_SENT).apply();
-                        }
-                    }, null);
+                    new RESTHelper(Login.this).updateToken(token);
                 }
             });
         }
