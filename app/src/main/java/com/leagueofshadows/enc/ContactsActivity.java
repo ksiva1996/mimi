@@ -6,6 +6,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -85,6 +86,20 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             else {
                 startService(intent1);
             }
+        }
+        else if(item.getItemId() == R.id.contacts)
+        {
+            Intent intent = new Intent(Intent.ACTION_VIEW, ContactsContract.Contacts.CONTENT_URI);
+            startActivity(intent);
+        }
+        else if(item.getItemId()==R.id.share)
+        {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_SUBJECT,getResources().getString(R.string.app_name));
+            String shareMessage = "share message";
+            intent.putExtra(Intent.EXTRA_TEXT,shareMessage);
+            startActivity(intent);
         }
         return true;
     }

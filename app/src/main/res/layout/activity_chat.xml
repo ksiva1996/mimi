@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/chat_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -48,7 +48,7 @@
             android:layout_weight="1"
             android:background="@drawable/to_msg_background"
             android:minHeight="50dp"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:padding="10dp">
 
             <LinearLayout
@@ -59,7 +59,7 @@
                 android:background="@drawable/reply_receive_background"
                 android:orientation="vertical"
                 android:padding="10dp"
-                android:visibility="gone">
+                android:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -93,7 +93,7 @@
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/textView"
+                    android:id="@+id/reply_message"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:maxWidth="180dp"

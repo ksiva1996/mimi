@@ -82,25 +82,7 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-            <TextView
-                android:id="@+id/message"
-                style="@style/chat_text_message_style"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:autoLink="web"
-                android:paddingRight="6dp"
-                android:text="."
-
-                android:textColor="#ccffffff" />
-
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:orientation="horizontal"
-                android:paddingEnd="5dp">
-
-                <LinearLayout
                 android:id="@+id/reply_send_layout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -126,6 +108,24 @@
                     android:text="Test view here"
                     android:textColor="#A3A3A3" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/message"
+                style="@style/chat_text_message_style"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:autoLink="web"
+                android:paddingRight="6dp"
+                android:text="."
+                android:textColor="#ccffffff" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:orientation="horizontal"
+                android:paddingEnd="5dp">
+
 
                 <TextView
                     android:id="@+id/time"
@@ -170,11 +170,7 @@
                     android:visibility="visible" />
 
             </LinearLayout>
-
         </LinearLayout>
-
-        
-
     </RelativeLayout>
 
 </com.leagueofshadows.enc.SwipeRevealLayout>

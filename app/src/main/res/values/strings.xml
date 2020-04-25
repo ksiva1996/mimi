@@ -33,4 +33,7 @@
     <string name="type_your_message">Type a message</string>
     <string name="NoRecent">No recent</string>
     <string name="username">Username</string>
+    <string name="share_with_friends">Share with friends</string>
+    <string name="open_contacts">Open contacts</string>
+    <string name="refresh">refresh</string>
 </resources>

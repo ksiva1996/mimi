@@ -1,5 +1,8 @@
 package com.leagueofshadows.enc;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,8 +15,11 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
@@ -45,6 +51,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
+import static android.view.View.GONE;
+import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
+
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
         ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback
  {
@@ -59,10 +68,19 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     DatabaseManager2 databaseManager;
     SharedPreferences sp;
     FirebaseHelper firebaseHelper;
+
     EditText messageField;
+    LinearLayout chatReplyLayout;
+    TextView replyName;
+    TextView replyMessageText;
+    ImageButton closeReplyLayout;
+
     ImageButton send;
     AESHelper aesHelper;
     Native restHelper;
+
+    private Message replyMessage = null;
+
     public static  final int RECEIVE_TEXT = 0;
     public static  final int RECEIVE_IMAGE = 1;
     public static  final int RECEIVE_FILE = 2;
@@ -124,8 +142,23 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         };
 
         messageField = findViewById(R.id.chat_edit_text);
-        send = findViewById(R.id.send);
 
+        chatReplyLayout = findViewById(R.id.chat_reply);
+        chatReplyLayout.setVisibility(GONE);
+
+        replyName = findViewById(R.id.reply_name);
+        replyMessageText = findViewById(R.id.reply_message);
+        closeReplyLayout = findViewById(R.id.close_reply);
+
+        closeReplyLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                chatReplyLayout.setVisibility(GONE);
+                replyMessage = null;
+            }
+        });
+
+        send = findViewById(R.id.send);
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -192,7 +225,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
     //options for messages
 
-    void deleteMessage(final Message message)
+    void deleteMessage(final Message message, final int position)
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         String m;
@@ -207,6 +240,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 databaseManager.deleteMessage(message,currentUserId);
                 messages.remove(message);
                 messageIds.remove(message.getMessage_id());
+                recyclerAdapter.notifyItemRangeRemoved(position,1);
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
@@ -219,7 +253,36 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
     void messageInfo(final Message message)
     {
+        Intent intent = new Intent(this,MessageInfo.class);
+        intent.putExtra(MESSAGE_ID,message.getMessage_id());
+        startActivity(intent);
+    }
 
+    void messageCopy(Message message)
+    {
+        try {
+            ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clipData = ClipData.newPlainText("message text",message.getContent());
+            assert clipboardManager != null;
+            clipboardManager.setPrimaryClip(clipData);
+            Toast.makeText(this,"text copied to clipboard",Toast.LENGTH_SHORT).show();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void replyToMessage(Message message)
+    {
+        chatReplyLayout.setVisibility(View.VISIBLE);
+        replyMessageText.setText(message.getContent());
+        String name;
+        if(message.getFrom().equals(currentUserId))
+            name = "you";
+        else
+            name = otherUser.getName();
+        replyName.setText(name);
+        replyMessage = message;
     }
 
      @Override
@@ -372,6 +435,25 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
      @Override
      public void onOptionsSelected(int option, int position) {
+         Message message = messages.get(position);
+         switch (option)
+         {
+             case MESSAGE_COPY: {
+                 messageCopy(message);
+                 return;
+             }
+             case MESSAGE_DELETE:{
+                 deleteMessage(message,position);
+                 return;
+             }
+             case MESSAGE_INFO:{
+                 messageInfo(message);
+                 return;
+             }
+             case MESSAGE_REPLY:{
+                 replyToMessage(message);
+             }
+         }
 
      }
 
@@ -521,7 +603,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          }
 
          @Override
-        public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
 
             if(position==0&&messages.size()>100) {
                 scrollEndCallback.scrollEndReached();
@@ -547,7 +629,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      }
                      else
                      {
-                         TextReceived h = (TextReceived) holder;
+                         final TextReceived h = (TextReceived) holder;
                          h.message.setText(message.getContent());
                          h.time.setText(formatTime(message
                                  .getTimeStamp()));
@@ -559,75 +641,107 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          h.infoButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO,position);
+                                 h.container.close(true);
                              }
                          });
                          h.deleteButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE,position);
+                                 h.container.close(true);
                              }
                          });
                          h.replyButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY,position);
+                                 h.container.close(true);
                              }
                          });
                          h.copyButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY,position);
+                                 h.container.close(true);
                              }
                          });
                      }
 
                  }
                  if (message.getFrom().equals(currentUserId)) {
-                     TextSent h = (TextSent) holder;
+
+                     final TextSent h = (TextSent) holder;
                      h.message.setText(message.getContent());
                      h.time.setText(formatTime(message
                              .getTimeStamp()));
                      if(message.getSeen()!=null)
                      {
-                         h.received.setVisibility(View.GONE);
-                         h.sent.setVisibility(View.GONE);
-                         h.pg.setVisibility(View.GONE);
+                         h.received.setVisibility(GONE);
+                         h.sent.setVisibility(GONE);
+                         h.pg.setVisibility(GONE);
                          h.seen.setVisibility(View.VISIBLE);
                      }
                      else if(message.getReceived()!=null)
                      {
-                         h.seen.setVisibility(View.GONE);
-                         h.sent.setVisibility(View.GONE);
-                         h.pg.setVisibility(View.GONE);
+                         h.seen.setVisibility(GONE);
+                         h.sent.setVisibility(GONE);
+                         h.pg.setVisibility(GONE);
                          h.received.setVisibility(View.VISIBLE);
                      }
                      else if(message.getSent()!=null)
                      {
-                         h.seen.setVisibility(View.GONE);
-                         h.received.setVisibility(View.GONE);
-                         h.pg.setVisibility(View.GONE);
+                         h.seen.setVisibility(GONE);
+                         h.received.setVisibility(GONE);
+                         h.pg.setVisibility(GONE);
                          h.sent.setVisibility(View.VISIBLE);
                      }
                      else
                      {
-                         h.seen.setVisibility(View.GONE);
-                         h.received.setVisibility(View.GONE);
-                         h.sent.setVisibility(View.GONE);
+                         h.seen.setVisibility(GONE);
+                         h.received.setVisibility(GONE);
+                         h.sent.setVisibility(GONE);
                          h.pg.setVisibility(View.VISIBLE);
                      }
-
                      h.container.close(false);
 
                      if (flag)
                          h.corner.setVisibility(View.INVISIBLE);
                      else
                          h.corner.setVisibility(View.VISIBLE);
+                     h.infoButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             messageOptionsCallback.onOptionsSelected(MESSAGE_INFO,position);
+                             h.container.close(true);
+                         }
+                     });
+                     h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE,position);
+                             h.container.close(true);
+                         }
+                     });
+                     h.replyButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY,position);
+                             h.container.close(true);
+                         }
+                     });
+                     h.copyButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             messageOptionsCallback.onOptionsSelected(MESSAGE_COPY,position);
+                             h.container.close(true);
+                         }
+                     });
                  }
              }
             else
             {
-                //TODO:
+                //TODO: other views
             }
         }
 

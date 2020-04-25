@@ -22,9 +22,12 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
         <uses-library android:name="org.apache.http.legacy" android:required="false" />
-        <activity android:name=".ContactsActivity">
+        <activity android:name=".ContactsActivity"
+            android:parentActivityName=".MainActivity">
         </activity>
-        <activity android:name=".ChatActivity" android:windowSoftInputMode="adjustResize">
+        <activity android:name=".ChatActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".MainActivity">
         </activity>
         <activity
             android:name=".MainActivity"
@@ -32,6 +35,7 @@
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".OTP"
+            android:parentActivityName=".Register"
             android:theme="@style/UserTheme" />
         <activity
             android:name=".Login"
@@ -42,6 +46,9 @@
         <activity android:name=".Test"
             android:windowSoftInputMode="adjustPan">
         </activity>
+        <activity android:name=".MessageInfo"
+            android:parentActivityName=".ChatActivity"/>
+
         <activity android:name=".SplashActivity"
             android:theme="@style/UserTheme" >
             <intent-filter>
