@@ -31,6 +31,7 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String ENCRYPTED_MESSAGES_TYPE = "Encrypted_Messages_type";
     static final String ENCRYPTED_MESSAGES_FILEPATH = "Encrypted_Messages_filepath";
     static final String ENCRYPTED_MESSAGES_TIMESTAMP = "Encrypted_Messages_timestamp";
+    static final String ENCRYPTED_MESSAGES_RESEND = "Encrypted_Messages_resend";
 
     static final String TABLE_USERS = "Users";
     static final String USERS_ID = "Users_id";
@@ -76,7 +77,8 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + ENCRYPTED_MESSAGES_CONTENT + " TEXT ,"
                 +ENCRYPTED_MESSAGES_TYPE+" INTEGER ,"
                 +ENCRYPTED_MESSAGES_FILEPATH+" TEXT ,"
-                +ENCRYPTED_MESSAGES_TIMESTAMP+" TEXT "
+                +ENCRYPTED_MESSAGES_TIMESTAMP+" TEXT ,"
+                +ENCRYPTED_MESSAGES_RESEND+" BOOLEAN "
                 + ")";
 
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("

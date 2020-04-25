@@ -32,6 +32,9 @@ public class Util {
     static final String permission = "P";
     public static String CheckMessageEncrypted = "CheckMessageEncrypted";
     public static String accessToken = "accessToken";
+    public static String failure = "failure";
+    //TODO:
+    public static String key = "AAAA9mn4XrI:APA91bHmWqrRds17hK0IZCD-5MkA4kpLWV27WhRPhW2NTX0bHzj_onjpQNwzKmKhouKKy-gjI7p4XhtvdnOVvusRlN2x0Ee4DRy1grMHrpx8YVjV5_66cxr47iRwtO5M09ZUj4OYsney";
     static String toUserId = "toUserId";
     static String name = "name";
     static String number = "number";

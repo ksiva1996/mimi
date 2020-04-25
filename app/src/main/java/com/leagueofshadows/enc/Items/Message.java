@@ -19,12 +19,11 @@ public class Message {
     public static final int MESSAGE_TYPE_ONLYTEXT = 1;
     public static final int MESSAGE_TYPE_IMAGE = 2;
     public static final int MESSAGE_TYPE_FILE = 3;
-    public static final String MESSAGE_SENDING_FAILED = "MESSAGE_SENDING_FAILED";
-    public static final String MESSAGE_SENDING_SUCCESSFULL = "MESSAGE_SENDING_SUCCESSFULL";
 
-    public Message() { }
 
-    public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, @NonNull String content,
+    public Message() {}
+
+    public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, String content,
                    String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen)
     {
         this.message_id = message_id;
@@ -39,6 +38,24 @@ public class Message {
         this.received = received;
         this.seen = seen;
     }
+    public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, String content,
+                   String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen,boolean resend)
+    {
+        this.message_id = message_id;
+        this.id = id;
+        this.to = to;
+        this.from = from;
+        this.content = content;
+        this.filePath = filePath;
+        this.timeStamp = timeStamp;
+        this.type = type;
+        this.sent = sent;
+        this.received = received;
+        this.seen = seen;
+    }
+
+
+
 
     public int getId() {
         return id;
@@ -127,4 +144,5 @@ public class Message {
     public void setMessage_id(String message_id) {
         this.message_id = message_id;
     }
+
 }

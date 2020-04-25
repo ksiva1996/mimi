@@ -6,6 +6,4 @@ public interface MessagesRetrievedCallback {
 
     void onNewMessage(Message message);
     void onUpdateMessageStatus(String messageId,String userId);
-    void onCanceled();
-
 }

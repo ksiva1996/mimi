@@ -9,6 +9,7 @@ public class EncryptedMessage {
     private String timeStamp;
     private String filePath;
     private int type;
+    private boolean resend;
 
     public static final int MESSAGE_TYPE_ONLYTEXT = 1;
     public static final int MESSAGE_TYPE_IMAGE = 2;
@@ -23,9 +24,24 @@ public class EncryptedMessage {
         this.timeStamp = timeStamp;
         this.type = type;
         this.filePath = filePath;
+        this.resend = false;
     }
 
-    public EncryptedMessage(){}
+    public EncryptedMessage(String id, String to, String from, String content, String filePath, String timeStamp, int type,boolean resend)
+    {
+        this.id = id;
+        this.to = to;
+        this.from = from;
+        this.content = content;
+        this.timeStamp = timeStamp;
+        this.type = type;
+        this.filePath = filePath;
+        this.resend = resend;
+    }
+
+    public EncryptedMessage(){
+        this.resend = false;
+    }
 
     public String getId() {
         return id;
@@ -81,5 +97,13 @@ public class EncryptedMessage {
 
     public void setType(int type) {
         this.type = type;
+    }
+
+    public boolean isResend() {
+        return resend;
+    }
+
+    public void setResend(boolean resend) {
+        this.resend = resend;
     }
 }

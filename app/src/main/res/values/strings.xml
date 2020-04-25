@@ -20,7 +20,6 @@
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="join">Join</string>
-    <string name="username">Username</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="password">Password</string>
     <string name="phone_number">Phone Number</string>
@@ -33,4 +32,5 @@
     <string name="title_activity_login">Sign in</string>
     <string name="type_your_message">Type a message</string>
     <string name="NoRecent">No recent</string>
+    <string name="username">Username</string>
 </resources>

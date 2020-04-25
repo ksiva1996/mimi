@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="Meal History"
+            android:text="OFFLINE"
             android:background="#F44336"
             android:textColor="@android:color/white"
             android:textAlignment="center"

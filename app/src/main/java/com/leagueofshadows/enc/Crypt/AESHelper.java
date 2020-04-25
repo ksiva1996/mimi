@@ -97,12 +97,10 @@ public class AESHelper {
         String salt = sp.getString(Util.saltString,null);
         if(salt == null)
         {
-            Log.e("something","something");
             byte[] saltBytes = new byte[32];
             secureRandom.nextBytes(saltBytes);
             salt = getBase64(saltBytes);
             sp.edit().putString(Util.saltString,salt).apply();
-
         }
         byte[] saltBytes = getbytes(salt);
         PBEKeySpec spec = new PBEKeySpec(Password.toCharArray(), saltBytes,iterations,keySize);
@@ -156,7 +154,6 @@ public class AESHelper {
         String Base64IV = context.getSharedPreferences(com.leagueofshadows.enc.Util.preferences,Context.MODE_PRIVATE).getString(CheckMessageIV,null);
         byte[] iv;
         if(Base64IV == null) {
-            Log.e("something","something");
             iv = getNewIV();
             Base64IV = getBase64(iv);
             context.getSharedPreferences(com.leagueofshadows.enc.Util.preferences,Context.MODE_PRIVATE).edit().putString(CheckMessageIV,Base64IV).apply();

@@ -16,7 +16,7 @@ import com.google.firebase.iid.InstanceIdResult;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
-import com.leagueofshadows.enc.REST.RESTHelper;
+import com.leagueofshadows.enc.REST.Native;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -29,9 +29,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import static com.leagueofshadows.enc.ContactsWorker.FLAG;
-import static com.leagueofshadows.enc.ContactsWorker.UPDATE_EXISTING;
 
 public class Login extends AppCompatActivity {
 
@@ -71,7 +68,7 @@ public class Login extends AppCompatActivity {
                 @Override
                 public void onSuccess(InstanceIdResult instanceIdResult) {
                     String token = instanceIdResult.getToken();
-                    new RESTHelper(Login.this).updateToken(token);
+                    new Native(Login.this).updateToken(token);
                 }
             });
         }
@@ -94,8 +91,7 @@ public class Login extends AppCompatActivity {
                         show();
                         setUp(p);
 
-                        Intent intent2 = new Intent(Login.this,ContactsWorker.class);
-                        intent2.putExtra(FLAG,UPDATE_EXISTING);
+                        Intent intent2 = new Intent(Login.this,ResendMessageWorker.class);
                         startService(intent2);
 
                         Intent intent1 = new Intent(Login.this,DecryptMessageWorker.class);
@@ -132,7 +128,6 @@ public class Login extends AppCompatActivity {
             app.setPrivateKey(privateKey);
         } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeySpecException | RunningOnMainThreadException e) {
             e.printStackTrace();
-            Log.e("private key",e.toString());
         }
     }
 

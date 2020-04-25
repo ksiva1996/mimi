@@ -400,7 +400,6 @@ public class DatabaseManager  {
             if(cursor.moveToFirst())
             {
                 do {
-                    Log.e("user","data");
                     String userId = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
                     User user = getUser(userId);
                     String messageId = cursor.getString(cursor.getColumnIndex(USER_DATA_MESSAGES_ID));

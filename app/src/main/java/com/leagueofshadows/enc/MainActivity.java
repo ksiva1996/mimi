@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
+import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.UserData;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
@@ -27,7 +28,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class MainActivity extends AppCompatActivity implements  MessagesRetrievedCallback {
+public class MainActivity extends AppCompatActivity implements  MessagesRetrievedCallback , ResendMessageCallback {
 
     ArrayList<UserData> userDataArrayList;
     RecyclerAdapter recyclerAdapter;
@@ -81,7 +82,13 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         }
 
         app.setMessagesRetrievedCallback(this);
+        app.setResendMessageCallback(this);
         loadUserData();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
@@ -98,11 +105,10 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
                 userDataArrayList.clear();
                 userDataArrayList.addAll( databaseManager.getUserData());
                 sort(userDataArrayList);
-                Log.e("size", String.valueOf(userDataArrayList.size()));
+                //Log.e("size", String.valueOf(userDataArrayList.size()));
                 recyclerAdapter.notifyDataSetChanged();
             }
         });
-
     }
 
     private void sort(ArrayList<UserData> userDataArrayList) {
@@ -110,12 +116,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         Collections.sort(userDataArrayList, new Comparator<UserData>() {
             @Override
             public int compare(UserData u1, UserData u2) {
-                if (u1.getTime()>u1.getTime())
-                    return 1;
-                else if(u1.getTime()==u2.getTime())
-                    return 0;
-                else
-                    return -1;
+                return (int)(u2.getTime()-u1.getTime());
             }
         });
     }
@@ -127,12 +128,11 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
 
     @Override
     public void onUpdateMessageStatus(String messageId, String userId) {
-        Log.e("status",messageId+" "+userId);
     }
 
     @Override
-    public void onCanceled() {
-        Log.e("message ","canceled");
+    public void newResendMessageCallback(Message message) {
+        loadUserData();
     }
 
     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyViewHolder> {
@@ -198,11 +198,13 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
             if(count!=0) {
                 holder.count.setVisibility(View.VISIBLE);
                 holder.count.setText(String.valueOf(userData.getCount()));
+                holder.time.setTextColor(context.getResources().getColor(R.color.msg_received_time,null));
             }
             else
             {
                 holder.count.setText("");
-                holder.count.setVisibility(View.GONE);
+                holder.count.setVisibility(View.INVISIBLE);
+                holder.time.setTextColor(context.getResources().getColor(R.color.main_screen_normal,null));
             }
             holder.container.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -210,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
                     Intent intent = new Intent(context.getApplicationContext(),ChatActivity.class);
                     intent.putExtra(Util.userId,userData.getUser().getId());
                     context.startActivity(intent);
-                    Log.e("click","click");
+                    //Log.e("click","click");
                 }
             });
             holder.swipe.close(false);

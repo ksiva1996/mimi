@@ -15,10 +15,10 @@ import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
+import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
-import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.REST.RESTHelper;
+import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -36,6 +36,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
+import static com.leagueofshadows.enc.FirebaseHelper.resend;
 
 public class BackgroundWorker extends Service implements com.google.firebase.database.ChildEventListener {
 
@@ -50,12 +51,14 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
     static final String filePath = "filePath";
     static final String timeStamp = "timeStamp";
     DatabaseManager2 databaseManager;
-    private RESTHelper restHelper;
+    private Native restHelper;
     private AESHelper aesHelper;
     private FirebaseHelper firebaseHelper;
 
     @Override
-    public void onCreate() {
+    public void onCreate()
+    {
+
         super.onCreate();
         firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference();
@@ -63,7 +66,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
         DatabaseManager2.initializeInstance(new SQLHelper(this));
         databaseManager = DatabaseManager2.getInstance();
         firebaseHelper = new FirebaseHelper(this);
-        restHelper = new RESTHelper(this);
+        restHelper = new Native(this);
         try {
             aesHelper = new AESHelper(this);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
@@ -91,40 +94,63 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-                if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
-                {
-                    final App app = (App) getApplication();
 
-                    try {
-                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
-                        String timeStamp = Calendar.getInstance().getTime().toString();
-                        Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                e.getTimeStamp(), timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
+                if (databaseManager.check(e.getId(),e.getFrom())||e.isResend()) {
+                    if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT) {
+                        final App app = (App) getApplication();
 
-                        restHelper.sendReceivedStatus(e);
+                        try {
+                            String m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
+                            String timeStamp = Calendar.getInstance().getTime().toString();
+                            Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
+                                    e.getTimeStamp(), timeStamp, null);
 
-                        if(app.getMessagesRetrievedCallback()!=null) {
-                            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
-                            messagesRetrievedCallback.onNewMessage(message);
+                            restHelper.sendMessageReceivedStatus(e);
+
+                            if (!e.isResend()) {
+                                databaseManager.insertNewMessage(message, message.getFrom());
+                                if (app.getMessagesRetrievedCallback() != null) {
+                                    MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                                    messagesRetrievedCallback.onNewMessage(message);
+                                } else {
+                                    showNotification(message);
+                                }
+                            } else {
+                                databaseManager.updateMessage(message, message.getFrom());
+                                if (app.getResendMessageCallback() != null) {
+                                    ResendMessageCallback resendMessageCallback = app.getResendMessageCallback();
+                                    resendMessageCallback.newResendMessageCallback(message);
+                                }
+                            }
+                        } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
+                                InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
+                                DataCorruptedException | RunningOnMainThreadException ex) {
+                            restHelper.sendResendMessageNotification(e);
+                            //new change
+
+                            String timeStamp = Calendar.getInstance().getTime().toString();
+                            Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
+                                    e.getTimeStamp(), timeStamp, null);
+                            databaseManager.insertNewMessage(message, message.getFrom());
+                            if (app.getMessagesRetrievedCallback() != null) {
+                                MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                                messagesRetrievedCallback.onNewMessage(message);
+                            } else {
+                                showNotification(message);
+                            }
+                            ex.printStackTrace();
                         }
-                        else {
-                            showNotification(message);
-                        }
-                    } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
-                            InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
-                            DataCorruptedException | RunningOnMainThreadException ex)
-                    {
-                        restHelper.sendResendMessage(e);
-                        ex.printStackTrace();
+                    } else {
+                        //TODO: other types of messages
                     }
-                }
-                else {
-                    //TODO: other types of messages
-
                 }
             }
         });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     private void showNotification(Message message) {
@@ -140,9 +166,11 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
     @Override
     public void onChildAdded(@NonNull DataSnapshot d, @Nullable String s) {
 
-        //Log.e("new message",d.toString());
+       // Log.e("new message",d.toString());
 
         d.getRef().removeValue();
+
+
         final EncryptedMessage encryptedMessage = new EncryptedMessage();
         encryptedMessage.setId((String) d.child(id).getValue());
         encryptedMessage.setTo((String) d.child(to).getValue());
@@ -151,13 +179,16 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
         encryptedMessage.setFilePath((String) d.child(filePath).getValue());
         encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
         encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
+
+        if(d.hasChild(resend))
+            encryptedMessage.setResend((boolean)d.child(resend).getValue());
+
         String userId = encryptedMessage.getFrom();
         final String publicKey = databaseManager.getPublicKey(userId);
         if(publicKey==null) {
             firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
                 @Override
                 public void onSuccess(String Base64PublicKey) {
-                    User user = new User(encryptedMessage.getFrom(),encryptedMessage.getFrom(),encryptedMessage.getFrom(),Base64PublicKey);
                     databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
                     decryptMessage(encryptedMessage,Base64PublicKey);
                 }
@@ -176,7 +207,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
     public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
 
     @Override
-    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {Log.e("removed","removed");}
+    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
 
     @Override
     public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}

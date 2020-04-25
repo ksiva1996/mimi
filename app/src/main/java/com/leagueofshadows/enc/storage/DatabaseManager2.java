@@ -20,6 +20,7 @@ import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_CONTE
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_FILEPATH;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_FROM;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_RESEND;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TIMESTAMP;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TO;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TYPE;
@@ -93,29 +94,69 @@ public class DatabaseManager2 {
 
     public void insertNewMessage(Message message, String otherUserId)
     {
+
         String tableName = getTableName(otherUserId);
         checkTable(tableName);
 
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MESSAGES_ID,message.getMessage_id());
-        contentValues.put(MESSAGES_TO,message.getTo());
-        contentValues.put(MESSAGES_FROM,message.getFrom());
-        contentValues.put(MESSAGES_CONTENT,message.getContent());
-        contentValues.put(MESSAGES_FILEPATH,message.getFilePath());
-        contentValues.put(MESSAGES_TIMESTAMP,message.getTimeStamp());
-        contentValues.put(MESSAGES_TYPE,message.getType());
-        contentValues.put(MESSAGES_SENT,message.getSent());
-        contentValues.put(MESSAGES_RECEIVED,message.getReceived());
-        contentValues.put(MESSAGES_SEEN,message.getSeen());
-        openDatabase().insert(tableName,null,contentValues);
-        updateMessageId(otherUserId,message.getMessage_id());
+        SQLiteDatabase sqLiteDatabase = openDatabase();
 
-        if(message.getFrom().equals(otherUserId))
-            incrementNewMessageCount(otherUserId,message.getMessage_id());
+        String raw = "SELECT * FROM "+tableName+" WHERE "+MESSAGES_ID+" = ?";
+        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{message.getMessage_id()});
+        if(cursor.getCount()==0) {
+
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MESSAGES_ID, message.getMessage_id());
+            contentValues.put(MESSAGES_TO, message.getTo());
+            contentValues.put(MESSAGES_FROM, message.getFrom());
+            contentValues.put(MESSAGES_CONTENT, message.getContent());
+            contentValues.put(MESSAGES_FILEPATH, message.getFilePath());
+            contentValues.put(MESSAGES_TIMESTAMP, message.getTimeStamp());
+            contentValues.put(MESSAGES_TYPE, message.getType());
+            contentValues.put(MESSAGES_SENT, message.getSent());
+            contentValues.put(MESSAGES_RECEIVED, message.getReceived());
+            contentValues.put(MESSAGES_SEEN, message.getSeen());
+            sqLiteDatabase.insert(tableName, null, contentValues);
+            updateMessageId(otherUserId, message.getMessage_id());
+
+            if (message.getFrom().equals(otherUserId))
+                incrementNewMessageCount(otherUserId, message.getMessage_id());
+            cursor.close();
+        }
+    }
+
+    public void updateMessage(Message message,String otherUserId)
+    {
+        String tableName = getTableName(otherUserId);
+        checkTable(tableName);
+
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MESSAGES_ID, message.getMessage_id());
+        contentValues.put(MESSAGES_TO, message.getTo());
+        contentValues.put(MESSAGES_FROM, message.getFrom());
+        contentValues.put(MESSAGES_CONTENT, message.getContent());
+        contentValues.put(MESSAGES_FILEPATH, message.getFilePath());
+        contentValues.put(MESSAGES_TIMESTAMP, message.getTimeStamp());
+        contentValues.put(MESSAGES_TYPE, message.getType());
+        contentValues.put(MESSAGES_SENT, message.getSent());
+        contentValues.put(MESSAGES_RECEIVED, message.getReceived());
+        contentValues.put(MESSAGES_SEEN, message.getSeen());
+        sqLiteDatabase.update(tableName,contentValues,MESSAGES_ID +" = ?", new String[]{message.getMessage_id()});
+    }
+
+    public boolean check(String messageId, String userId)
+    {
+        String tableName = getTableName(userId);
+        checkTable(tableName);
+        String raw = "SELECT * FROM "+tableName+" WHERE "+MESSAGES_ID+" = ?";
+        Cursor cursor = openDatabase().rawQuery(raw, new String[]{messageId});
+        boolean y = cursor.getCount() == 0;
+        cursor.close();
+        return y;
 
     }
 
-    void deleteMessage(Message message,String currentUserId)
+    public void deleteMessage(Message message,String currentUserId)
     {
         String otherUserId = getId(message,currentUserId);
         String tableName = getTableName(otherUserId);
@@ -218,7 +259,8 @@ public class DatabaseManager2 {
 
                     EncryptedMessage encryptedMessage = new EncryptedMessage(cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_ID)), cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TO))
                             , cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_FROM)), cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_CONTENT)), cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_FILEPATH))
-                            , cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TIMESTAMP)), cursor.getInt(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TYPE)));
+                            , cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TIMESTAMP)), cursor.getInt(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TYPE)),
+                            Boolean.parseBoolean(cursor.getString(cursor.getColumnIndex(ENCRYPTED_MESSAGES_TIMESTAMP))));
 
                     encryptedMessages.add(encryptedMessage);
 
@@ -250,6 +292,7 @@ public class DatabaseManager2 {
                 contentValues.put(ENCRYPTED_MESSAGES_FILEPATH, e.getFilePath());
                 contentValues.put(ENCRYPTED_MESSAGES_TYPE, e.getType());
                 contentValues.put(ENCRYPTED_MESSAGES_TIMESTAMP, e.getTimeStamp());
+                contentValues.put(ENCRYPTED_MESSAGES_RESEND,e.isResend());
                 sqLiteDatabase.insert(TABLE_ENCRYPTED_MESSAGES, null, contentValues);
             }
             cursor.close();
@@ -275,7 +318,7 @@ public class DatabaseManager2 {
     }
 
     public User getUser(String userId){
-        Log.e("userId",userId);
+       // Log.e("userId",userId);
         SQLiteDatabase sqLiteDatabase = openDatabase();
         String raw = "SELECT * FROM "+TABLE_USERS+" WHERE "+USERS_ID+" = ?";
         Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{userId});
@@ -429,7 +472,7 @@ public class DatabaseManager2 {
             if(cursor.moveToFirst())
             {
                 do {
-                    Log.e("user","data");
+                   // Log.e("user","data");
                     String userId = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
                     User user = getUser(userId);
                     String messageId = cursor.getString(cursor.getColumnIndex(USER_DATA_MESSAGES_ID));

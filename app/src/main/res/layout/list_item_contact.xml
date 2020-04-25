@@ -12,6 +12,7 @@
         android:background="@drawable/gradient_bg"
         android:clickable="true"
         android:orientation="horizontal"
+        android:id="@+id/container"
         android:padding="13dp"
         android:focusable="true">
 

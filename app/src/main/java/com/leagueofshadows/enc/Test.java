@@ -167,13 +167,7 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
     }
 
     @Override
-    public void onUpdateMessageStatus(String messageId, String userId) {
-
-    }
-    @Override
-    public void onCanceled() {
-
-    }
+    public void onUpdateMessageStatus(String messageId, String userId) {}
 
     static class MainListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 

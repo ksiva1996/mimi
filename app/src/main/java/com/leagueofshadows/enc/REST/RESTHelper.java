@@ -16,7 +16,7 @@ import androidx.annotation.NonNull;
 import static com.android.volley.Request.Method.POST;
 import static com.leagueofshadows.enc.FirebaseReceiver.RECEIVED_STATUS;
 import static com.leagueofshadows.enc.FirebaseReceiver.SEEN_STATUS;
-
+@Deprecated
 public class RESTHelper {
 
 
@@ -26,9 +26,9 @@ public class RESTHelper {
     private static final String RESEND_MESSAGE_ENDPOINT = "https://loschat.000webhostapp.com/message_status.php";
 
     public static final String USER_ID = "USER_ID";
-    private static final String RESEND_MESSAGE = "RESEND_MESSAGE";
-    private static final String TEMP_USER_ID = "TEMP_USER_ID";
-    private static final String MESSAGE_ID = "MESSAGE_ID";
+    public static final String RESEND_MESSAGE = "RESEND_MESSAGE";
+    public static final String TEMP_USER_ID = "TEMP_USER_ID";
+    public static final String MESSAGE_ID = "MESSAGE_ID";
     private static final String NEW_MESSAGE = "NEW_MESSAGE";
     private String userId;
 
@@ -42,7 +42,7 @@ public class RESTHelper {
     private SharedPreferences sp;
 
     //TODO major security issues of REST API end points
-
+    @Deprecated
     public RESTHelper(Context context) {
         this.context = context;
 

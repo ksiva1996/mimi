@@ -19,7 +19,6 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
-import com.leagueofshadows.enc.REST.RESTHelper;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 import java.security.InvalidAlgorithmParameterException;
@@ -44,6 +43,7 @@ public class Worker extends Service implements CompleteCallback{
     private DatabaseManager2 databaseManager;
     FirebaseHelper firebaseHelper;
     ArrayList<EncryptedMessage> encryptedMessages;
+    public static final String NOTIFICATION_CHANNEL_ID= "Notification_channel";
 
     @Override
     public void onCreate() {
@@ -54,7 +54,7 @@ public class Worker extends Service implements CompleteCallback{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        createNotificationChannel();
+        createNotificationChannel(CHANNEL_ID);
         Intent notificationIntent = new Intent(this,SplashActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,1,notificationIntent,0);
         Notification notification = new NotificationCompat.Builder(this,CHANNEL_ID).setContentTitle(getString(R.string.app_name))
@@ -71,8 +71,7 @@ public class Worker extends Service implements CompleteCallback{
         firebaseHelper = new FirebaseHelper(getApplicationContext());
         final String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
-        try
-        {
+        try {
             firebaseHelper.getNewMessages(userId,this);
         }
         catch (DeviceOfflineException e) {
@@ -87,91 +86,47 @@ public class Worker extends Service implements CompleteCallback{
         ArrayList<EncryptedMessage> encryptedMessages = databaseManager.getEncryptedMessages();
 
         this.encryptedMessages.addAll(encryptedMessages);
-        final App app = (App) getApplication();
 
         if(encryptedMessages.isEmpty())
         {
-            if(app.isnull())
             stopSelf();
-            else
-                stopForeground(true);
-            return;
         }
-
-        if (app.isnull())
+        for(final EncryptedMessage e:encryptedMessages)
         {
-            for(final EncryptedMessage e:encryptedMessages)
+            if(databaseManager.getPublicKey(e.getFrom())==null)
             {
-                if(databaseManager.getPublicKey(e.getFrom())==null)
-                {
-                    firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
-                        @Override
-                        public void onSuccess(String Base64PublicKey) {
-                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
-                            update(e);
-                        }
-                        @Override
-                        public void onCancelled(String error) {
-                            Log.e("Worker",error);
-                            update(e);
-                        }
-                    });
-                }
-            }
-
-            Intent notificationIntent = new Intent(getApplicationContext(),SplashActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
-            Notification notification = new NotificationCompat.Builder(getApplicationContext(),CHANNEL_ID).setContentTitle(getString(R.string.app_name))
-                    .setContentText("open app to view new messages - "+no+" new messages")
-                    .setSmallIcon(R.mipmap.ic_launcher_round)
-                    .setContentIntent(pendingIntent).setAutoCancel(true).build();
-            NotificationManagerCompat.from(getApplicationContext()).notify(id,notification);
-
-        }
-        else {
-            try {
-                final AESHelper aesHelper = new AESHelper(getApplicationContext());
-
-                for (final EncryptedMessage e : encryptedMessages)
-                {
-                    final String Base64PulicKey = databaseManager.getPublicKey(e.getFrom());
-                    if (Base64PulicKey != null) {
-                        decryptMessage(e,aesHelper,Base64PulicKey);
+                firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
+                    @Override
+                    public void onSuccess(String Base64PublicKey) {
+                        databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                        update(e);
                     }
-                    else {
-
-                        firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
-                            @Override
-                            public void onSuccess(String Base64PublicKey) {
-                                databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
-                                decryptMessage(e,aesHelper,Base64PublicKey);
-                            }
-
-                            @Override
-                            public void onCancelled(String error) {
-                                Log.e("Worker",error);
-                                update(e);
-                            }
-                        });
+                    @Override
+                    public void onCancelled(String error) {
+                        Log.e("Worker",error);
+                        update(e);
                     }
-                }
-            }
-            catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
-                ex.printStackTrace();
-
+                });
             }
         }
+
+        createNotificationChannel(NOTIFICATION_CHANNEL_ID);
+
+        Intent notificationIntent = new Intent(getApplicationContext(),SplashActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
+        Notification notification = new NotificationCompat.Builder(getApplicationContext(),NOTIFICATION_CHANNEL_ID).setContentTitle(getString(R.string.app_name))
+                .setContentText("open app to view new messages - "+no+" new messages")
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentIntent(pendingIntent).setAutoCancel(false).build();
+        NotificationManagerCompat.from(getApplicationContext()).notify(1254,notification);
+
     }
 
     private synchronized void update(EncryptedMessage e) {
 
         encryptedMessages.remove(e);
-
         if(encryptedMessages.isEmpty()) {
-            stopForeground(true);
-            App app = (App) getApplication();
-            if(app.isnull())
-                stopSelf();
+           stopSelf();
         }
     }
 
@@ -206,7 +161,6 @@ public class Worker extends Service implements CompleteCallback{
                             DataCorruptedException | RunningOnMainThreadException ex) {
                         databaseManager.deleteEncryptedMessage(e.getId());
                         update(e);
-                        new RESTHelper(getApplicationContext()).sendResendMessage(e);
                         ex.printStackTrace();
                     }
                 }
@@ -221,16 +175,17 @@ public class Worker extends Service implements CompleteCallback{
         //TODO : figure out notifications
     }
 
-    private void createNotificationChannel() {
+    private void createNotificationChannel(String channelId) {
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
-            NotificationChannel serviceChannel = new NotificationChannel(CHANNEL_ID,getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel serviceChannel = new NotificationChannel(channelId,getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             assert notificationManager != null;
             notificationManager.createNotificationChannel(serviceChannel);
         }
     }
+
 
     @Nullable
     @Override

@@ -16,8 +16,10 @@ import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
+import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -145,23 +147,46 @@ public class DecryptMessageWorker extends Service {
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
+
+
                         databaseManager.deleteEncryptedMessage(e.getId());
-
-                        if(app.getMessagesRetrievedCallback()!=null) {
-
-                            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
-                            messagesRetrievedCallback.onNewMessage(message);
+                        if(!e.isResend()) {
+                            if (app.getMessagesRetrievedCallback() != null) {
+                                databaseManager.insertNewMessage(message,message.getFrom());
+                                MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                                messagesRetrievedCallback.onNewMessage(message);
+                            } else {
+                                showNotification(message);
+                            }
                         }
-                        else {
-                            showNotification(message);
+                        else
+                        {
+                            databaseManager.updateMessage(message,message.getFrom());
+                            if (app.getResendMessageCallback() != null) {
+
+                                ResendMessageCallback resendMessageCallback = app.getResendMessageCallback();
+                                resendMessageCallback.newResendMessageCallback(message);
+                            }
                         }
                         update(e);
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
                             InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
                             DataCorruptedException | RunningOnMainThreadException ex) {
+                        new Native(getApplicationContext()).sendResendMessageNotification(e);
                         update(e);
+
+                        //new change
+                        String timeStamp = Calendar.getInstance().getTime().toString();
+                        Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
+                                e.getTimeStamp(), timeStamp,null);
+                        databaseManager.insertNewMessage(message,message.getFrom());
                         databaseManager.deleteEncryptedMessage(e.getId());
+                        if (app.getMessagesRetrievedCallback() != null) {
+                            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                            messagesRetrievedCallback.onNewMessage(message);
+                        } else {
+                            showNotification(message);
+                        }
                         ex.printStackTrace();
                     }
                 }
@@ -174,13 +199,6 @@ public class DecryptMessageWorker extends Service {
 
     private void showNotification(Message message) {
         //TODO : figure out notifications
-    }
-
-    private void sendResendNotification(EncryptedMessage e) {
-
-        //TODO : ask the other user to send message with correct public key
-        // this caused likely due to other user sending message before current user signsup
-
     }
 
     private void createNotificationChannel() {

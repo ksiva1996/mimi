@@ -20,7 +20,7 @@ import com.leagueofshadows.enc.Interfaces.UserCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.REST.RESTHelper;
+import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -28,7 +28,7 @@ import java.util.ArrayList;
 
 import androidx.annotation.NonNull;
 
-class FirebaseHelper {
+public class FirebaseHelper {
 
     static final String MESSAGE_ID = "MESSAGE_ID";
     private Context context;
@@ -36,7 +36,7 @@ class FirebaseHelper {
     private DatabaseManager2 databaseManager;
 
     static final String Messages = "Messages";
-    private static final String Users = "Users";
+    public static final String Users = "Users";
 
     private static final String DeviceOfflineException = "Cannot send Message without internet connection...TODO: offline capability in the next update";
 
@@ -47,7 +47,8 @@ class FirebaseHelper {
     private static final String type = "type";
     private static final String filePath = "filePath";
     private static final String timeStamp = "timeStamp";
-    private static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
+    public static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
+    public static final String resend = "resend";
 
 
     FirebaseHelper(Context context)
@@ -70,14 +71,15 @@ class FirebaseHelper {
 
         encryptedMessage.setId(key);
         message.setMessage_id(key);
+        messageSentCallback.onKey(message);
 
         reference.setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
                 message.setSent(timeStamp);
                 databaseManager.insertNewMessage(message,message.getTo());
-                RESTHelper restHelper = new RESTHelper(context);
-                restHelper.sendNewMessageNotification(message.getTo());
+                Native n = new Native(context);
+                n.sendNewMessageNotification(message.getTo());
                 messageSentCallback.onComplete(message,true,null);
             }
         }).addOnFailureListener(new OnFailureListener() {
@@ -126,6 +128,8 @@ class FirebaseHelper {
                     encryptedMessage.setFilePath((String) d.child(filePath).getValue());
                     encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
                     encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
+                    if (d.hasChild(resend))
+                        encryptedMessage.setResend((boolean)d.child(resend).getValue());
                     encryptedMessages.add(encryptedMessage);
                 }
                 syncLocalDatabase(encryptedMessages);
@@ -162,10 +166,10 @@ class FirebaseHelper {
         DatabaseManager2.initializeInstance(new SQLHelper(context));
         DatabaseManager2.getInstance().insertEncryptedMessages(encryptedMessages);
 
-        RESTHelper restHelper = new RESTHelper(context);
+        Native restHelper = new Native(context);
 
         for (EncryptedMessage e:encryptedMessages) {
-            restHelper.sendReceivedStatus(e);
+            restHelper.sendMessageReceivedStatus(e);
         }
     }
 

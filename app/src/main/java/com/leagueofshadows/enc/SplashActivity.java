@@ -3,8 +3,12 @@ package com.leagueofshadows.enc;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
+
 import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SplashActivity extends AppCompatActivity {
@@ -13,19 +17,22 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
         String uid = FirebaseAuth.getInstance().getUid();
         String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
         try {
             String x = FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber();
-            Log.e("tag",uid+"   "+x);
         }catch (Exception e)
         {
             e.printStackTrace();
         }
 
-        Intent intent;
+        final Intent intent;
 
         if(uid==null) {
             FirebaseAuth.getInstance().signOut();
@@ -44,7 +51,15 @@ public class SplashActivity extends AppCompatActivity {
                 intent = new Intent(this, Login.class);
             }
         }
-        startActivity(intent);
-        finish();
+
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+        executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                finish();
+            }
+        },2, TimeUnit.SECONDS);
     }
 }

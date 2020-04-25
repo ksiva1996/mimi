@@ -36,10 +36,8 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import static com.leagueofshadows.enc.ContactsWorker.FLAG;
 
 public class OTP extends AppCompatActivity implements UserCallback {
@@ -149,7 +147,6 @@ public class OTP extends AppCompatActivity implements UserCallback {
 
                     @Override
                     public void onCodeSent(@NonNull String s, @NonNull PhoneAuthProvider.ForceResendingToken forceResendingToken) {
-                        Log.e("code", "sent");
                         Toast.makeText(OTP.this,"OTP sent",Toast.LENGTH_SHORT).show();
                         verificationId = s;
                     }
@@ -169,23 +166,31 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     String Base64PublicKeyString = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.PublicKeyString,null);
                     if(firebaseHelper.checkConnection())
                     {
-                        progressDialog.setMessage("setting up user details...");
+                        updateProgressDialog("setting up user details...");
                         firebaseHelper.sendUserData(new User(number,name,number,Base64PublicKeyString), OTP.this);
+
                     }
                     else {
-                        progressDialog.dismiss();
-                        Toast.makeText(OTP.this,"Something went wrong please try again",Toast.LENGTH_SHORT).show();
+                        show("Something went wrong please try again");
                         finish();
                     }
                 } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException |
                         InvalidKeyException | IllegalBlockSizeException |
                         InvalidAlgorithmParameterException | InvalidKeySpecException |
                         RunningOnMainThreadException e) {
-                    progressDialog.dismiss();
-                    Toast.makeText(OTP.this,"Something went wrong please try again",Toast.LENGTH_SHORT).show();
+                    show("Something went wrong please try again");
                     finish();
                     e.printStackTrace();
                 }
+            }
+        });
+    }
+
+    private void updateProgressDialog(final String s) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressDialog.setMessage(s);
             }
         });
     }
@@ -211,7 +216,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     editor.putString(Util.CheckMessageEncrypted,encrypted).putString(Util.CheckMessage,Base64randomString).putString(Util.userId,number).
                             putString(Util.name,name).putString(Util.number,number).apply();
                     password=null;
-                    show();
+                    show("verification successful");
                     Intent intent = new Intent(OTP.this,Login.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
@@ -235,11 +240,12 @@ public class OTP extends AppCompatActivity implements UserCallback {
         });
     }
 
-    private void show() {
+    private void show(final String s) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(OTP.this,"successful",Toast.LENGTH_LONG).show();
+                progressDialog.dismiss();
+                Toast.makeText(OTP.this,s,Toast.LENGTH_LONG).show();
             }
         });
     }

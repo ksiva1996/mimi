@@ -50,7 +50,7 @@
         android:background="@color/mainBackground">
 
         <ImageView
-            android:id="@+id/littleTriangle"
+            android:id="@+id/triangle"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_alignParentRight="true"
@@ -58,7 +58,6 @@
             android:src="@drawable/ic_right_angled_triangle"
             android:tint="#2A6791"
             android:visibility="visible" />
-
 
         <LinearLayout
             android:id="@+id/outgoing_layout_bubble"
@@ -98,13 +97,30 @@
                     android:text="11:15 PM" />
 
                 <ImageView
-                    android:id="@+id/user_reply_status"
+                    android:id="@+id/sent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:visibility="gone"
+                    android:paddingBottom="3dp"
+                    android:src="@drawable/message_got_receipt_from_server" />
+
+                <ImageView
+                    android:id="@+id/received"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom"
                     android:visibility="gone"
                     android:paddingBottom="3dp"
                     android:src="@drawable/message_got_receipt_from_target" />
+                <ImageView
+                    android:id="@+id/seen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:visibility="gone"
+                    android:paddingBottom="3dp"
+                    android:src="@drawable/message_got_read_receipt_from_target" />
 
                 <ProgressBar
                     android:id="@+id/waiting"

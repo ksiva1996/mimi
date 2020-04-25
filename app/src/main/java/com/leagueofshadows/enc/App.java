@@ -5,16 +5,17 @@ import android.app.Application;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
+import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
+
 import java.security.PrivateKey;
 
 public class App extends Application {
 
     private PrivateKey privateKey;
-    private String otherUser;
     private MessagesRetrievedCallback messagesRetrievedCallback;
-    private String currentUserId;
     private MessageSentCallback messageSentCallback;
     private CompleteCallback completeCallback;
+    private ResendMessageCallback resendMessageCallback;
 
     public CompleteCallback getCompleteCallback() {
         return completeCallback;
@@ -36,13 +37,6 @@ public class App extends Application {
         this.privateKey = privateKey;
     }
 
-    public String getCurrentUserId() {
-        return currentUserId;
-    }
-
-    public void setCurrentUserId(String currentUserId) {
-        this.currentUserId = currentUserId;
-    }
 
     public MessagesRetrievedCallback getMessagesRetrievedCallback() {
         return messagesRetrievedCallback;
@@ -56,15 +50,15 @@ public class App extends Application {
         return privateKey == null;
     }
 
-    public String getOtherUser() {
-        return otherUser;
-    }
-
-    public void setOtherUser(String otherUser) {
-        this.otherUser = otherUser;
-    }
-
     public PrivateKey getPrivateKey() {
         return privateKey;
+    }
+
+    public ResendMessageCallback getResendMessageCallback() {
+        return resendMessageCallback;
+    }
+
+    public void setResendMessageCallback(ResendMessageCallback resendMessageCallback) {
+        this.resendMessageCallback = resendMessageCallback;
     }
 }

@@ -42,7 +42,6 @@ public class ContactsWorker extends Service {
     public void onCreate() {
         super.onCreate();
         users = new ArrayList<>();
-        Log.e("create","create worker class");
     }
 
     @Override
@@ -60,10 +59,8 @@ public class ContactsWorker extends Service {
 
         startForeground(id, notification);
 
-        Log.e("start","foreground");
 
         if(flag==UPDATE_EXISTING) {
-            Log.e("update","update");
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -73,7 +70,6 @@ public class ContactsWorker extends Service {
 
         }
         else {
-            Log.e("new ","new");
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -105,7 +101,6 @@ public class ContactsWorker extends Service {
                 }
                 @Override
                 public void onCancelled(String error) {
-                    Log.e("error",user.getNumber());
                     update(user);
                 }
             });
@@ -115,7 +110,6 @@ public class ContactsWorker extends Service {
     private synchronized void update(User user) {
         users.remove(user);
 
-        Log.e("update func username",user.getName());
         if (users.isEmpty()) {
             App app = (App) getApplication();
             if(app.getCompleteCallback()!=null)
@@ -162,12 +156,10 @@ public class ContactsWorker extends Service {
                                             DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
                                             DatabaseManager2 databaseManager = DatabaseManager2.getInstance();
                                             databaseManager.insertUser(user);
-                                            Log.e("vcc","vyuv");
                                             update(user);
                                         }
                                         @Override
                                         public void onCancelled(String error) {
-                                            Log.e("error",user.getNumber());
                                             update(user);
                                         }
                                     });
