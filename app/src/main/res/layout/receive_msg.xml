@@ -32,7 +32,6 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:rotation="90"
-                android:text="Info"
                 android:tint="#000000"
                 app:srcCompat="@drawable/baseline_filter_none_24" />
 
@@ -40,7 +39,6 @@
                 android:id="@+id/info_button"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
-                android:text="Info"
                 android:tint="#000000"
                 app:srcCompat="@drawable/ic_info_outline" />
 
@@ -49,7 +47,6 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:backgroundTint="#E10000"
-                android:text="Info"
                 app:srcCompat="@android:drawable/ic_menu_delete" />
 
         </LinearLayout>
@@ -73,9 +70,9 @@
             android:id="@+id/incoming_layout_bubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="60dp"
+            android:layout_alignParentStart="true"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="60dp"
             android:background="@drawable/to_msg_background"
             android:orientation="vertical"
             android:padding="10dp">
@@ -113,7 +110,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:autoLink="web"
-                android:paddingLeft="6dp"
+                android:paddingStart="6dp"
                 android:text="Test"
                 android:textColor="#CCFFFFFF" />
 
@@ -123,7 +120,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|right"
-                android:paddingRight="5dp"
+                android:paddingEnd="5dp"
                 android:text="11:15 PM" />
 
         </LinearLayout>

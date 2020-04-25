@@ -14,10 +14,10 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
@@ -29,18 +29,15 @@ import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
-
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -49,7 +46,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback
+        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback
  {
 
     ArrayList<Message> messages;
@@ -72,7 +69,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     public static  final int SEND_TEXT = 3;
     public static  final int SEND_IMAGE = 4;
     public static  final int SEND_FILE = 5;
-     public static final int RECEIVE_ERROR = 6;
+    public static final int RECEIVE_ERROR = 6;
+
+    public static final int MESSAGE_INFO = 1;
+    public static final int MESSAGE_DELETE = 2;
+    public static final int MESSAGE_COPY = 3;
+    public static final int MESSAGE_REPLY = 4;
 
      RecyclerView.SmoothScroller smoothScroller;
      private LinearLayoutManager layoutManager;
@@ -112,7 +114,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          layoutManager.setStackFromEnd(true);
          listView.setLayoutManager(layoutManager);
 
-         recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,otherUserId);
+         recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,otherUserId,this);
          listView.setAdapter(recyclerAdapter);
          smoothScroller = new LinearSmoothScroller(this){
             @Override
@@ -215,6 +217,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         builder.create().show();
     }
 
+    void messageInfo(final Message message)
+    {
+
+    }
+
      @Override
      protected void onResume() {
          super.onResume();
@@ -288,7 +295,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          });
      }
 
-
      //MessageRetrievedCallback override methods
 
      @Override
@@ -314,9 +320,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  }
              });
          }
-
              //TODO : show notifications
-
      }
 
 
@@ -334,7 +338,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
         }
      }
-
 
      //ScrollEndCallback override methods
 
@@ -365,12 +368,20 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          }
      }
 
+     //Message options callback
+
+     @Override
+     public void onOptionsSelected(int option, int position) {
+
+     }
+
      static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private ArrayList<Message> messages;
         private ScrollEndCallback scrollEndCallback;
         private String otherUserId;
         private String currentUserId;
+        private MessageOptionsCallback messageOptionsCallback;
 
         /*void set(ArrayList<UserData> userDataArrayList) {
             this.userDataArrayList = userDataArrayList;
@@ -393,6 +404,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             TextView time;
             SwipeRevealLayout container;
             ImageView corner;
+            ImageButton copyButton;
+            ImageButton replyButton;
+            ImageButton deleteButton;
+            ImageButton infoButton;
 
             TextReceived(View view) {
                 super(view);
@@ -400,6 +415,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 time = view.findViewById(R.id.time);
                 container = view.findViewById(R.id.container);
                 corner = view.findViewById(R.id.triangle);
+                copyButton = view.findViewById(R.id.copy_button);
+                replyButton = view.findViewById(R.id.reply_button);
+                deleteButton = view.findViewById(R.id.delete_button);
+                infoButton = view.findViewById(R.id.info_button);
             }
         }
 
@@ -412,6 +431,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              ImageView sent;
              ImageView received;
              ImageView seen;
+             ImageButton copyButton;
+             ImageButton replyButton;
+             ImageButton deleteButton;
+             ImageButton infoButton;
 
              TextSent(View view) {
                  super(view);
@@ -423,14 +446,21 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  seen = view.findViewById(R.id.seen);
                  corner = view.findViewById(R.id.triangle);
                  pg = view.findViewById(R.id.waiting);
+                 copyButton = view.findViewById(R.id.copy_button);
+                 replyButton = view.findViewById(R.id.reply_button);
+                 deleteButton = view.findViewById(R.id.delete_button);
+                 infoButton = view.findViewById(R.id.info_button);
              }
          }
 
-        RecyclerAdapter(ArrayList<Message> messages,ScrollEndCallback scrollEndCallback,String currentUserId,String otherUserId) {
+        RecyclerAdapter(ArrayList<Message> messages,ScrollEndCallback scrollEndCallback,
+                        String currentUserId,String otherUserId,MessageOptionsCallback messageOptionsCallback) {
+
             this.messages = messages;
             this.scrollEndCallback = scrollEndCallback;
             this.currentUserId = currentUserId;
             this.otherUserId = otherUserId;
+            this.messageOptionsCallback = messageOptionsCallback;
         }
 
         @NonNull
@@ -526,6 +556,30 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              h.corner.setVisibility(View.INVISIBLE);
                          else
                              h.corner.setVisibility(View.VISIBLE);
+                         h.infoButton.setOnClickListener(new View.OnClickListener() {
+                             @Override
+                             public void onClick(View view) {
+
+                             }
+                         });
+                         h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                             @Override
+                             public void onClick(View view) {
+
+                             }
+                         });
+                         h.replyButton.setOnClickListener(new View.OnClickListener() {
+                             @Override
+                             public void onClick(View view) {
+
+                             }
+                         });
+                         h.copyButton.setOnClickListener(new View.OnClickListener() {
+                             @Override
+                             public void onClick(View view) {
+
+                             }
+                         });
                      }
 
                  }
@@ -575,10 +629,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             {
                 //TODO:
             }
-
         }
 
-         private boolean check(Message message, Message prev) {
+         private boolean check(@NonNull Message message, @NonNull Message prev) {
              return message.getFrom().equals(prev.getFrom());
          }
 
