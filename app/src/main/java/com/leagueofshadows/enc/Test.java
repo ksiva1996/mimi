@@ -1,36 +1,39 @@
 package com.leagueofshadows.enc;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.AsyncTask;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
-import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.TextView;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
-import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
-import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
 import com.leagueofshadows.enc.Items.Message;
-import com.leagueofshadows.enc.REST.RESTHelper;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
 
-public class Test extends AppCompatActivity implements MessagesRetrievedCallback {
+public class Test extends AppCompatActivity implements ScaleGestureDetector.OnScaleGestureListener {
 
     ArrayList<String> chatList;
     ArrayList<Message> messages;
@@ -42,35 +45,158 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
     int x = 0;
     int y = 0;
     long totaltime = 0;
+    ImageView imageView;
+    private ScaleGestureDetector scaleGestureDetector;
+    private float scaleFactor = 1.0f;
+
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)   {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test);
-        findViewById(R.id.token).setOnClickListener(new View.OnClickListener() {
+        imageView = findViewById(R.id.image);
+        scaleGestureDetector = new ScaleGestureDetector(this,this);
+        findViewById(R.id.camera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                testfirebase(x);
-                x++;
-            }
-        });
-        findViewById(R.id.newMessage).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sendNewMessageNotification();
-            }
-        });
-        findViewById(R.id.status).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sendStatus();
+                /*Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                File file = new File(getApplicationContext().getFilesDir(),"test.jpeg");
+                Uri uri = FileProvider.getUriForFile(Test.this,"com.leagueofshadows.enc.fileProvider",file);
+
+
+                intent.putExtra(MediaStore.EXTRA_OUTPUT,uri);
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                //startActivityForResult(Intent.createChooser(intent,"take picture using"),1);
+                startActivityForResult(intent,1);*/
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*");
+                startActivityForResult(intent,2);
             }
         });
 
-        startService(new Intent(this,BackgroundWorker.class));
     }
 
-    private void sendStatus() {
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        scaleGestureDetector.onTouchEvent(event);
+        return true;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==1)
+        {
+            if(resultCode==RESULT_OK)
+            {
+                try {
+                    Bitmap bitmap = BitmapFactory.decodeFile(this.getFilesDir()+"/test.jpeg");
+                    try {
+                        ExifInterface exifInterface = new ExifInterface(getApplicationContext().getFilesDir()+"/test.jpeg");
+                        Bitmap correctBitmap;
+
+                        int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_UNDEFINED);
+                        switch (orientation)
+                        {
+                            case ExifInterface.ORIENTATION_ROTATE_90:
+                                correctBitmap = rotateBitmap(bitmap,90);
+                                break;
+                            case ExifInterface.ORIENTATION_ROTATE_180:
+                                correctBitmap = rotateBitmap(bitmap,180);
+                                break;
+                            case ExifInterface.ORIENTATION_ROTATE_270:
+                                correctBitmap = rotateBitmap(bitmap,270);
+                                break;
+                            case ExifInterface.ORIENTATION_NORMAL:
+                            default: correctBitmap = bitmap;
+                        }
+                        imageView.setImageBitmap(correctBitmap);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
+
+                    File file = new File(this.getFilesDir()+"/test.jpeg");
+                    Log.e("file size", String.valueOf(file.length()));
+
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                Toast.makeText(this,"camera closed",Toast.LENGTH_SHORT).show();
+            }
+        }
+        if(requestCode == 2)
+        {
+            if(resultCode == RESULT_OK)
+            {
+                Log.e("uug","bo");
+                try {
+                    assert data != null;
+                    Uri uri = data.getData();
+
+                    File file = new File(Environment.getExternalStorageDirectory()+"/Enc");
+                    if(!file.exists())
+                        Log.e("file", String.valueOf(file.mkdir()));
+
+                    assert uri != null;
+                    InputStream inputStream = getContentResolver().openInputStream(uri);
+
+                    Log.e("bytes", String.valueOf(inputStream.available()));
+
+                    BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+                    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(Environment.getExternalStorageDirectory()+"/Enc/test.jpeg"));
+
+
+                    byte[] buffer = new byte[4096];
+                    while((bufferedInputStream.read(buffer))!=-1)
+                    {
+                        Log.e("iub","ugiu");
+                        bufferedOutputStream.write(buffer);
+                    }
+                    bufferedOutputStream.flush();
+                    bufferedOutputStream.close();
+                    bufferedInputStream.close();
+
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+    }
+
+    private Bitmap rotateBitmap(Bitmap bitmap, float i) {
+        Matrix matrix = new Matrix();
+        matrix.setRotate(i);
+        return Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+    }
+
+    @Override
+    public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
+
+        scaleFactor = scaleFactor*scaleGestureDetector.getScaleFactor();
+        imageView.setScaleX(scaleFactor);
+        imageView.setScaleY(scaleFactor);
+        //Log.e("kugu","lugugu");
+        return true;
+    }
+
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector scaleGestureDetector) {
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector scaleGestureDetector) {
+
+    }
+}
+   /* private void sendStatus() {
         SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
         String currentUserId = sp.getString(Util.userId,null);
         HashMap<String,String> params = new HashMap<>();
@@ -100,7 +226,7 @@ public class Test extends AppCompatActivity implements MessagesRetrievedCallback
         params.put("USER_ID",currentUserId);
         params.put(NEW_MESSAGE,NEW_MESSAGE);
         RESTHelper restHelper = new RESTHelper(this);
-        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);*/
+        restHelper.test("sendNewMessageNotification",params,SEND_NOTIFICATION_ENDPOINT,null,null);
 
     }
 

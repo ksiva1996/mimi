@@ -165,7 +165,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 sendMessage();
             }
         });
-
     }
 
      private void sendMessage() {
@@ -222,6 +221,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
         });
     }
+
+
 
     //options for messages
 

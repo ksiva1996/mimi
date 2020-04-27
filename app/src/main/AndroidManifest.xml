@@ -21,6 +21,18 @@
         android:fullBackupContent="false"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+
+        <provider
+            android:authorities="com.leagueofshadows.enc.fileProvider"
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"/>
+
+        </provider>
+
         <uses-library android:name="org.apache.http.legacy" android:required="false" />
         <activity android:name=".ContactsActivity"
             android:parentActivityName=".MainActivity">
@@ -45,16 +57,16 @@
             android:theme="@style/UserTheme" />
         <activity android:name=".Test"
             android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity android:name=".MessageInfo"
             android:parentActivityName=".ChatActivity"/>
 
         <activity android:name=".SplashActivity"
             android:theme="@style/UserTheme" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <service

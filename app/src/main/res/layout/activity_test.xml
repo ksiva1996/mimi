@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:background="#000000"
+    android:layout_height="wrap_content">
+
+<LinearLayout
+    android:layout_width="match_parent"
     android:orientation="vertical"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     tools:context=".Test">
 
 
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="camera"
+        android:id="@+id/camera"/>
 
-    <Button
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="token"
-        android:id="@+id/token"/>
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="new Message"
-        android:id="@+id/newMessage"/>
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="status"
-        android:id="@+id/status"/>
+        android:padding="10dp"
+        android:id="@+id/image"/>
 
 </LinearLayout>
+</ScrollView>
