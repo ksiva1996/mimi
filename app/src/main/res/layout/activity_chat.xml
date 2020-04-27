@@ -10,6 +10,13 @@
     android:background="@color/mainBackground"
     tools:context=".ChatActivity">
 
+    <View
+        android:id="@+id/test_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/transparent"
+        android:visibility="visible" />
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:layout_width="match_parent"
@@ -31,13 +38,55 @@
         android:layout_marginBottom="10dp"
         android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/attachment"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="bottom"
-            android:background="@drawable/input_circle"
-            android:src="@android:drawable/stat_sys_upload" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/attachment3"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="bottom|center"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/input_circle"
+                android:src="@drawable/baseline_camera_alt_white_24"
+                android:translationY="150dp" />
+
+
+            <ImageButton
+                android:id="@+id/attachment2"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="bottom|center"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/input_circle"
+                android:src="@drawable/baseline_insert_photo_white_24"
+                android:translationY="110dp" />
+
+            <ImageButton
+                android:id="@+id/attachment1"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="bottom|center"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/input_circle"
+                android:src="@drawable/baseline_insert_drive_file_white_24"
+                android:tint="#FFFFFF"
+                android:translationY="60dp" />
+
+
+            <ImageButton
+                android:id="@+id/attachment"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/input_circle"
+                android:rotation="135"
+                android:src="@drawable/baseline_attachment_white_24"
+                android:tint="#FFFFFF" />
+
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
