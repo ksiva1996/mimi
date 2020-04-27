@@ -153,10 +153,11 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
 
 
                     byte[] buffer = new byte[4096];
-                    while((bufferedInputStream.read(buffer))!=-1)
+                    int count;
+                    while((count = bufferedInputStream.read(buffer))>0)
                     {
                         Log.e("iub","ugiu");
-                        bufferedOutputStream.write(buffer);
+                        bufferedOutputStream.write(buffer,0,count);
                     }
                     bufferedOutputStream.flush();
                     bufferedOutputStream.close();

@@ -3,13 +3,12 @@ package com.leagueofshadows.enc.Crypt;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Looper;
-import androidx.annotation.NonNull;
 import android.util.Base64;
-import android.util.Log;
 
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -22,6 +21,7 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -32,6 +32,8 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import androidx.annotation.NonNull;
 
 import static com.leagueofshadows.enc.Util.CheckMessageIV;
 
@@ -290,7 +292,7 @@ public class AESHelper {
         }
     }
 
-    void encryptFile(@NonNull File inFile,@NonNull File outFile,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey) throws RunningOnMainThreadException,
+    public void encryptFile(@NonNull FileInputStream fileInputStream, @NonNull FileOutputStream fileOutputStream, @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey) throws RunningOnMainThreadException,
             NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeySpecException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
 
@@ -301,22 +303,23 @@ public class AESHelper {
         byte[] encodedKeyBytes = secretKey.getEncoded();
         RSAHelper rsaHelper = new RSAHelper(context);
         byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes,Base64PublicKey);
-        byte[] hashBytes = getHashFromFile(inFile,encodedKeyBytes);
+        byte[] hashBytes = getHashFromFile(fileInputStream,encodedKeyBytes);
         hashBytes = rsaHelper.signHash(hashBytes,privateKey);
 
-        FileOutputStream fileOutputStream = new FileOutputStream(outFile);
         fileOutputStream.write(hashBytes);
         fileOutputStream.write(encryptedKeyBytes);
         byte[] iv = getNewIV();
         fileOutputStream.write(iv);
-        FileInputStream fileInputStream = new FileInputStream(inFile);
 
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         convertFile(fileInputStream,fileOutputStream,cipher);
         //secretKey.destroy();
     }
 
-    void DecryptFile(@NonNull File inFile,@NonNull  File outFile,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey) throws IOException,
+    void DecryptFile(@NonNull FileInputStream fileInputStream, @NonNull  FileOutputStream fileOutputStream,
+                     @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey, File outFile)
+
+            throws IOException,
             MalFormedFileException, NoSuchPaddingException, NoSuchAlgorithmException,
             IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException,
             InvalidAlgorithmParameterException, RunningOnMainThreadException {
@@ -324,8 +327,6 @@ public class AESHelper {
         if(Looper.myLooper()== Looper.getMainLooper()) {
             throw new RunningOnMainThreadException(threadException);
         }
-
-        FileInputStream fileInputStream = new FileInputStream(inFile);
         int x;
 
         byte[] hashBytes = new byte[256];
@@ -356,15 +357,13 @@ public class AESHelper {
         SecretKeySpec secretKeySpec = new SecretKeySpec(encryptedKeyBytes,algorithm);
         cipher.init(Cipher.DECRYPT_MODE,secretKeySpec,new IvParameterSpec(iv));
 
-        FileOutputStream fileOutputStream = new FileOutputStream(outFile);
         convertFile(fileInputStream,fileOutputStream,cipher);
 
-        byte[] newHashBytes = getHashFromFile(outFile,encryptedKeyBytes);
+        byte[] newHashBytes = getHashFromFile(new FileInputStream(outFile),encryptedKeyBytes);
         if(!(Arrays.equals(hashBytes,newHashBytes))) {
-            boolean y =outFile.delete();
             throw new MalFormedFileException(malFormedFile
                     +"\n"
-                    +"file deleted - ?"+y
+                    +"file deleted - ?"
                     +" original Hash - "+getBase64(hashBytes)
                     +" received Hash - "+getBase64(newHashBytes));
         }
@@ -402,14 +401,13 @@ public class AESHelper {
         return messageDigest.digest(bytes);
     }
 
-    private byte[] getHashFromFile(File infile,byte[] encodedKeyBytes) throws IOException, NoSuchAlgorithmException {
+    private byte[] getHashFromFile(FileInputStream fileInputStream,byte[] encodedKeyBytes) throws IOException, NoSuchAlgorithmException {
 
-        FileInputStream fileInputStream = new FileInputStream(infile);
         MessageDigest messageDigest = MessageDigest.getInstance(hashAlgorithm);
         byte[] buffer = new byte[8192];
-        while (fileInputStream.read()!=-1)
-        {
-            messageDigest.update(buffer);
+        int count;
+        while ((count = fileInputStream.read(buffer))>0) {
+            messageDigest.update(buffer,0,count);
         }
         return messageDigest.digest(encodedKeyBytes);
     }

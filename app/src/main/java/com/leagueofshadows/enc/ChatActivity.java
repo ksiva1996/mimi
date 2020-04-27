@@ -6,8 +6,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,18 +39,28 @@ import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Calendar;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
@@ -79,7 +93,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     AESHelper aesHelper;
     Native restHelper;
 
-    private Message replyMessage = null;
+    private Message replyMessage;
+
+    ImageButton addFile;
+    ImageButton addImage;
+    ImageButton openCamera;
+    ImageButton attachment;
+    boolean isAttachmentLayoutOpen = false;
 
     public static  final int RECEIVE_TEXT = 0;
     public static  final int RECEIVE_IMAGE = 1;
@@ -93,6 +113,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     public static final int MESSAGE_DELETE = 2;
     public static final int MESSAGE_COPY = 3;
     public static final int MESSAGE_REPLY = 4;
+
+    public static final int FILE_ATTACHMENT_REQUEST = 1;
+    public static final int IMAGE_ATTACHMENT_REQUEST = 2;
+    public static final int OPEN_CAMERA_REQUEST = 3;
+    public static final int IMAGE_SELECTED = 4;
 
      RecyclerView.SmoothScroller smoothScroller;
      private LinearLayoutManager layoutManager;
@@ -132,6 +157,46 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          layoutManager.setStackFromEnd(true);
          listView.setLayoutManager(layoutManager);
 
+         addFile = findViewById(R.id.file);
+         addImage = findViewById(R.id.image);
+         openCamera = findViewById(R.id.camera);
+
+         addFile.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View view) {
+                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                 intent.setType("*/*");
+                 startActivityForResult(intent,FILE_ATTACHMENT_REQUEST);
+             }
+         });
+         addImage.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View view) {
+                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                 intent.setType("image/*");
+                 startActivityForResult(Intent.createChooser(intent,"Select picture"),IMAGE_ATTACHMENT_REQUEST);
+             }
+         });
+         openCamera.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View view) {
+                 Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                 File file = new File(getApplicationContext().getFilesDir(),"current.jpg");
+                 Uri uri = FileProvider.getUriForFile(ChatActivity.this,"com.leagueofshadows.enc.fileProvider",file);
+                 intent.putExtra(MediaStore.EXTRA_OUTPUT,uri);
+                 intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                 startActivityForResult(Intent.createChooser(intent,"take picture using"),OPEN_CAMERA_REQUEST);
+             }
+         });
+
+         attachment = findViewById(R.id.attachment);
+         attachment.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View view) {
+                 setAttachmentLayout();
+             }
+         });
+
          recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,otherUserId,this);
          listView.setAdapter(recyclerAdapter);
          smoothScroller = new LinearSmoothScroller(this){
@@ -166,6 +231,25 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
         });
     }
+
+     private void setAttachmentLayout() {
+         if(isAttachmentLayoutOpen)
+         {
+             isAttachmentLayoutOpen = false;
+             attachment.setImageResource(R.drawable.add);
+             addFile.animate().translationY(0);
+             addImage.animate().translationY(0);
+             openCamera.animate().translationY(0);
+         }
+         else
+         {
+             isAttachmentLayoutOpen = true;
+             attachment.setImageResource(R.drawable.baseline_attachment_white_24);
+             addFile.animate().translationY(getResources().getDimension(R.dimen.st_55));
+             addImage.animate().translationY(getResources().getDimension(R.dimen.st_100));
+             openCamera.animate().translationY(getResources().getDimension(R.dimen.st_145));
+         }
+     }
 
      private void sendMessage() {
          AsyncTask.execute(new Runnable() {
@@ -222,9 +306,112 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         });
     }
 
+     @Override
+     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+
+         String wrongString = "Something went wrong please try again";
+
+         super.onActivityResult(requestCode, resultCode, data);
+         if (resultCode==RESULT_OK)
+         {
+             if (requestCode==FILE_ATTACHMENT_REQUEST) {
+
+                 try {
+                     assert data != null;
+                     Uri uri = data.getData();
+                     sendFile(uri);
+                 }catch (Exception e) {
+                     e.printStackTrace();
+                     Toast.makeText(this,wrongString,Toast.LENGTH_SHORT).show();
+                 }
+
+             }
+             if (requestCode==IMAGE_ATTACHMENT_REQUEST) {
+
+             }
+             if (requestCode==OPEN_CAMERA_REQUEST) {
+                 Intent intent = new Intent(this,ImagePreview.class);
+                 startActivityForResult(intent,IMAGE_SELECTED);
+             }
+             if (requestCode==IMAGE_SELECTED) {
+
+             }
+         }
+         else { Toast.makeText(this,"Canceled",Toast.LENGTH_SHORT).show(); }
+     }
 
 
-    //options for messages
+     private void sendFile(Uri uri) throws FileNotFoundException {
+
+         final FileInputStream fileInputStream = (FileInputStream) getContentResolver().openInputStream(uri);
+         String fileName = getFileName(uri);
+         String path = Util.documentsPath+otherUser.getName();
+         checkPath(path,FILE_ATTACHMENT_REQUEST);
+         path = path+"/sent/"+fileName;
+         final FileOutputStream fileOutputStream  = new FileOutputStream(path);
+
+         String timeStamp = Calendar.getInstance().getTime().toString();
+
+         Message message = new Message(0,timeStamp,otherUserId,currentUserId,fileName,uri.toString(),timeStamp,
+                 Message.MESSAGE_TYPE_FILE,null,null,null);
+
+         AsyncTask.execute(new Runnable() {
+             @Override
+             public void run() {
+                 try {
+                     AESHelper aesHelper = new AESHelper(ChatActivity.this);
+                     assert fileInputStream != null;
+                     App app = (App) getApplication();
+                     aesHelper.encryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
+
+
+                 } catch (NoSuchAlgorithmException | NoSuchPaddingException | RunningOnMainThreadException |
+                         IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException |
+                         InvalidKeyException | IOException | InvalidAlgorithmParameterException e) {
+
+                     e.printStackTrace();
+                 }
+             }
+         });
+
+     }
+
+     @SuppressWarnings("ResultOfMethodCallIgnored")
+     private void checkPath(String path, int x) {
+         File file = new File(Util.originalPath);
+         if(!file.exists())
+             file.mkdir();
+         if(x == IMAGE_ATTACHMENT_REQUEST) {
+             file = new File(Util.imagesPath);
+             if(!file.exists())
+                 file.mkdir();
+         }
+         if(x==FILE_ATTACHMENT_REQUEST) {
+             file = new File(Util.documentsPath);
+             if(!file.exists())
+                 file.mkdir();
+         }
+
+         file = new File(path);
+         if(!file.exists())
+             file.mkdir();
+
+         file = new File(path+"/sent");
+         if(!file.exists())
+             file.mkdir();
+     }
+
+     private String getFileName(Uri uri) {
+         Cursor cursor = getContentResolver().query(uri,null,null,null,null);
+         int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+         cursor.moveToFirst();
+         String name = cursor.getString(index);
+         cursor.close();
+         return name;
+     }
+
+
+     //options for messages
 
     void deleteMessage(final Message message, final int position)
     {
@@ -642,29 +829,37 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          h.infoButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO,position);
-                                 h.container.close(true);
+                                 if(h.container.isOpen()) {
+                                     messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                     h.container.close(true);
+                                 }
                              }
                          });
                          h.deleteButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE,position);
-                                 h.container.close(true);
+                                 if(h.container.isOpen()) {
+                                     messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                     h.container.close(true);
+                                 }
                              }
                          });
                          h.replyButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY,position);
-                                 h.container.close(true);
+                                 if(h.container.isOpen()) {
+                                     messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                     h.container.close(true);
+                                 }
                              }
                          });
                          h.copyButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
-                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY,position);
-                                 h.container.close(true);
+                                 if(h.container.isOpen()) {
+                                     messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                     h.container.close(true);
+                                 }
                              }
                          });
                      }
@@ -713,29 +908,37 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      h.infoButton.setOnClickListener(new View.OnClickListener() {
                          @Override
                          public void onClick(View view) {
-                             messageOptionsCallback.onOptionsSelected(MESSAGE_INFO,position);
-                             h.container.close(true);
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                 h.container.close(true);
+                             }
                          }
                      });
                      h.deleteButton.setOnClickListener(new View.OnClickListener() {
                          @Override
                          public void onClick(View view) {
-                             messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE,position);
-                             h.container.close(true);
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                 h.container.close(true);
+                             }
                          }
                      });
                      h.replyButton.setOnClickListener(new View.OnClickListener() {
                          @Override
                          public void onClick(View view) {
-                             messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY,position);
-                             h.container.close(true);
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                 h.container.close(true);
+                             }
                          }
                      });
                      h.copyButton.setOnClickListener(new View.OnClickListener() {
                          @Override
                          public void onClick(View view) {
-                             messageOptionsCallback.onOptionsSelected(MESSAGE_COPY,position);
-                             h.container.close(true);
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                 h.container.close(true);
+                             }
                          }
                      });
                  }

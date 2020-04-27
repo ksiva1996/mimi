@@ -3,6 +3,7 @@ package com.leagueofshadows.enc;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.util.Log;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -12,6 +13,8 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
@@ -47,8 +50,11 @@ public class FirebaseHelper {
     private static final String type = "type";
     private static final String filePath = "filePath";
     private static final String timeStamp = "timeStamp";
-    public static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
-    public static final String resend = "resend";
+    private static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
+    static final String resend = "resend";
+    public static final String Files = "Files";
+
+    StorageReference storageReference;
 
 
     FirebaseHelper(Context context)
@@ -58,6 +64,7 @@ public class FirebaseHelper {
         databaseManager = DatabaseManager2.getInstance();
         FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference();
+        storageReference = FirebaseStorage.getInstance().getReference();
     }
 
     void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback) throws DeviceOfflineException {

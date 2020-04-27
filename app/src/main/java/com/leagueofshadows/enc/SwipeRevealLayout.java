@@ -338,8 +338,14 @@ public class SwipeRevealLayout extends ViewGroup {
     /**
      * Open the panel to show the secondary view
      */
+
+    boolean isOpen() {
+        return mIsOpenBeforeInit;
+    }
+
     public void open(boolean animation) {
         mIsOpenBeforeInit = true;
+        mMainView.setOnClickListener(null);
 
         if (animation) {
             mDragHelper.smoothSlideViewTo(mMainView, mRectMainOpen.left, mRectMainOpen.top);
