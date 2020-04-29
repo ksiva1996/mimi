@@ -245,17 +245,23 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          {
              isAttachmentLayoutOpen = false;
              attachment.setImageResource(R.drawable.add);
-             addFile.animate().translationY(0);
-             addImage.animate().translationY(0);
-             openCamera.animate().translationY(0);
+             addFile.animate().translationY(getResources().getDimension(R.dimen.st_55));
+             addFile.setVisibility(View.VISIBLE);
+             addImage.animate().translationY(getResources().getDimension(R.dimen.st_100));
+             addImage.setVisibility(View.VISIBLE);
+             openCamera.animate().translationY(getResources().getDimension(R.dimen.st_145));
+             openCamera.setVisibility(View.VISIBLE);
          }
          else
          {
              isAttachmentLayoutOpen = true;
              attachment.setImageResource(R.drawable.baseline_attachment_white_24);
-             addFile.animate().translationY(getResources().getDimension(R.dimen.st_55));
-             addImage.animate().translationY(getResources().getDimension(R.dimen.st_100));
-             openCamera.animate().translationY(getResources().getDimension(R.dimen.st_145));
+             addFile.animate().translationY(getResources().getDimension(R.dimen.st_normal));
+             addImage.animate().translationY(getResources().getDimension(R.dimen.st_normal));
+             openCamera.animate().translationY(getResources().getDimension(R.dimen.st_normal));
+             addFile.setVisibility(View.GONE);
+             addImage.setVisibility(View.GONE);
+             openCamera.setVisibility(View.GONE);
          }
      }
 

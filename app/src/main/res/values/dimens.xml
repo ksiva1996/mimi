@@ -3,7 +3,8 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
-    <dimen name="st_55">60dp</dimen>
-    <dimen name="st_100">110dp</dimen>
-    <dimen name="st_145">150dp</dimen>
+    <dimen name="st_normal">-7dp</dimen>
+    <dimen name="st_55">-57dp</dimen>
+    <dimen name="st_100">-107dp</dimen>
+    <dimen name="st_145">-157dp</dimen>
 </resources>
