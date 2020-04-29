@@ -24,14 +24,24 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import static com.leagueofshadows.enc.ChatActivity.FILE_ATTACHMENT_REQUEST;
+import static com.leagueofshadows.enc.ChatActivity.IMAGE_ATTACHMENT_REQUEST;
 
 public class Test extends AppCompatActivity implements ScaleGestureDetector.OnScaleGestureListener {
 
@@ -69,8 +79,8 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
                 //startActivityForResult(Intent.createChooser(intent,"take picture using"),1);
                 startActivityForResult(intent,1);*/
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("*/*");
-                startActivityForResult(intent,2);
+                intent.setType("image/*");
+                startActivityForResult(intent,3);
             }
         });
 
@@ -139,7 +149,14 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
                     assert data != null;
                     Uri uri = data.getData();
 
-                    File file = new File(Environment.getExternalStorageDirectory()+"/Enc");
+                    Intent intent = new Intent(this,FileUploadService.class);
+                    intent.putExtra(Util.uri,uri.toString());
+                    intent.putExtra(Util.userId,"siva");
+                    String timeStamp = Calendar.getInstance().getTime().toString();
+                    intent.putExtra(Util.timeStamp,timeStamp);
+                    startService(intent);
+
+                    /*File file = new File(Environment.getExternalStorageDirectory()+"/Enc");
                     if(!file.exists())
                         Log.e("file", String.valueOf(file.mkdir()));
 
@@ -161,7 +178,7 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
                     }
                     bufferedOutputStream.flush();
                     bufferedOutputStream.close();
-                    bufferedInputStream.close();
+                    bufferedInputStream.close();*/
 
                 }catch (Exception e) {
                     e.printStackTrace();
@@ -169,6 +186,61 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
 
             }
         }
+        if(requestCode==3)
+        {
+            if(resultCode==RESULT_OK)
+            {
+                Uri uri = data.getData();
+                try {
+                    Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYYMMDD-HHmmss");
+                    String fileName = "IMG-"+simpleDateFormat.format(new Date())+".jpg";
+                    String path = Util.imagesPath;
+                    checkPath(path,IMAGE_ATTACHMENT_REQUEST);
+
+
+                    FileOutputStream fileOutputStream = new FileOutputStream(Util.imagesPath+"80"+fileName);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,80,fileOutputStream);
+
+                    fileOutputStream = new FileOutputStream(Util.imagesPath+"50"+fileName);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,50,fileOutputStream);
+
+                    fileOutputStream = new FileOutputStream(Util.imagesPath+"30"+fileName);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,30,fileOutputStream);
+
+                    fileOutputStream = new FileOutputStream(Util.imagesPath+"10"+fileName);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG,10,fileOutputStream);
+
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void checkPath(String path, int x) {
+        File file = new File(Util.originalPath);
+        if(!file.exists())
+            file.mkdir();
+        if(x == IMAGE_ATTACHMENT_REQUEST) {
+            file = new File(Util.imagesPath);
+            if(!file.exists())
+                file.mkdir();
+        }
+        if(x==FILE_ATTACHMENT_REQUEST) {
+            file = new File(Util.documentsPath);
+            if(!file.exists())
+                file.mkdir();
+        }
+
+        file = new File(path);
+        if(!file.exists())
+            file.mkdir();
+
+        file = new File(path+"/sent");
+        if(!file.exists())
+            file.mkdir();
     }
 
     private Bitmap rotateBitmap(Bitmap bitmap, float i) {

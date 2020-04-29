@@ -4,5 +4,4 @@ import com.leagueofshadows.enc.Items.Message;
 
 public interface MessageSentCallback {
     void onComplete(Message message,boolean success,String error);
-    void onKey(Message message);
 }

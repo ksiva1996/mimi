@@ -96,7 +96,8 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
             public void run() {
 
                 if (databaseManager.check(e.getId(),e.getFrom())||e.isResend()) {
-                    if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT) {
+                    if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
+                    {
                         final App app = (App) getApplication();
 
                         try {
@@ -141,7 +142,17 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                             ex.printStackTrace();
                         }
                     } else {
-                        //TODO: other types of messages
+                        String timeStamp = Calendar.getInstance().getTime().toString();
+                        Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),e.getContent(),e.getFilePath(),e.getTimeStamp()
+                                ,e.getType(),e.getTimeStamp(),timeStamp,null);
+                        databaseManager.insertNewMessage(message,message.getFrom());
+                        App app = (App) getApplication();
+                        if(app.getMessagesRetrievedCallback()!=null) {
+                            app.getMessagesRetrievedCallback().onNewMessage(message);
+                        }
+                        else {
+                            showNotification(message);
+                        }
                     }
                 }
             }

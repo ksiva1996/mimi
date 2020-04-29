@@ -67,18 +67,23 @@ public class FirebaseHelper {
         storageReference = FirebaseStorage.getInstance().getReference();
     }
 
-    void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback) throws DeviceOfflineException {
+    void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback,String id) throws DeviceOfflineException {
 
         if(!checkConnection()) {
             throw new DeviceOfflineException(DeviceOfflineException);
         }
+        DatabaseReference reference;
+        if(id==null) {
 
-        DatabaseReference reference = databaseReference.child(Messages).child(message.getTo()).push();
-        final String key = reference.getKey();
-
-        encryptedMessage.setId(key);
-        message.setMessage_id(key);
-        messageSentCallback.onKey(message);
+            reference = databaseReference.child(Messages).child(message.getTo()).push();
+            final String key = reference.getKey();
+            encryptedMessage.setId(key);
+            message.setMessage_id(key);
+        }
+        else
+        {
+            reference = databaseReference.child(Messages).child(message.getTo()).child(id);
+        }
 
         reference.setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
