@@ -21,7 +21,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".ImagePreview">
+        <activity android:name=".Images"
+            android:parentActivityName=".Test">
+        </activity>
+        <activity
+            android:name=".ImagePreview"
+            android:theme="@style/UserTheme"
+            android:parentActivityName=".ChatActivity">
         </activity>
 
         <provider
@@ -66,7 +72,6 @@
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -76,6 +81,7 @@
         <activity
             android:name=".SplashActivity"
             android:theme="@style/UserTheme">
+
         </activity>
 
         <service
@@ -100,6 +106,10 @@
             android:exported="false" />
         <service
             android:name=".FileUploadService"
+            android:enabled="true"
+            android:exported="false" />
+        <service
+            android:name=".Downloader"
             android:enabled="true"
             android:exported="false" />
         <service

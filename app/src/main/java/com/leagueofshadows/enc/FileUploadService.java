@@ -1,5 +1,6 @@
 package com.leagueofshadows.enc;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -22,7 +23,9 @@ import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
+import java.io.File;
 import java.util.Calendar;
+import java.util.Random;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -45,13 +48,20 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final String otherUserId = intent.getStringExtra(Util.toUserId);
         final String currentUserId = intent.getStringExtra(Util.userId);
         final String timeStamp = intent.getStringExtra(Util.timeStamp);
-        final Uri uri = Uri.parse(intent.getStringExtra(Util.uri));
         String userName = intent.getStringExtra(Util.name);
         final String fileName = intent.getStringExtra(Util.fileName);
         final String id = intent.getStringExtra(Util.id);
+        final Uri uri = Uri.parse(intent.getStringExtra(Util.uri));
         final int type = intent.getIntExtra(Util.type,Message.MESSAGE_TYPE_FILE);
 
-        final int notificationId =1457;
+        String path;
+
+        if(type==Message.MESSAGE_TYPE_FILE)
+            path = Util.documentsPath+otherUserId+"/sent/"+fileName;
+        else
+            path = Util.imagesPath+otherUserId+"/sent/"+fileName;
+
+        final int notificationId = new Random().nextInt();
 
         String CHANNEL_ID = "file_upload";
         createNotificationChannel(CHANNEL_ID);
@@ -65,14 +75,15 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final int progressMax = 100;
 
         builder.setProgress(progressMax,0,false);
-        notificationManagerCompat.notify(notificationId,builder.build());
+        Notification notification = builder.build();
+        startForeground(notificationId,notification);
 
         assert otherUserId != null;
         assert timeStamp != null;
         assert currentUserId != null;
         assert id != null;
 
-        FirebaseStorage.getInstance().getReference().child(Files).child(otherUserId).child(timeStamp).putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+        FirebaseStorage.getInstance().getReference().child(Files).child(otherUserId).child(timeStamp).putFile(Uri.fromFile(new File(path))).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Log.e("success","success");
@@ -89,6 +100,9 @@ public class FileUploadService extends Service implements MessageSentCallback {
                 } catch (DeviceOfflineException e) {
                     e.printStackTrace();
                 }
+                finally {
+                    stopForeground(true);
+                }
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -96,6 +110,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
                 Log.e("failure","failure");
                 App app = (App) getApplication();
                 app.getMessageSentCallback().onComplete(message,false,e.toString());
+                stopForeground(true);
 
             }
         }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
@@ -106,7 +121,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
                 notificationManagerCompat.notify(notificationId,builder.build());
             }
         });
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     private void createNotificationChannel(String channelId) {

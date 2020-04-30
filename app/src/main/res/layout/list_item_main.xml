@@ -21,7 +21,7 @@
             android:paddingEnd="20dp">
 
             <ImageButton
-                android:id="@+id/info_button"
+                android:id="@+id/delete_button"
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:backgroundTint="#F83728"

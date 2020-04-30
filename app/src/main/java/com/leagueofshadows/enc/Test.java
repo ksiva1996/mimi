@@ -69,18 +69,10 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
         findViewById(R.id.camera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                File file = new File(getApplicationContext().getFilesDir(),"test.jpeg");
-                Uri uri = FileProvider.getUriForFile(Test.this,"com.leagueofshadows.enc.fileProvider",file);
 
-
-                intent.putExtra(MediaStore.EXTRA_OUTPUT,uri);
-                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                //startActivityForResult(Intent.createChooser(intent,"take picture using"),1);
-                startActivityForResult(intent,1);*/
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/*");
-                startActivityForResult(intent,3);
+                Intent intent = new Intent(Test.this,Images.class);
+                intent.putExtra(Util.path,Util.imagesPath);
+                startActivity(intent);
             }
         });
 

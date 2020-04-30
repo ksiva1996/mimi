@@ -191,7 +191,19 @@ public class DecryptMessageWorker extends Service {
                     }
                 }
                 else {
-                    //TODO: other types of messages
+                    String timeStamp = Calendar.getInstance().getTime().toString();
+                    Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),e.getContent(),e.getFilePath(),e.getTimeStamp()
+                            ,e.getType(),e.getTimeStamp(),timeStamp,null);
+                    databaseManager.insertNewMessage(message,message.getFrom());
+                    new Native(getApplicationContext()).sendMessageReceivedStatus(e);
+                    App app = (App) getApplication();
+                    if(app.getMessagesRetrievedCallback()!=null) {
+                        app.getMessagesRetrievedCallback().onNewMessage(message);
+                    }
+                    else {
+                        showNotification(message);
+                    }
+                    update(e);
                 }
             }
         });

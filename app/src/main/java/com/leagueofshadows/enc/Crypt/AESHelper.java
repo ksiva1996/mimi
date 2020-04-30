@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Looper;
 import android.util.Base64;
+import android.util.Log;
 
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
@@ -292,7 +293,7 @@ public class AESHelper {
         }
     }
 
-    public void encryptFile(@NonNull FileInputStream fileInputStream, @NonNull FileOutputStream fileOutputStream, @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey) throws RunningOnMainThreadException,
+    public void encryptFile(@NonNull FileInputStream fileInputStream,@NonNull FileInputStream fileInputStream1, @NonNull FileOutputStream fileOutputStream, @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey) throws RunningOnMainThreadException,
             NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeySpecException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
 
@@ -312,11 +313,11 @@ public class AESHelper {
         fileOutputStream.write(iv);
 
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
-        convertFile(fileInputStream,fileOutputStream,cipher);
+        convertFile(fileInputStream1,fileOutputStream,cipher);
         //secretKey.destroy();
     }
 
-    void DecryptFile(@NonNull FileInputStream fileInputStream, @NonNull  FileOutputStream fileOutputStream,
+    public void decryptFile(@NonNull FileInputStream fileInputStream, @NonNull  FileOutputStream fileOutputStream,
                      @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey, File outFile)
 
             throws IOException,
@@ -346,9 +347,6 @@ public class AESHelper {
         byte[] iv = new byte[16];
         x = fileInputStream.read(iv);
 
-        if(x!=256) {
-            throw new MalFormedFileException(malFormedFile);
-        }
 
         RSAHelper rsaHelper = new RSAHelper(context);
         hashBytes = rsaHelper.unSignHash(hashBytes,Base64PublicKey);
@@ -372,10 +370,11 @@ public class AESHelper {
     private void convertFile(@NonNull FileInputStream fileInputStream,@NonNull FileOutputStream fileOutputStream,@NonNull Cipher cipher) throws IOException,
             BadPaddingException, IllegalBlockSizeException {
 
-        byte[] buffer = new byte[8196];
+        byte[] buffer = new byte[4096];
         int len;
-        while((len = fileInputStream.read(buffer))!=-1)
+        while((len = fileInputStream.read(buffer))>0)
         {
+            Log.e("nd","neddd");
             byte[] output = cipher.update(buffer,0,len);
             fileOutputStream.write(output);
         }

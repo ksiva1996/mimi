@@ -61,7 +61,7 @@ public class RSAHelper {
 
     }
 
-   public PublicKey getPublicKey(String Base64String) throws NoSuchAlgorithmException, InvalidKeySpecException {
+   private PublicKey getPublicKey(String Base64String) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         byte[] encodedBytes = getbytes(Base64String);
         KeyFactory keyFactory = KeyFactory.getInstance(algorithm);

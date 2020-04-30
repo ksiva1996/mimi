@@ -11,12 +11,15 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -30,7 +33,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
-import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
+import com.leagueofshadows.enc.Interfaces.OptionsCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
@@ -74,7 +77,7 @@ import static android.view.View.GONE;
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
 
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback
+        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, OptionsCallback
  {
 
     ArrayList<Message> messages;
@@ -205,7 +208,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              }
          });
 
-         recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,otherUserId,this);
+         recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,otherUserId,this,this);
          listView.setAdapter(recyclerAdapter);
          smoothScroller = new LinearSmoothScroller(this){
             @Override
@@ -238,6 +241,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 sendMessage();
             }
         });
+
+        String path = Util.imagesPath+otherUserId;
+        checkPath(path,IMAGE_ATTACHMENT_REQUEST);
+        path = Util.documentsPath+otherUserId;
+        checkPath(path,FILE_ATTACHMENT_REQUEST);
     }
 
      private void setAttachmentLayout() {
@@ -279,7 +287,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          String timeStamp = Calendar.getInstance().getTime().toString();
 
                          String id = databaseReference.push().getKey();
-
                          assert id != null;
 
                          Message message = new Message(0,id,otherUserId,currentUserId,messageString,null,
@@ -311,7 +318,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 restHelper.sendMessageSeenStatus(message);
             }
             messages.add(0,message);
-            messageIds.add(message.getMessage_id());
+            messageIds.add(0,message.getMessage_id());
         }
         listView.post(new Runnable() {
             @Override
@@ -348,13 +355,18 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  try{
                      assert data != null;
                      Uri uri = data.getData();
-                     sendImage(uri);
+                     Intent intent = new Intent(this,ImagePreview.class);
+                     intent.putExtra(Util.uri,uri.toString());
+
+                     startActivityForResult(intent,IMAGE_SELECTED);
                  }catch (Exception e) {
                      e.printStackTrace();
                  }
              }
              if (requestCode==OPEN_CAMERA_REQUEST) {
+                 Uri uri = Uri.fromFile(new File(getApplicationContext().getFilesDir(),"current.jpg"));
                  Intent intent = new Intent(this,ImagePreview.class);
+                 intent.putExtra(Util.uri,uri.toString());
                  startActivityForResult(intent,IMAGE_SELECTED);
              }
              if (requestCode==IMAGE_SELECTED) {
@@ -374,7 +386,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  try {
                      Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
                      int compressionFactor = getCompressionFactor(bitmap.getByteCount());
-                     String path = Util.imagesPath+otherUser.getName();
+                     String path = Util.imagesPath+otherUserId;
                      checkPath(path,IMAGE_ATTACHMENT_REQUEST);
                      SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYYMMDD-HHmmss");
                      String fileName = "IMG-"+simpleDateFormat.format(new Date())+".jpg";
@@ -395,7 +407,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      FileInputStream fileInputStream = new FileInputStream(path);
                      fileOutputStream = new FileOutputStream(Util.privatePath+fileName);
                      App app = (App) getApplication();
-                     aesHelper.encryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
+                     FileInputStream fileInputStream1 = new FileInputStream(path);
+                     aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
                      Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
@@ -405,7 +418,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      intent.putExtra(Util.uri,uri.toString());
                      intent.putExtra(Util.id,id);
                      intent.putExtra(Util.type, Message.MESSAGE_TYPE_IMAGE);
-                     startService(intent);
+                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                         startForegroundService(intent);
+                     else
+                         startService(intent);
 
                  } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException |
                          BadPaddingException | RunningOnMainThreadException | InvalidKeyException |
@@ -442,8 +458,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      private void sendFile(final Uri uri) throws FileNotFoundException {
 
          final FileInputStream fileInputStream = (FileInputStream) getContentResolver().openInputStream(uri);
+         final FileInputStream fileInputStream1 = (FileInputStream) getContentResolver().openInputStream(uri);
          final String fileName = getFileName(uri);
-         String path = Util.documentsPath+otherUser.getName();
+         String path = Util.documentsPath+otherUserId;
          checkPath(path,FILE_ATTACHMENT_REQUEST);
          path = path+"/sent/"+fileName;
          final FileOutputStream fileOutputStream  = new FileOutputStream(path);
@@ -464,7 +481,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      AESHelper aesHelper = new AESHelper(ChatActivity.this);
                      assert fileInputStream != null;
                      App app = (App) getApplication();
-                     aesHelper.encryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
+
+                     aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
                      Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
@@ -473,7 +491,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      intent.putExtra(Util.name,otherUser.getName());
                      intent.putExtra(Util.uri,uri.toString());
                      intent.putExtra(Util.id,id);
-                     startService(intent);
+                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                         startForegroundService(intent);
+                     else
+                         startService(intent);
 
                  } catch (NoSuchAlgorithmException | NoSuchPaddingException | RunningOnMainThreadException |
                          IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException |
@@ -533,12 +554,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
     void deleteMessage(final Message message, final int position)
     {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         String m;
         if(message.getFrom().equals(currentUserId))
-            m = "Delete message ?";
+            m = "Delete message?";
         else
-            m = "Delete message from "+otherUser.getName();
+            m = "Delete message from "+otherUser.getName()+"?";
         builder.setMessage(m);
         builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
             @Override
@@ -559,7 +580,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
     void messageInfo(final Message message)
     {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         View view = getLayoutInflater().inflate(R.layout.activity_info,null);
 
         TextView deliveredTime = view.findViewById(R.id.deliver);
@@ -616,6 +637,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
          app.setMessagesRetrievedCallback(this);
          app.setResendMessageCallback(this);
+         app.setMessageSentCallback(this);
          firebaseHelper.getUserPublic(otherUserId,this);
          if(messages.isEmpty()) {
              getMessages();
@@ -724,7 +746,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         {
             if(messageIds.contains(messageId))
             {
+                Log.e("messageId",messageId);
                 int position = messageIds.indexOf(messageId);
+                Log.e("position", String.valueOf(position));
                 Message message = databaseManager.getMessage(messageId,userId);
                 messages.set(position,message);
                 updateRecyclerAdapter(position);
@@ -791,17 +815,25 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         private ScrollEndCallback scrollEndCallback;
         private String otherUserId;
         private String currentUserId;
-        private MessageOptionsCallback messageOptionsCallback;
+        private OptionsCallback optionsCallback;
+        private Context context;
 
-        /*void set(ArrayList<UserData> userDataArrayList) {
-            this.userDataArrayList = userDataArrayList;
-        }*/
+         RecyclerAdapter(ArrayList<Message> messages, ScrollEndCallback scrollEndCallback,
+                         String currentUserId, String otherUserId, OptionsCallback optionsCallback, Context context) {
+
+             this.messages = messages;
+             this.scrollEndCallback = scrollEndCallback;
+             this.currentUserId = currentUserId;
+             this.otherUserId = otherUserId;
+             this.context = context;
+             this.optionsCallback = optionsCallback;
+         }
 
         static class TextReceivedError extends RecyclerView.ViewHolder{
+
             TextView time;
             ImageView corner;
-            TextReceivedError(View view)
-            {
+            TextReceivedError(View view) {
                 super(view);
                 time = view.findViewById(R.id.time);
                 corner = view.findViewById(R.id.corner);
@@ -863,15 +895,129 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              }
          }
 
-        RecyclerAdapter(ArrayList<Message> messages,ScrollEndCallback scrollEndCallback,
-                        String currentUserId,String otherUserId,MessageOptionsCallback messageOptionsCallback) {
+         static class ImageSent extends RecyclerView.ViewHolder {
 
-            this.messages = messages;
-            this.scrollEndCallback = scrollEndCallback;
-            this.currentUserId = currentUserId;
-            this.otherUserId = otherUserId;
-            this.messageOptionsCallback = messageOptionsCallback;
-        }
+             SwipeRevealLayout container;
+             ImageView corner;
+             ProgressBar pg;
+             ImageView sent;
+             ImageView received;
+             ImageView seen;
+             ImageButton copyButton;
+             ImageButton replyButton;
+             ImageButton deleteButton;
+             ImageButton infoButton;
+             ImageView main;
+             TextView time;
+
+            ImageSent(View view) {
+                super(view);
+                container = view.findViewById(R.id.container);
+                sent = view.findViewById(R.id.sent);
+                received = view.findViewById(R.id.received);
+                seen = view.findViewById(R.id.seen);
+                corner = view.findViewById(R.id.triangle);
+                pg = view.findViewById(R.id.waiting);
+                copyButton = view.findViewById(R.id.copy_button);
+                replyButton = view.findViewById(R.id.reply_button);
+                deleteButton = view.findViewById(R.id.delete_button);
+                infoButton = view.findViewById(R.id.info_button);
+                main = view.findViewById(R.id.main);
+                time = view.findViewById(R.id.time);
+            }
+         }
+
+         static class ImageReceived extends RecyclerView.ViewHolder{
+
+             SwipeRevealLayout container;
+             ImageView corner;
+             ImageButton copyButton;
+             ImageButton replyButton;
+             ImageButton deleteButton;
+             ImageButton infoButton;
+             ImageView main;
+             TextView time;
+             LinearLayout imageDownloadContainer;
+             ImageView download;
+             ProgressBar downloadProgressBar;
+
+            ImageReceived(View view) {
+                super(view);
+                container = view.findViewById(R.id.container);
+                corner = view.findViewById(R.id.triangle);
+                copyButton = view.findViewById(R.id.copy_button);
+                replyButton = view.findViewById(R.id.reply_button);
+                deleteButton = view.findViewById(R.id.delete_button);
+                infoButton = view.findViewById(R.id.info_button);
+                main = view.findViewById(R.id.main);
+                time = view.findViewById(R.id.time);
+                imageDownloadContainer = view.findViewById(R.id.image_overlay);
+                download = view.findViewById(R.id.image_download);
+                downloadProgressBar = view.findViewById(R.id.image_loading);
+            }
+         }
+
+         static class FileSent extends RecyclerView.ViewHolder{
+
+             SwipeRevealLayout container;
+             ImageView corner;
+             ProgressBar pg;
+             ImageView sent;
+             ImageView received;
+             ImageView seen;
+             ImageButton copyButton;
+             ImageButton replyButton;
+             ImageButton deleteButton;
+             ImageButton infoButton;
+             TextView time;
+             TextView fileName;
+
+            FileSent(View view){
+                super(view);
+                container = view.findViewById(R.id.container);
+                sent = view.findViewById(R.id.sent);
+                received = view.findViewById(R.id.received);
+                seen = view.findViewById(R.id.seen);
+                corner = view.findViewById(R.id.triangle);
+                pg = view.findViewById(R.id.waiting);
+                copyButton = view.findViewById(R.id.copy_button);
+                replyButton = view.findViewById(R.id.reply_button);
+                deleteButton = view.findViewById(R.id.delete_button);
+                infoButton = view.findViewById(R.id.info_button);
+                fileName = view.findViewById(R.id.file_name);
+                time = view.findViewById(R.id.time);
+            }
+         }
+
+         static class FileReceived extends RecyclerView.ViewHolder{
+
+             SwipeRevealLayout container;
+             ImageView corner;
+             ImageButton copyButton;
+             ImageButton replyButton;
+             ImageButton deleteButton;
+             ImageButton infoButton;
+             TextView fileName;
+             TextView time;
+             ImageButton download;
+             ProgressBar downloadProgressBar;
+             TextView fileType;
+
+            FileReceived(View view){
+                super(view);
+                container = view.findViewById(R.id.container);
+                corner = view.findViewById(R.id.triangle);
+                copyButton = view.findViewById(R.id.copy_button);
+                replyButton = view.findViewById(R.id.reply_button);
+                deleteButton = view.findViewById(R.id.delete_button);
+                infoButton = view.findViewById(R.id.info_button);
+                fileName = view.findViewById(R.id.file_name);
+                time = view.findViewById(R.id.time);
+                download = view.findViewById(R.id.download_file);
+                downloadProgressBar = view.findViewById(R.id.download_progress);
+                fileType = view.findViewById(R.id.file_type);
+            }
+         }
 
         @NonNull
         @Override
@@ -891,11 +1037,35 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                             .inflate(R.layout.list_msg_error, parent, false);
                     return new TextReceivedError(itemView);
                 }
-                default:
+                case SEND_TEXT:
                 {
                     View itemView = LayoutInflater.from(parent.getContext())
                             .inflate(R.layout.send_msg, parent, false);
                     return new TextSent(itemView);
+                }
+                case SEND_FILE:
+                {
+                    View itemView = LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.send_file, parent, false);
+                    return new FileSent(itemView);
+                }
+                case RECEIVE_FILE:
+                {
+                    View itemView = LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.receive_file, parent, false);
+                    return new FileReceived(itemView);
+                }
+                case SEND_IMAGE:
+                {
+                    View itemView = LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.send_image, parent, false);
+                    return new ImageSent(itemView);
+                }
+                default:
+                {
+                    View itemView = LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.receive_image, parent, false);
+                    return new ImageReceived(itemView);
                 }
             }
         }
@@ -937,14 +1107,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 scrollEndCallback.scrollEndReached();
             }
 
-            Message message = messages.get(position);
+             final Message message = messages.get(position);
+             boolean flag = false;
+             if (position != 0) {
+                 Message prev = messages.get(position - 1);
+                 flag = check(message, prev);
+             }
+
             if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT)
              {
-                 boolean flag = false;
-                 if (position != 0) {
-                     Message prev = messages.get(position - 1);
-                     flag = check(message, prev);
-                 }
                  if (message.getFrom().equals(otherUserId)) {
                      if(message.getContent()==null)
                      {
@@ -966,11 +1137,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              h.corner.setVisibility(View.INVISIBLE);
                          else
                              h.corner.setVisibility(View.VISIBLE);
+
                          h.infoButton.setOnClickListener(new View.OnClickListener() {
                              @Override
                              public void onClick(View view) {
                                  if(h.container.isOpen()) {
-                                     messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                     optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                      h.container.close(true);
                                  }
                              }
@@ -979,7 +1151,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              @Override
                              public void onClick(View view) {
                                  if(h.container.isOpen()) {
-                                     messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                     optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                      h.container.close(true);
                                  }
                              }
@@ -988,7 +1160,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              @Override
                              public void onClick(View view) {
                                  if(h.container.isOpen()) {
-                                     messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                     optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                      h.container.close(true);
                                  }
                              }
@@ -997,15 +1169,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              @Override
                              public void onClick(View view) {
                                  if(h.container.isOpen()) {
-                                     messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                     optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                      h.container.close(true);
                                  }
                              }
                          });
                      }
                  }
-                 if (message.getFrom().equals(currentUserId)) {
-
+                 if (message.getFrom().equals(currentUserId))
+                 {
                      final TextSent h = (TextSent) holder;
                      h.message.setText(message.getContent());
                      h.time.setText(formatTime(message
@@ -1048,7 +1220,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                 optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                  h.container.close(true);
                              }
                          }
@@ -1057,7 +1229,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                 optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                  h.container.close(true);
                              }
                          }
@@ -1066,7 +1238,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                 optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                  h.container.close(true);
                              }
                          }
@@ -1075,16 +1247,373 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                 optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                  h.container.close(true);
                              }
                          }
                      });
                  }
              }
+            else if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
+            {
+               if(message.getFrom().equals(otherUserId))
+               {
+                   final ImageReceived h = (ImageReceived) holder;
+                   h.container.close(false);
+                   h.time.setText(formatTime(message.getTimeStamp()));
+                   if (flag)
+                       h.corner.setVisibility(View.INVISIBLE);
+                   else
+                       h.corner.setVisibility(View.VISIBLE);
+
+                   h.infoButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.replyButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.copyButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   String path = Util.imagesPath+otherUserId+"/"+message.getContent();
+                   File file = new File(path);
+                   if(file.exists())
+                   {
+                       h.imageDownloadContainer.setVisibility(GONE);
+                       h.main.setImageBitmap(BitmapFactory.decodeFile(path));
+                       h.main.setOnClickListener(new View.OnClickListener() {
+                           @Override
+                           public void onClick(View view) {
+                               //TODO:
+                           }
+                       });
+                   }
+                   else
+                   {
+                       h.imageDownloadContainer.setVisibility(View.VISIBLE);
+                       h.download.setOnClickListener(new View.OnClickListener() {
+                           @Override
+                           public void onClick(View view) {
+                               h.download.setVisibility(GONE);
+                               h.downloadProgressBar.setVisibility(View.VISIBLE);
+                               Intent intent = new Intent(context,Downloader.class);
+                               intent.putExtra(Util.id,message.getMessage_id());
+                               intent.putExtra(Util.toUserId,otherUserId);
+                               intent.putExtra(Util.userId,currentUserId);
+                               if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                   context.startForegroundService(intent);
+                               }
+                               else
+                                   context.startService(intent);
+                           }
+                       });
+                   }
+               }
+               else {
+                   final ImageSent h = (ImageSent) holder;
+                   h.container.close(false);
+                   h.time.setText(formatTime(message.getTimeStamp()));
+                   if (flag)
+                       h.corner.setVisibility(View.INVISIBLE);
+                   else
+                       h.corner.setVisibility(View.VISIBLE);
+
+                   h.infoButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.replyButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.copyButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   String path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+                   File file = new File(path);
+                   if(file.exists()) {
+                       h.main.setImageBitmap(BitmapFactory.decodeFile(path));
+                   }
+                   if(message.getSeen()!=null)
+                   {
+                       h.received.setVisibility(GONE);
+                       h.sent.setVisibility(GONE);
+                       h.pg.setVisibility(GONE);
+                       h.seen.setVisibility(View.VISIBLE);
+                   }
+                   else if(message.getReceived()!=null)
+                   {
+                       h.seen.setVisibility(GONE);
+                       h.sent.setVisibility(GONE);
+                       h.pg.setVisibility(GONE);
+                       h.received.setVisibility(View.VISIBLE);
+                   }
+                   else if(message.getSent()!=null)
+                   {
+                       h.seen.setVisibility(GONE);
+                       h.received.setVisibility(GONE);
+                       h.pg.setVisibility(GONE);
+                       h.sent.setVisibility(View.VISIBLE);
+                   }
+                   else
+                   {
+                       h.seen.setVisibility(GONE);
+                       h.received.setVisibility(GONE);
+                       h.sent.setVisibility(GONE);
+                       h.pg.setVisibility(View.VISIBLE);
+                   }
+               }
+            }
             else
             {
-                //TODO: other views
+                if(message.getFrom().equals(otherUserId))
+                {
+                    final FileReceived h = (FileReceived) holder;
+                    h.container.close(false);
+                    h.time.setText(formatTime(message.getTimeStamp()));
+                    if (flag)
+                        h.corner.setVisibility(View.INVISIBLE);
+                    else
+                        h.corner.setVisibility(View.VISIBLE);
+
+                    h.infoButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.replyButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.copyButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    String path = Util.documentsPath+otherUserId+"/"+message.getContent();
+                    final File file = new File(path);
+                    if(file.exists())
+                    {
+                        h.download.setVisibility(GONE);
+                        h.downloadProgressBar.setVisibility(GONE);
+                        String fileName = message.getContent();
+                        h.fileName.setText(fileName);
+                        fileName = fileName.substring(fileName.lastIndexOf('.'));
+                        h.fileType.setText(fileName);
+                        final String finalFileName = fileName;
+                        h.fileName.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                String mimeType = mimeTypeMap.getMimeTypeFromExtension(finalFileName);
+                                intent.setDataAndType(Uri.fromFile(file),mimeType);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                try {
+                                    context.startActivity(intent);
+                                }catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    }
+                    else
+                    {
+                        String fileName = message.getContent();
+                        h.fileName.setText(fileName);
+                        fileName = fileName.substring(fileName.lastIndexOf('.'));
+                        h.fileType.setText(fileName);
+                        h.download.setVisibility(View.VISIBLE);
+                        h.download.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                h.download.setVisibility(GONE);
+                                h.downloadProgressBar.setVisibility(View.VISIBLE);
+                                h.download.setVisibility(GONE);
+                                h.downloadProgressBar.setVisibility(View.VISIBLE);
+                                Intent intent = new Intent(context,Downloader.class);
+                                intent.putExtra(Util.id,message.getMessage_id());
+                                intent.putExtra(Util.toUserId,otherUserId);
+                                intent.putExtra(Util.userId,currentUserId);
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    context.startForegroundService(intent);
+                                }
+                                else
+                                    context.startService(intent);
+                            }
+                        });
+                    }
+                }
+                else {
+                    final FileSent h = (FileSent) holder;
+                    h.container.close(false);
+                    h.time.setText(formatTime(message.getTimeStamp()));
+                    if (flag)
+                        h.corner.setVisibility(View.INVISIBLE);
+                    else
+                        h.corner.setVisibility(View.VISIBLE);
+
+                    h.infoButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.deleteButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.replyButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.copyButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+
+                    String fileName = message.getContent();
+                    h.fileName.setText(fileName);
+                    fileName = fileName.substring(fileName.lastIndexOf('.'));
+                    final String finalFileName = fileName;
+                    h.fileName.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            String mimeType = mimeTypeMap.getMimeTypeFromExtension(finalFileName);
+                            intent.setDataAndType(Uri.parse(message.getFilePath()),mimeType);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            try {
+                                context.startActivity(intent);
+                            }catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+                    if(message.getSeen()!=null)
+                    {
+                        h.received.setVisibility(GONE);
+                        h.sent.setVisibility(GONE);
+                        h.pg.setVisibility(GONE);
+                        h.seen.setVisibility(View.VISIBLE);
+                    }
+                    else if(message.getReceived()!=null)
+                    {
+                        h.seen.setVisibility(GONE);
+                        h.sent.setVisibility(GONE);
+                        h.pg.setVisibility(GONE);
+                        h.received.setVisibility(View.VISIBLE);
+                    }
+                    else if(message.getSent()!=null)
+                    {
+                        h.seen.setVisibility(GONE);
+                        h.received.setVisibility(GONE);
+                        h.pg.setVisibility(GONE);
+                        h.sent.setVisibility(View.VISIBLE);
+                    }
+                    else
+                    {
+                        h.seen.setVisibility(GONE);
+                        h.received.setVisibility(GONE);
+                        h.sent.setVisibility(GONE);
+                        h.pg.setVisibility(View.VISIBLE);
+                    }
+                }
             }
         }
 

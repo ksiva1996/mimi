@@ -1,19 +1,23 @@
 package com.leagueofshadows.enc;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
+import com.leagueofshadows.enc.Interfaces.OptionsCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Items.UserData;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -23,17 +27,20 @@ import java.util.Collections;
 import java.util.Comparator;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-public class MainActivity extends AppCompatActivity implements  MessagesRetrievedCallback , ResendMessageCallback {
+public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback {
 
     ArrayList<UserData> userDataArrayList;
     RecyclerAdapter recyclerAdapter;
     DatabaseManager2 databaseManager;
     static String userId;
+
+    final static int DELETE_CONSERVATION = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(linearLayoutManager);
 
-        recyclerAdapter = new RecyclerAdapter(userDataArrayList,this);
+        recyclerAdapter = new RecyclerAdapter(userDataArrayList,this,this);
         recyclerView.setAdapter(recyclerAdapter);
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -83,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
 
         app.setMessagesRetrievedCallback(this);
         app.setResendMessageCallback(this);
+        app.setMessageSentCallback(this);
         loadUserData();
     }
 
@@ -135,10 +143,38 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         loadUserData();
     }
 
+    @Override
+    public void onComplete(Message message, boolean success, String error) {
+    }
+
+    @Override
+    public void onOptionsSelected(int option, final int position) {
+        if(option==DELETE_CONSERVATION)
+        {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
+            final User user = userDataArrayList.get(position).getUser();
+            builder.setMessage("Delete conversation with "+user.getName()+" ?");
+            builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    String userId = user.getId();
+                    databaseManager.deleteConversation(userId);
+                    loadUserData();
+                }
+            }).setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    dialogInterface.dismiss();
+                }
+            }).create().show();
+        }
+    }
+
     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyViewHolder> {
 
         private ArrayList<UserData> userDataArrayList;
         Context context;
+        private OptionsCallback optionsCallback;
 
        /* void set(ArrayList<UserData> userDataArrayList) {
             this.userDataArrayList = userDataArrayList;
@@ -152,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
             TextView count;
             SwipeRevealLayout swipe;
             RelativeLayout container;
+            ImageButton deleteButton;
 
             MyViewHolder(View view) {
                 super(view);
@@ -162,12 +199,14 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
                 count = view.findViewById(R.id.count);
                 container = view.findViewById(R.id.container);
                 swipe = view.findViewById(R.id.swipe);
+                deleteButton = view.findViewById(R.id.delete_button);
             }
         }
 
-        RecyclerAdapter(ArrayList<UserData> userDataArrayList,Context context) {
+        RecyclerAdapter(ArrayList<UserData> userDataArrayList,Context context,OptionsCallback optionsCallback) {
             this.context = context;
             this.userDataArrayList = userDataArrayList;
+            this.optionsCallback = optionsCallback;
         }
 
         @NonNull
@@ -179,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
         }
 
         @Override
-        public void onBindViewHolder(@NonNull final MyViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull final MyViewHolder holder, final int position) {
             final UserData userData = userDataArrayList.get(position);
             holder.name.setText(userData.getUser().getName());
 
@@ -216,7 +255,14 @@ public class MainActivity extends AppCompatActivity implements  MessagesRetrieve
                 }
             });
             holder.swipe.close(false);
-
+            holder.deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (holder.swipe.isOpen()) {
+                        optionsCallback.onOptionsSelected(DELETE_CONSERVATION,position);
+                    }
+                }
+            });
         }
 
         private String formatTime(String received) {

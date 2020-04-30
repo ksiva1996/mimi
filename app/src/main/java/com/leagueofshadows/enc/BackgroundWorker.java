@@ -146,6 +146,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                         Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),e.getContent(),e.getFilePath(),e.getTimeStamp()
                                 ,e.getType(),e.getTimeStamp(),timeStamp,null);
                         databaseManager.insertNewMessage(message,message.getFrom());
+                        restHelper.sendMessageReceivedStatus(e);
                         App app = (App) getApplication();
                         if(app.getMessagesRetrievedCallback()!=null) {
                             app.getMessagesRetrievedCallback().onNewMessage(message);
@@ -180,8 +181,6 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
        // Log.e("new message",d.toString());
 
         d.getRef().removeValue();
-
-
         final EncryptedMessage encryptedMessage = new EncryptedMessage();
         encryptedMessage.setId((String) d.child(id).getValue());
         encryptedMessage.setTo((String) d.child(to).getValue());

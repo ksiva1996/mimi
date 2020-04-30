@@ -48,6 +48,6 @@ public class User {
     }
 
     public void setBase64EncodedPublicKey(String base64EncodedPublicKey) {
-        Base64EncodedPublicKey = base64EncodedPublicKey;
+        this.Base64EncodedPublicKey = base64EncodedPublicKey;
     }
 }

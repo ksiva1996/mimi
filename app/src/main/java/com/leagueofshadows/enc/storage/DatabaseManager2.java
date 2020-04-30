@@ -4,8 +4,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
-
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
@@ -163,6 +161,12 @@ public class DatabaseManager2 {
         checkTable(tableName);
         SQLiteDatabase sqLiteDatabase = openDatabase();
         sqLiteDatabase.delete(tableName,MESSAGES_ID+" = ?", new String[]{message.getMessage_id()});
+        String raw = "SELECT * FROM "+tableName+" WHERE "+ID+" = ( SELECT MAX("+ID+") FROM "+tableName+")";
+        Cursor cursor = sqLiteDatabase.rawQuery(raw,null);
+        cursor.moveToFirst();
+        String messageId = cursor.getString(cursor.getColumnIndex(MESSAGES_ID));
+        updateMessageId(otherUserId,messageId);
+        cursor.close();
     }
 
     public ArrayList<Message> getMessages(String otherUserId, int offset, int length)
@@ -304,8 +308,8 @@ public class DatabaseManager2 {
     public String getPublicKey(String userId)
     {
         String Bas64EncodedPublicKey = null;
-        String raw = "SELECT * FROM "+TABLE_USERS+" WHERE "+USERS_ID+" = "+userId;
-        Cursor cursor = openDatabase().rawQuery(raw,null);
+        String raw = "SELECT * FROM "+TABLE_USERS+" WHERE "+USERS_ID+" = ?";
+        Cursor cursor = openDatabase().rawQuery(raw, new String[]{userId});
         if(cursor!=null)
         {
             if(cursor.moveToFirst())
@@ -568,5 +572,13 @@ public class DatabaseManager2 {
     }
     public void deleteResendMessage(String messageId) {
         openDatabase().delete(TABLE_RESEND_MESSAGE,RESEND_MESSAGE_MESSAGE_ID+" = ?", new String[]{messageId});
+    }
+
+    public void deleteConversation(String userId) {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        String tableName = getTableName(userId);
+        String raw = "DELETE FROM "+tableName;
+        sqLiteDatabase.execSQL(raw);
+        sqLiteDatabase.delete(TABLE_USER_DATA,USER_DATA_USERS_ID+" = ?", new String[]{userId});
     }
 }

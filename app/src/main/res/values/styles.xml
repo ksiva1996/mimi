@@ -47,6 +47,12 @@
 
     </style>
 
+    <style name="AlertDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:background">@color/mainBackground</item>
+    </style>
+
     <style name="chat_timings">
 
         <item name="android:layout_width">wrap_content</item>

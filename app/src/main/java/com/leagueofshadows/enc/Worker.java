@@ -78,7 +78,7 @@ public class Worker extends Service implements CompleteCallback{
             e.printStackTrace();
         }
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     private void work(final int no)
@@ -107,6 +107,9 @@ public class Worker extends Service implements CompleteCallback{
                         update(e);
                     }
                 });
+            }
+            else {
+                update(e);
             }
         }
 
@@ -165,7 +168,7 @@ public class Worker extends Service implements CompleteCallback{
                     }
                 }
                 else {
-                    //TODO: other types of messages
+
                 }
             }
         });
@@ -201,5 +204,6 @@ public class Worker extends Service implements CompleteCallback{
     @Override
     public void onCanceled() {
         Log.e("something","wrong in getting new messages");
+        stopSelf();
     }
 }
