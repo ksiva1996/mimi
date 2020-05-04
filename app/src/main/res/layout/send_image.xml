@@ -110,23 +110,21 @@
                     android:textColor="#A3A3A3" />
             </LinearLayout>
 
-            <androidx.cardview.widget.CardView
+            <RelativeLayout
+            android:layout_width="300dp"
+            android:layout_height="300dp">
+
+            <ImageView
+                android:id="@+id/main"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="6dp"
-                app:cardElevation="2dp">
+                android:layout_alignParentEnd="false"
+                android:adjustViewBounds="false"
+                android:alpha="1"
+                android:scaleType="centerCrop"
+                app:srcCompat="@drawable/test2" />
 
-                    <ImageView
-                        android:id="@+id/main"
-                        android:layout_width="match_parent"
-                        android:layout_height="300dp"
-                        android:layout_alignParentEnd="false"
-                        android:adjustViewBounds="false"
-                        android:alpha="1"
-                        app:srcCompat="@drawable/background2" />
-
-            </androidx.cardview.widget.CardView>
+        </RelativeLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"

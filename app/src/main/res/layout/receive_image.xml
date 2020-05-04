@@ -107,30 +107,35 @@
                 android:textColor="#A3A3A3" />
         </LinearLayout>
 
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="6dp"
-            app:cardElevation="2dp">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+        <RelativeLayout
+                android:layout_width="300dp"
+                android:layout_height="300dp">
 
                 <ImageView
                     android:id="@+id/main"
-                    android:layout_width="300dp"
-                    android:layout_height="300dp"
-                    android:adjustViewBounds="true"
-                    app:srcCompat="@drawable/background2" />
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:adjustViewBounds="false"
+                    android:alpha="1"
+                    android:scaleType="centerCrop"
+                    app:srcCompat="@drawable/test2" />
 
                 <LinearLayout
                     android:id="@+id/image_overlay"
                     android:layout_width="300dp"
                     android:layout_height="300dp"
-                    android:background="#96C3C3C3"
-                    android:orientation="vertical">
+                    android:background="#C9C3C3C3"
+                    android:orientation="vertical"
+                    android:visibility="visible">
+
+                    <ProgressBar
+                        android:id="@+id/image_loading"
+                        style="?android:attr/progressBarStyle"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="130dp"
+                        android:visibility="gone" />
 
                     <ImageView
                         android:id="@+id/image_download"
@@ -141,20 +146,9 @@
                         android:tint="#1E1E1E"
                         android:visibility="visible"
                         app:srcCompat="@android:drawable/stat_sys_download" />
-
-                    <ProgressBar
-                        android:id="@+id/image_loading"
-                        style="?android:attr/progressBarStyle"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_gravity="center"
-                        android:layout_marginTop="130dp"
-                        android:visibility="gone" />
                 </LinearLayout>
 
             </RelativeLayout>
-
-        </androidx.cardview.widget.CardView>
 
         <TextView
             android:id="@+id/time"
