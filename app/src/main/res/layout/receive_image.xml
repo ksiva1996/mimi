@@ -122,8 +122,7 @@
                     android:id="@+id/main"
                     android:layout_width="300dp"
                     android:layout_height="300dp"
-                    android:adjustViewBounds="false"
-                    android:alpha="0.2"
+                    android:adjustViewBounds="true"
                     app:srcCompat="@drawable/background2" />
 
                 <LinearLayout

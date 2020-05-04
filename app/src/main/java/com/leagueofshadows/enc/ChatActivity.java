@@ -28,6 +28,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Crypt.AESHelper;
@@ -357,21 +358,31 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      Uri uri = data.getData();
                      Intent intent = new Intent(this,ImagePreview.class);
                      intent.putExtra(Util.uri,uri.toString());
-
+                     intent.putExtra(Util.name,otherUser.getName());
                      startActivityForResult(intent,IMAGE_SELECTED);
                  }catch (Exception e) {
                      e.printStackTrace();
                  }
              }
              if (requestCode==OPEN_CAMERA_REQUEST) {
-                 Uri uri = Uri.fromFile(new File(getApplicationContext().getFilesDir(),"current.jpg"));
+                 File file = new File(getApplicationContext().getFilesDir(),"current.jpg");
                  Intent intent = new Intent(this,ImagePreview.class);
-                 intent.putExtra(Util.uri,uri.toString());
+                 intent.putExtra(Util.path,file.getPath());
+                 intent.putExtra(Util.camera,Util.camera);
+                 intent.putExtra(Util.name,otherUser.getName());
                  startActivityForResult(intent,IMAGE_SELECTED);
              }
              if (requestCode==IMAGE_SELECTED) {
-                 Uri uri = Uri.fromFile(new File(getApplicationContext().getFilesDir(),"current.jpg"));
-                 sendImage(uri);
+                 try {
+                     Uri uri = Uri.parse(data.getStringExtra(Util.uri));
+                     if(uri!=null) {
+                         sendImage(uri);
+                     }
+                 }
+                 catch (Exception e){
+                     e.printStackTrace();
+                 }
+
              }
          }
          else { Toast.makeText(this,"Canceled",Toast.LENGTH_SHORT).show(); }
@@ -451,7 +462,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          else
          {
              int factor = (byteUpperLimit - byteLowerLimit)/(lowerCompression-upperCompression);
-             return (byteCount-byteLowerLimit)/factor + 10;
+             return 80 - (byteCount-byteLowerLimit)/factor;
          }
      }
 
@@ -482,6 +493,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      assert fileInputStream != null;
                      App app = (App) getApplication();
 
+                     assert fileInputStream1 != null;
                      aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
                      Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
@@ -1307,11 +1319,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                    if(file.exists())
                    {
                        h.imageDownloadContainer.setVisibility(GONE);
-                       h.main.setImageBitmap(BitmapFactory.decodeFile(path));
+                       Glide.with(context).load(file).into(h.main);
                        h.main.setOnClickListener(new View.OnClickListener() {
                            @Override
                            public void onClick(View view) {
-                               //TODO:
+                               Intent intent = new Intent(context,Images.class);
+
                            }
                        });
                    }
@@ -1383,9 +1396,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                    });
                    String path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
                    File file = new File(path);
-                   if(file.exists()) {
-                       h.main.setImageBitmap(BitmapFactory.decodeFile(path));
-                   }
+                   Glide.with(context).load(file).fitCenter().into(h.main);
                    if(message.getSeen()!=null)
                    {
                        h.received.setVisibility(GONE);
@@ -1498,11 +1509,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         fileName = fileName.substring(fileName.lastIndexOf('.'));
                         h.fileType.setText(fileName);
                         h.download.setVisibility(View.VISIBLE);
+                        h.downloadProgressBar.setVisibility(GONE);
                         h.download.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
-                                h.download.setVisibility(GONE);
-                                h.downloadProgressBar.setVisibility(View.VISIBLE);
                                 h.download.setVisibility(GONE);
                                 h.downloadProgressBar.setVisibility(View.VISIBLE);
                                 Intent intent = new Intent(context,Downloader.class);

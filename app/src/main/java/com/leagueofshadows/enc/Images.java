@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
+import com.bumptech.glide.Glide;
 import com.jsibbold.zoomage.ZoomageView;
 
 import java.io.File;
@@ -51,7 +52,7 @@ public class Images extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         getSupportActionBar().setTitle(name);
-        getSupportActionBar().setSubtitle("testing");
+
 
         try{
             assert path != null;
@@ -99,7 +100,26 @@ public class Images extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        
+        int id = item.getItemId();
+        switch (id)
+        {
+            case R.id.share:{
+
+            }
+            case R.id.details:{
+
+            }
+            case R.id.delete:{
+
+            }
+            case R.id.send:{
+
+            }
+            case R.id.openInGallery:{
+
+            }
+        }
+        return true;
     }
 
     static class CustomImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
@@ -108,14 +128,12 @@ public class Images extends AppCompatActivity {
         ArrayList<File> files;
         Context context;
 
-        CustomImageAdapter(ArrayList<File> files,Context context)
-        {
+        CustomImageAdapter(ArrayList<File> files,Context context) {
             this.context = context;
             this.files = files;
         }
 
-        static class Image extends RecyclerView.ViewHolder
-        {
+        static class Image extends RecyclerView.ViewHolder {
             ZoomageView zoomageView;
             Image(View view) {
                 super(view);
@@ -127,7 +145,7 @@ public class Images extends AppCompatActivity {
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View itemView = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.activity_image_preview, parent, false);
+                    .inflate(R.layout.image_item, parent, false);
             return new Image(itemView);
         }
 
@@ -135,7 +153,7 @@ public class Images extends AppCompatActivity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             File file = files.get(position);
             Image image = (Image) holder;
-            image.zoomageView.setImageBitmap(BitmapFactory.decodeFile(file.getPath()));
+            Glide.with(context).load(file).into(image.zoomageView);
         }
 
         @Override

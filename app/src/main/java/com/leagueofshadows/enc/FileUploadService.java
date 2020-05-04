@@ -54,12 +54,12 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final Uri uri = Uri.parse(intent.getStringExtra(Util.uri));
         final int type = intent.getIntExtra(Util.type,Message.MESSAGE_TYPE_FILE);
 
-        String path;
+        final String path;
 
         if(type==Message.MESSAGE_TYPE_FILE)
             path = Util.documentsPath+otherUserId+"/sent/"+fileName;
         else
-            path = Util.imagesPath+otherUserId+"/sent/"+fileName;
+            path = Util.privatePath+fileName;
 
         final int notificationId = new Random().nextInt();
 
@@ -83,17 +83,19 @@ public class FileUploadService extends Service implements MessageSentCallback {
         assert currentUserId != null;
         assert id != null;
 
-        FirebaseStorage.getInstance().getReference().child(Files).child(otherUserId).child(timeStamp).putFile(Uri.fromFile(new File(path))).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+        final File file = new File(path);
+        FirebaseStorage.getInstance().getReference().child(Files).child(otherUserId).child(timeStamp).putFile(Uri.fromFile(file)).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Log.e("success","success");
+
+                file.deleteOnExit();
                 builder.setProgress(0,0,false);
                 notificationManagerCompat.cancelAll();
-
                 message = new Message(0,id,otherUserId,currentUserId,fileName,uri.toString(),timeStamp,
                         type,null,null,null);
 
-                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),fileName,timeStamp,timeStamp,EncryptedMessage.MESSAGE_TYPE_FILE);
+                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),fileName,timeStamp,timeStamp,type);
                 FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                 try {
                     firebaseHelper.sendTextOnlyMessage(message,encryptedMessage,FileUploadService.this,id);

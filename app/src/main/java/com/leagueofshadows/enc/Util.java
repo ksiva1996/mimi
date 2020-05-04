@@ -16,6 +16,7 @@ public class Util {
     public static final String preferences = "preferences";
     public static String type = "type";
     public static String path = "path";
+    static String camera = "camera";
     static String currentFocus = "currentFocus";
 
 

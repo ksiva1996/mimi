@@ -92,7 +92,7 @@ public class Downloader extends Service {
         else
             finalPath = Util.documentsPath+otherUserId+"/"+message.getContent();
 
-        File file = new File(privatePath);
+        final File file = new File(privatePath);
 
         FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp()).getFile(file).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -118,6 +118,7 @@ public class Downloader extends Service {
 
                             Log.e("userId",otherUserId);
                             aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
+                            file.deleteOnExit();
 
                         } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | MalFormedFileException
                                 | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidKeySpecException

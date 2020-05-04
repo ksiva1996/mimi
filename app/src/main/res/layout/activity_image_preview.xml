@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/mainBackground">
 
     <com.jsibbold.zoomage.ZoomageView
@@ -11,4 +12,16 @@
         android:padding="10dp"
         android:layout_margin="10dp"/>
 
-</LinearLayout>
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:backgroundTint="@color/background_tab_pressed"
+        android:clickable="true"
+        android:elevation="10dp"
+        app:fabCustomSize="55dp"
+        app:srcCompat="@drawable/input_send" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
