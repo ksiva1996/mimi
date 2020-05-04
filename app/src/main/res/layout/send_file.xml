@@ -109,34 +109,7 @@
                         android:textColor="#A3A3A3" />
                 </LinearLayout>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/transparent"
-                        android:padding="8dp">
-
-                        <ImageView
-                            android:id="@+id/file_icon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_margin="5dp"
-                            android:layout_weight="1"
-                            android:tint="#F3F3F3"
-                            app:srcCompat="@drawable/baseline_insert_drive_file_24" />
-
-                        <TextView
-                            android:id="@+id/file_name"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_margin="5dp"
-                            android:layout_weight="1"
-                            android:text="app-debu.apk app-"
-                            android:textColor="#B3B0B0"
-                            android:textSize="18sp" />
-
-
-                    </LinearLayout>
+                
 
                 <LinearLayout
                     android:layout_width="match_parent"
