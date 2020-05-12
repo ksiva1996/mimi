@@ -4,8 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Looper;
 import android.util.Base64;
-import android.util.Log;
 
+import com.leagueofshadows.enc.App;
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
@@ -54,7 +54,6 @@ public class AESHelper {
     private static final String cipherAlgorithm = "AES/CBC/PKCS5Padding";
     private static final String hashAlgorithm = "SHA-256";
 
-
     private static final String threadException = "Must not be invoked from Main Thread";
     private static final String applicationFlowException = "it appears that the data has been corrupted or the " +
             "flow of application data is wrong don't call this function before encrypt function";
@@ -63,7 +62,6 @@ public class AESHelper {
             "this could also result from incorrect use of keys";
 
     private static final String malFormedFile = "it seems that the file is not encrypted properly";
-
 
     public AESHelper (Context context) throws NoSuchAlgorithmException, NoSuchPaddingException {
         this.context = context;
@@ -77,11 +75,6 @@ public class AESHelper {
         keyGenerator.init(keySize,secureRandom);
         factory = SecretKeyFactory.getInstance(pbkdf);
         cipher = Cipher.getInstance(cipherAlgorithm);
-
-        /*Log.e("keyGenerator - ",keyGenerator.getAlgorithm()+"  "+keyGenerator.getProvider());
-        Log.e(factory+ "- factory details",factory.getAlgorithm()+"  "+factory.getProvider());
-        Log.e(cipherAlgorithm+ " -details",cipher.getAlgorithm()+" "+cipher.getProvider());
-        Log.e("Secure Random - ",secureRandom.getAlgorithm()+"  "+secureRandom.getProvider()+" ");*/
     }
 
     private SecretKey getOneTimeKey() throws NoSuchAlgorithmException, NoSuchPaddingException {
@@ -107,7 +100,10 @@ public class AESHelper {
         }
         byte[] saltBytes = getbytes(salt);
         PBEKeySpec spec = new PBEKeySpec(Password.toCharArray(), saltBytes,iterations,keySize);
-        return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), algorithm);
+        SecretKey secretKey = new SecretKeySpec(factory.generateSecret(spec).getEncoded(), algorithm);
+        App app = (App) context.getApplicationContext();
+        app.setMasterKey(secretKey);
+        return secretKey;
     }
 
      public String encryptMessage(@NonNull String message,@NonNull String Base64String,@NonNull PrivateKey privateKey) throws NoSuchAlgorithmException,
@@ -118,7 +114,7 @@ public class AESHelper {
             throw new RunningOnMainThreadException(threadException);
         }
 
-        SecretKey secretKey = getOneTimeKey();
+         SecretKey secretKey = getOneTimeKey();
          byte[] messageBytes = message.getBytes();
          byte[] encodedKeyBytes = secretKey.getEncoded();
 
@@ -139,10 +135,7 @@ public class AESHelper {
         System.arraycopy(iv,0,content,hashBytes.length+encryptedKeyBytes.length,iv.length);
         System.arraycopy(encryptedMessageBytes,0,content,hashBytes.length+encryptedKeyBytes.length+iv.length,encryptedMessageBytes.length);
 
-
-        //TODO: destroy
-       // secretKey.destroy();
-
+        // secretKey.destroy();
         return getBase64(content);
     }
 
@@ -171,7 +164,6 @@ public class AESHelper {
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
         return getBase64(encryptedMessageBytes);
-
     }
 
     /*public String decryptCheckMessage(@NonNull String message,String password) throws
@@ -196,18 +188,15 @@ public class AESHelper {
         SecretKey secretKey = getMasterKey(password);
         byte[] messageBytes = message.getBytes();
 
-
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
         return getBase64(encryptedMessageBytes);
-
     }*/
 
-    public String DecryptMessage(@NonNull String Base64message,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey) throws NoSuchPaddingException,
-            NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+    public String DecryptMessage(@NonNull String Base64message,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeyException, InvalidKeySpecException, InvalidAlgorithmParameterException,
             DataCorruptedException, RunningOnMainThreadException {
-
 
         if(Looper.myLooper() == Looper.getMainLooper()) {
             throw new RunningOnMainThreadException(threadException);
@@ -218,9 +207,6 @@ public class AESHelper {
         byte[] encryptedKeyBytes = Arrays.copyOfRange(content,256,512);
         byte[] iv = Arrays.copyOfRange(content,512,528);
         byte[] messageBytes = Arrays.copyOfRange(content,528,content.length);
-
-        //Log.e("contentLength", String.valueOf(content.length));
-        //Log.e("hashLength", String.valueOf(hashbytes.length));
 
         RSAHelper rsaHelper = new RSAHelper(context);
         hashbytes = rsaHelper.unSignHash(hashbytes,Base64PublicKey);
@@ -233,9 +219,6 @@ public class AESHelper {
 
         byte[] newHahBytes = getHash(messageBytes,encodedKeyByes);
         boolean x = Arrays.equals(hashbytes,newHahBytes);
-
-        //TODO: destroy
-        //secretKeySpec.destroy();
 
         if(x)
             return new String(messageBytes);
@@ -264,7 +247,6 @@ public class AESHelper {
         String privateKeyString = getBase64(out);
         editor.putString(Util.PrivateKeyString,privateKeyString);
         editor.apply();
-        //TODO: do something destroy
         //masterKey.destroy();
     }
 
@@ -282,13 +264,9 @@ public class AESHelper {
 
         if( iv != null && in != null) {
             cipher.init(Cipher.DECRYPT_MODE,masterKey,new IvParameterSpec(iv));
-            //TODO:
-            //masterKey.destroy();
             return cipher.doFinal(in);
         }
         else {
-            //TODO:
-           // masterKey.destroy();
             throw new IllegalStateException(applicationFlowException);
         }
     }
@@ -314,14 +292,12 @@ public class AESHelper {
 
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         convertFile(fileInputStream1,fileOutputStream,cipher);
-        //secretKey.destroy();
     }
 
     public void decryptFile(@NonNull FileInputStream fileInputStream, @NonNull  FileOutputStream fileOutputStream,
                      @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey, File outFile)
 
-            throws IOException,
-            MalFormedFileException, NoSuchPaddingException, NoSuchAlgorithmException,
+            throws IOException, MalFormedFileException, NoSuchPaddingException, NoSuchAlgorithmException,
             IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException,
             InvalidAlgorithmParameterException, RunningOnMainThreadException {
 
@@ -347,7 +323,6 @@ public class AESHelper {
         byte[] iv = new byte[16];
         x = fileInputStream.read(iv);
 
-
         RSAHelper rsaHelper = new RSAHelper(context);
         hashBytes = rsaHelper.unSignHash(hashBytes,Base64PublicKey);
 
@@ -367,14 +342,13 @@ public class AESHelper {
         }
     }
 
-    private void convertFile(@NonNull FileInputStream fileInputStream,@NonNull FileOutputStream fileOutputStream,@NonNull Cipher cipher) throws IOException,
-            BadPaddingException, IllegalBlockSizeException {
+    private void convertFile(@NonNull FileInputStream fileInputStream,@NonNull FileOutputStream fileOutputStream,@NonNull Cipher cipher)
+            throws IOException, BadPaddingException, IllegalBlockSizeException {
 
         byte[] buffer = new byte[4096];
         int len;
         while((len = fileInputStream.read(buffer))>0)
         {
-            Log.e("nd","neddd");
             byte[] output = cipher.update(buffer,0,len);
             fileOutputStream.write(output);
         }
@@ -389,7 +363,6 @@ public class AESHelper {
 
 
     private byte[] getHash(@NonNull byte[] messageBytes, @NonNull byte[] encodedKeyBytes) throws NoSuchAlgorithmException {
-
 
         byte[] bytes = new byte[messageBytes.length+encodedKeyBytes.length];
 
@@ -412,8 +385,7 @@ public class AESHelper {
     }
 
     @NonNull
-    private byte[] getNewIV()
-    {
+    private byte[] getNewIV() {
         byte[] iv = new byte[16];
         secureRandom.nextBytes(iv);
         return iv;

@@ -36,4 +36,5 @@
     <string name="share_with_friends">Share with friends</string>
     <string name="open_contacts">Open contacts</string>
     <string name="refresh">refresh</string>
+    <string name="delete_media">Delete media</string>
 </resources>

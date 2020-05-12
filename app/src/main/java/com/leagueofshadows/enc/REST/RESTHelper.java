@@ -41,7 +41,6 @@ public class RESTHelper {
     private String accessToken;
     private SharedPreferences sp;
 
-    //TODO major security issues of REST API end points
     @Deprecated
     public RESTHelper(Context context) {
         this.context = context;

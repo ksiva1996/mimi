@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -37,14 +38,19 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     ArrayList<User> users;
     RecyclerView listView;
     ContactListAdapter contactListAdapter;
+    Intent receivedIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_contact_list);
+        getSupportActionBar().setTitle("People using Mimi");
+
+        receivedIntent = getIntent();
+
         users = new ArrayList<>();
         listView = findViewById(R.id.recycler_view);
-        contactListAdapter = new ContactListAdapter(users,this,this);
+        contactListAdapter = new ContactListAdapter(users,this,this,receivedIntent);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         listView.setLayoutManager(linearLayoutManager);
         listView.setAdapter(contactListAdapter);
@@ -58,6 +64,12 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         app.setCompleteCallback(this);
         load();
 
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 
     private void load() {
@@ -101,6 +113,9 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             intent.putExtra(Intent.EXTRA_TEXT,shareMessage);
             startActivity(intent);
         }
+        else if(item.getItemId() == android.R.id.home) {
+            onBackPressed();
+        }
         return true;
     }
 
@@ -122,11 +137,13 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         private ArrayList<User> users;
         private Context context;
         private Select select;
+        private Intent receivedIntent;
 
-        ContactListAdapter(ArrayList<User> msgList, Context context,Select select) {
+        ContactListAdapter(ArrayList<User> msgList, Context context,Select select,Intent receivedIntent) {
             this.users = msgList;
             this.context = context;
             this.select = select;
+            this.receivedIntent = receivedIntent;
         }
 
         @NonNull
@@ -151,14 +168,32 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             final User user = users.get(position);
             mainListItem.username.setText(user.getName());
             mainListItem.number.setText(user.getNumber());
+            mainListItem.alphabet.setText(user.getName().substring(0,1));
             mainListItem.alphabet.setBackgroundTintList(ColorStateList.valueOf((randomColor)));
             mainListItem.relativeLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(context,ChatActivity.class);
-                    intent.putExtra(Util.userId,user.getId());
-                    context.startActivity(intent);
-                    select.onClick();
+                    if (receivedIntent.getAction()!=null) {
+                        if(receivedIntent.getAction().equals(Intent.ACTION_SEND))
+                        {
+                            Log.e("share","share");
+                            Intent intent = new Intent(context,ChatActivity.class);
+                            intent.setAction(Intent.ACTION_SEND);
+                            intent.setType(receivedIntent.getType());
+                            intent.putExtra(Util.userId, user.getId());
+                            intent.putExtra(Intent.EXTRA_TEXT,receivedIntent.getStringExtra(Intent.EXTRA_TEXT));
+                            intent.putExtra(Intent.EXTRA_SUBJECT,receivedIntent.getStringExtra(Intent.EXTRA_SUBJECT));
+                            intent.putExtra(Intent.EXTRA_STREAM,receivedIntent.getParcelableExtra(Intent.EXTRA_STREAM));
+                            context.startActivity(intent);
+                            select.onClick();
+                        }
+                    }
+                    else {
+                        Intent intent = new Intent(context, ChatActivity.class);
+                        intent.putExtra(Util.userId, user.getId());
+                        context.startActivity(intent);
+                        select.onClick();
+                    }
                 }
             });
         }

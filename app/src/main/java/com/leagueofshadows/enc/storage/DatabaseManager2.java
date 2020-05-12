@@ -4,11 +4,11 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Items.UserData;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -142,6 +142,8 @@ public class DatabaseManager2 {
         sqLiteDatabase.update(tableName,contentValues,MESSAGES_ID +" = ?", new String[]{message.getMessage_id()});
     }
 
+
+
     public boolean check(String messageId, String userId)
     {
         String tableName = getTableName(userId);
@@ -241,6 +243,32 @@ public class DatabaseManager2 {
             return message;
         }
         return null;
+    }
+
+    public ArrayList<Message> getImages(String userId)
+    {
+        String tableName = getTableName(userId);
+        checkTable(tableName);
+
+        ArrayList<Message> images = new ArrayList<>();
+        String raw = "SELECT * FROM "+tableName+" WHERE "+MESSAGES_TYPE+" = "+Message.MESSAGE_TYPE_IMAGE;
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        Cursor cursor = sqLiteDatabase.rawQuery(raw,null);
+        if(cursor!=null)
+        {
+            if(cursor.moveToFirst())
+            {
+                do{
+                    Message message = new Message(cursor.getInt(0), cursor.getString(cursor.getColumnIndex(MESSAGES_ID)), cursor.getString(cursor.getColumnIndex(MESSAGES_TO))
+                            , cursor.getString(cursor.getColumnIndex(MESSAGES_FROM)), cursor.getString(cursor.getColumnIndex(MESSAGES_CONTENT)), cursor.getString(cursor.getColumnIndex(MESSAGES_FILEPATH))
+                            , cursor.getString(cursor.getColumnIndex(MESSAGES_TIMESTAMP)), cursor.getInt(cursor.getColumnIndex(MESSAGES_TYPE)), cursor.getString(cursor.getColumnIndex(MESSAGES_SENT))
+                            , cursor.getString(cursor.getColumnIndex(MESSAGES_RECEIVED)), cursor.getString(cursor.getColumnIndex(MESSAGES_SEEN)));
+                    images.add(message);
+                }while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        return images;
     }
 
     //Encrypted Messages database operations

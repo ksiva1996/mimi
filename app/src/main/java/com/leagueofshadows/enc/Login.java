@@ -5,11 +5,9 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
-
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
@@ -17,13 +15,11 @@ import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.REST.Native;
-
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -40,6 +36,7 @@ public class Login extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         editText = findViewById(R.id.password);
+
         findViewById(R.id.login).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -102,10 +99,26 @@ public class Login extends AppCompatActivity {
                             startService(intent1);
                         }
 
-
-                        Intent intent = new Intent(Login.this,MainActivity.class);
-                        startActivity(intent);
-                        finish();
+                        Intent intent = getIntent();
+                        if(intent.getAction()!=null)
+                        {
+                            if (intent.getAction().equals(Intent.ACTION_SEND))
+                            {
+                                Intent intent3 = new Intent(Login.this,ContactsActivity.class);
+                                intent3.setAction(Intent.ACTION_SEND);
+                                intent3.setType(intent.getType());
+                                intent3.putExtra(Intent.EXTRA_STREAM,intent.getParcelableExtra(Intent.EXTRA_STREAM));
+                                intent3.putExtra(Intent.EXTRA_TEXT,intent.getStringExtra(Intent.EXTRA_TEXT));
+                                intent3.putExtra(Intent.EXTRA_SUBJECT,intent.getStringExtra(Intent.EXTRA_SUBJECT));
+                                startActivity(intent3);
+                                finish();
+                            }
+                        }
+                        else {
+                            Intent intent4 = new Intent(Login.this, MainActivity.class);
+                            startActivity(intent4);
+                            finish();
+                        }
                     }
                     else {
                         setError();

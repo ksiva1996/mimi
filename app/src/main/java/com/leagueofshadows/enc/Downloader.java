@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
-import android.util.Log;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -16,9 +15,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -61,14 +62,14 @@ public class Downloader extends Service {
         final String messageId = intent.getStringExtra(Util.id);
         final String otherUserId = intent.getStringExtra(Util.toUserId);
         final String userId = intent.getStringExtra(Util.userId);
-        Message message = databaseManager.getMessage(messageId,otherUserId);
+        final Message message = databaseManager.getMessage(messageId,otherUserId);
 
         final int notificationId = new Random().nextInt();
 
-        String CHANNEL_ID = "file_download";
-        createNotificationChannel(CHANNEL_ID);
+
+        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
         final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-        final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Util.ServiceNotificationChannelID);
         builder.setContentTitle(getResources().getString(R.string.app_name))
                 .setContentText("Downloading file - "+message.getContent())
                 .setSmallIcon(R.mipmap.ic_launcher_round)
@@ -94,7 +95,8 @@ public class Downloader extends Service {
 
         final File file = new File(privatePath);
 
-        FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp()).getFile(file).addOnFailureListener(new OnFailureListener() {
+        final StorageReference storageReference = FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp());
+        storageReference.getFile(file).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 stopForeground(true);
@@ -102,31 +104,39 @@ public class Downloader extends Service {
         }).addOnCompleteListener(new OnCompleteListener<FileDownloadTask.TaskSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<FileDownloadTask.TaskSnapshot> task) {
-                App app = (App) getApplication();
-                app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
                 stopForeground(true);
-                AsyncTask.execute(new Runnable() {
+
+                FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
+                firebaseHelper.getUserPublic(message.getFrom(), new PublicKeyCallback() {
                     @Override
-                    public void run() {
-                        try {
-                            FileInputStream fileInputStream = new FileInputStream(privatePath);
-                            FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
-                            AESHelper aesHelper = new AESHelper(Downloader.this);
+                    public void onSuccess(String Base64PublicKey) {
+                        AsyncTask.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    FileInputStream fileInputStream = new FileInputStream(privatePath);
+                                    FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
+                                    AESHelper aesHelper = new AESHelper(Downloader.this);
 
-                            App app = (App) getApplication();
-                            String publicKey = databaseManager.getPublicKey(otherUserId);
+                                    App app = (App) getApplication();
+                                    String publicKey = databaseManager.getPublicKey(otherUserId);
 
-                            Log.e("userId",otherUserId);
-                            aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
-                            file.deleteOnExit();
-
-                        } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | MalFormedFileException
-                                | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidKeySpecException
-                                | InvalidAlgorithmParameterException | RunningOnMainThreadException e) {
-
-                            e.printStackTrace();
-                        }
+                                    aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
+                                    app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
+                                    storageReference.delete();
+                                    message.setFilePath(null);
+                                    databaseManager.updateMessage(message,message.getFrom());
+                                    file.delete();
+                                } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | MalFormedFileException
+                                        | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidKeySpecException
+                                        | InvalidAlgorithmParameterException | RunningOnMainThreadException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
                     }
+                    @Override
+                    public void onCancelled(String error) {}
                 });
             }
         }).addOnProgressListener(new OnProgressListener<FileDownloadTask.TaskSnapshot>() {
@@ -147,11 +157,11 @@ public class Downloader extends Service {
         return null;
     }
 
-    private void createNotificationChannel(String channelId) {
+    private void createNotificationChannel(String channelId,String channelTitle) {
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             assert notificationManager != null;
             notificationManager.createNotificationChannel(serviceChannel);

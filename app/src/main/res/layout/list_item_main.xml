@@ -25,12 +25,14 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:backgroundTint="#F83728"
-                android:text="Info"
                 app:srcCompat="@android:drawable/ic_menu_delete" />
 
         </LinearLayout>
     </FrameLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -105,4 +107,5 @@
             android:textSize="14sp" />
 
     </RelativeLayout>
+    </LinearLayout>
 </com.leagueofshadows.enc.SwipeRevealLayout>

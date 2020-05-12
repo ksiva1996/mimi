@@ -3,7 +3,6 @@ package com.leagueofshadows.enc.Crypt;
 import android.content.Context;
 import android.os.Looper;
 import android.util.Base64;
-import android.util.Log;
 
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 
@@ -117,8 +116,6 @@ public class RSAHelper {
         PublicKey publicKey = getPublicKey(Base64String);
         Cipher cipher = Cipher.getInstance(cipherAlgorithm);
         cipher.init(Cipher.DECRYPT_MODE,publicKey);
-        Log.e("length", String.valueOf(signedHash.length));
-
         return cipher.doFinal(signedHash);
     }
 

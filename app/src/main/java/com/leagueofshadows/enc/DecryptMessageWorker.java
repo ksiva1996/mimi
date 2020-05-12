@@ -156,6 +156,7 @@ public class DecryptMessageWorker extends Service {
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);
                             } else {
+                                databaseManager.insertNewMessage(message,message.getFrom());
                                 showNotification(message);
                             }
                         }

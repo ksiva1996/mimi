@@ -25,13 +25,6 @@ public class SplashActivity extends AppCompatActivity {
         String uid = FirebaseAuth.getInstance().getUid();
         String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
-        try {
-            String x = FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber();
-        }catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-
         final Intent intent;
 
         if(uid==null) {
@@ -60,6 +53,6 @@ public class SplashActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             }
-        },2, TimeUnit.SECONDS);
+        },1, TimeUnit.SECONDS);
     }
 }

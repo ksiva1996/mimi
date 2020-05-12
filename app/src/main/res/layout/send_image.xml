@@ -27,6 +27,7 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:tint="#000000"
+                android:visibility="gone"
                 app:srcCompat="@drawable/baseline_reply_24" />
 
             <ImageButton
@@ -121,8 +122,7 @@
                 android:layout_alignParentEnd="false"
                 android:adjustViewBounds="false"
                 android:alpha="1"
-                android:scaleType="centerCrop"
-                app:srcCompat="@drawable/test2" />
+                android:scaleType="centerCrop" />
 
         </RelativeLayout>
 

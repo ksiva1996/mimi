@@ -6,31 +6,18 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-import com.leagueofshadows.enc.Crypt.AESHelper;
-import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
+
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
-import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
-import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
-import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Calendar;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import java.util.ArrayList;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -38,12 +25,11 @@ import androidx.core.app.NotificationManagerCompat;
 
 public class Worker extends Service implements CompleteCallback{
 
-    public static final String CHANNEL_ID = "service_retrieve";
+
     public static final int id = 1547;
     private DatabaseManager2 databaseManager;
     FirebaseHelper firebaseHelper;
     ArrayList<EncryptedMessage> encryptedMessages;
-    public static final String NOTIFICATION_CHANNEL_ID= "Notification_channel";
 
     @Override
     public void onCreate() {
@@ -54,10 +40,10 @@ public class Worker extends Service implements CompleteCallback{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        createNotificationChannel(CHANNEL_ID);
+        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
         Intent notificationIntent = new Intent(this,SplashActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,1,notificationIntent,0);
-        Notification notification = new NotificationCompat.Builder(this,CHANNEL_ID).setContentTitle(getString(R.string.app_name))
+        Notification notification = new NotificationCompat.Builder(this,Util.ServiceNotificationChannelID).setContentTitle(getString(R.string.app_name))
                 .setContentText("getting new messages...")
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent).build();
@@ -81,7 +67,7 @@ public class Worker extends Service implements CompleteCallback{
         return START_NOT_STICKY;
     }
 
-    private void work(final int no)
+    private void work()
     {
         ArrayList<EncryptedMessage> encryptedMessages = databaseManager.getEncryptedMessages();
 
@@ -113,15 +99,15 @@ public class Worker extends Service implements CompleteCallback{
             }
         }
 
-        createNotificationChannel(NOTIFICATION_CHANNEL_ID);
+        createNotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle);
 
         Intent notificationIntent = new Intent(getApplicationContext(),SplashActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
-        Notification notification = new NotificationCompat.Builder(getApplicationContext(),NOTIFICATION_CHANNEL_ID).setContentTitle(getString(R.string.app_name))
-                .setContentText("open app to view new messages - "+no+" new messages")
+        Notification notification = new NotificationCompat.Builder(getApplicationContext(),Util.NewMessageNotificationChannelID).setContentTitle(getString(R.string.app_name))
+                .setContentText("New message/s")
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .setContentIntent(pendingIntent).setAutoCancel(false).build();
-        NotificationManagerCompat.from(getApplicationContext()).notify(1254,notification);
+        NotificationManagerCompat.from(getApplicationContext()).notify((int) System.currentTimeMillis(),notification);
 
     }
 
@@ -133,7 +119,7 @@ public class Worker extends Service implements CompleteCallback{
         }
     }
 
-    void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PulicKey)  {
+    /*void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PulicKey)  {
 
         AsyncTask.execute(new Runnable() {
             @Override
@@ -156,7 +142,6 @@ public class Worker extends Service implements CompleteCallback{
                             messagesRetrievedCallback.onNewMessage(message);
                         }
                         else {
-                            showNotification(message);
                         }
                         update(e);
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
@@ -167,22 +152,15 @@ public class Worker extends Service implements CompleteCallback{
                         ex.printStackTrace();
                     }
                 }
-                else {
-
-                }
             }
         });
-    }
+    }*/
 
-    private void showNotification(Message message) {
-        //TODO : figure out notifications
-    }
-
-    private void createNotificationChannel(String channelId) {
+    private void createNotificationChannel(String channelId,String channelTitle) {
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             assert notificationManager != null;
             notificationManager.createNotificationChannel(serviceChannel);
@@ -198,7 +176,7 @@ public class Worker extends Service implements CompleteCallback{
 
     @Override
     public void onComplete(int numberOfMessages) {
-        work(numberOfMessages);
+        work();
     }
 
     @Override

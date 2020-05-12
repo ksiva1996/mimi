@@ -27,6 +27,7 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:tint="#000000"
+                android:visibility="gone"
                 app:srcCompat="@drawable/baseline_reply_24" />
 
             <ImageButton
@@ -117,8 +118,7 @@
                     android:layout_height="match_parent"
                     android:adjustViewBounds="false"
                     android:alpha="1"
-                    android:scaleType="centerCrop"
-                    app:srcCompat="@drawable/test2" />
+                    android:scaleType="centerCrop" />
 
                 <LinearLayout
                     android:id="@+id/image_overlay"
@@ -147,7 +147,6 @@
                         android:visibility="visible"
                         app:srcCompat="@android:drawable/stat_sys_download" />
                 </LinearLayout>
-
             </RelativeLayout>
 
         <TextView
@@ -159,8 +158,5 @@
             android:layout_marginTop="5dp"
             android:text="11:15 PM" />
     </LinearLayout>
-
-
 </RelativeLayout>
-
 </com.leagueofshadows.enc.SwipeRevealLayout>

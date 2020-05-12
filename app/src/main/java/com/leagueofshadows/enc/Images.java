@@ -1,37 +1,47 @@
 package com.leagueofshadows.enc;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager.widget.PagerAdapter;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.MimeTypeMap;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.jsibbold.zoomage.ZoomageView;
+import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.io.File;
 import java.util.ArrayList;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
+
 public class Images extends AppCompatActivity {
 
-    ArrayList<File> images;
-    int currentPosition = -1;
+    ArrayList<Message> images;
+    String messageId;
+    Message currentMessage;
     ViewPager2 viewPager2;
+    String otherUserId;
+    User otherUser;
+    DatabaseManager2 databaseManager2;
+    private CustomImageAdapter customImageAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,55 +51,56 @@ public class Images extends AppCompatActivity {
         viewPager2 = findViewById(R.id.viewPager);
         images = new ArrayList<>();
         Intent intent = getIntent();
-        String path = intent.getStringExtra(Util.path);
-        String currentFocus = intent.getStringExtra(Util.currentFocus);
-        String name = intent.getStringExtra(Util.name);
-        if(name==null)
-        {
-            name = "Aditya";
-        }
+        otherUserId = intent.getStringExtra(Util.userId);
+        messageId = intent.getStringExtra(Util.messageId);
+
+        DatabaseManager2.initializeInstance(new SQLHelper(this));
+        databaseManager2 = DatabaseManager2.getInstance();
+
+        otherUser = databaseManager2.getUser(otherUserId);
+        currentMessage = databaseManager2.getMessage(messageId,otherUserId);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        getSupportActionBar().setTitle(name);
 
+        customImageAdapter = new CustomImageAdapter(images,this,otherUserId);
+        viewPager2.setAdapter(customImageAdapter);
 
-        try{
-            assert path != null;
-            File file = new File(path);
-            if(file.exists())
-            {
-                File[] files = file.listFiles();
-                for (int i=0;i<files.length;i++) {
-                    File f = files[i];
-                    if (!f.isDirectory())
-                    images.add(f);
-
-                    if(f.getName().equals(currentFocus))
-                        currentPosition = i;
-                }
-                if(currentPosition == -1)
-                    currentPosition = images.size()-1;
-
-                CustomImageAdapter customImageAdapter = new CustomImageAdapter(images,this);
-                viewPager2.setAdapter(customImageAdapter);
-
-            }
-            else {
-                finish();
-            }
-        }catch (Exception e)
-        {
-            e.printStackTrace();
-            finish();
-        }
         viewPager2.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
-                String name = images.get(position).getName();
-                getSupportActionBar().setSubtitle(name);
+                Message message = images.get(position);
+                String title;
+                if(otherUserId.equals(message.getFrom()))
+                    title = otherUser.getName();
+                else
+                    title = "You";
+                getSupportActionBar().setTitle(title);
+                getSupportActionBar().setSubtitle(message.getContent());
             }
         });
+
+        //get messages which contain images from local database
+        getImages();
+
+    }
+
+    private void getImages() {
+        images.clear();
+        ArrayList<Message> messages = databaseManager2.getImages(otherUserId);
+        for (Message message:messages) {
+            String path;
+            if(message.getFrom().equals(otherUserId))
+                path = Util.imagesPath+otherUserId+"/"+message.getContent();
+            else
+                path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+
+            File file = new File(path);
+            if(file.exists())
+                images.add(message);
+        }
+        customImageAdapter.notifyDataSetChanged();
+        viewPager2.setCurrentItem(images.indexOf(currentMessage),false);
     }
 
     @Override
@@ -101,36 +112,91 @@ public class Images extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
+        final int position = viewPager2.getCurrentItem();
+        final Message message = images.get(position);
+
+        String path;
+        if(message.getFrom().equals(otherUserId))
+            path = Util.imagesPath+otherUserId+"/"+message.getContent();
+        else
+            path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+
+        final File file = new File(path);
+        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+        String name = file.getName();
+        name = name.substring(name.lastIndexOf('.'));
+        String mimeType = "image/*";
+
         switch (id)
         {
             case R.id.share:{
-
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType(mimeType);
+                intent.putExtra(Intent.EXTRA_STREAM,FileProvider.getUriForFile(this,this.getPackageName()+".fileProvider",file));
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+                break;
             }
             case R.id.details:{
-
+                AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
+                builder.setView(getLayoutInflater().inflate(R.layout.image_info,null));
+                builder.setCancelable(false);
+                builder.create().show();
+                //TODO add the details
+                break;
             }
             case R.id.delete:{
 
+                AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
+                builder.setMessage("Delete image "+file.getName());
+                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        boolean x = file.delete();
+                        if(x) {
+                            Toast.makeText(Images.this, "Image deleted", Toast.LENGTH_SHORT).show();
+                            images.remove(message);
+                            customImageAdapter.notifyItemRangeRemoved(position,1);
+                        }
+                    }
+                }).create().show();
+                break;
             }
             case R.id.send:{
-
+                Intent intent = new Intent(this,ContactsActivity.class);
+                intent.setAction(Intent.ACTION_SEND);
+                intent.setType(mimeType);
+                intent.putExtra(Intent.EXTRA_STREAM,FileProvider.getUriForFile(this,this.getPackageName()+".fileProvider",file));
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+                break;
             }
             case R.id.openInGallery:{
-
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(FileProvider.getUriForFile(this,this.getPackageName()+".fileProvider",file),mimeType);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+                break;
+            }
+            case android.R.id.home: {
+                onBackPressed();
+                return true;
             }
         }
-        return true;
+        return super.onOptionsItemSelected(item);
     }
 
     static class CustomImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     {
 
-        ArrayList<File> files;
+        ArrayList<Message> files;
         Context context;
+        String otherUserId;
 
-        CustomImageAdapter(ArrayList<File> files,Context context) {
+        CustomImageAdapter(ArrayList<Message> files,Context context,String otherUserId) {
             this.context = context;
             this.files = files;
+            this.otherUserId = otherUserId;
         }
 
         static class Image extends RecyclerView.ViewHolder {
@@ -151,9 +217,14 @@ public class Images extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            File file = files.get(position);
+            Message message= files.get(position);
             Image image = (Image) holder;
-            Glide.with(context).load(file).into(image.zoomageView);
+            String path;
+            if(message.getFrom().equals(otherUserId))
+                path = Util.imagesPath+otherUserId+"/"+message.getContent();
+            else
+                path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+            Glide.with(context).load(path).into(image.zoomageView);
         }
 
         @Override

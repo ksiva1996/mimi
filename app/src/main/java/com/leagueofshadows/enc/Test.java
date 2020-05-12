@@ -7,12 +7,12 @@ import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -20,22 +20,14 @@ import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -66,16 +58,34 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
         setContentView(R.layout.activity_test);
         imageView = findViewById(R.id.image);
         scaleGestureDetector = new ScaleGestureDetector(this,this);
+        final EditText bytes = findViewById(R.id.bytes);
         findViewById(R.id.camera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+            int x = getCompressionFactor(Integer.parseInt(bytes.getText().toString()));
+            Log.e("factor", String.valueOf(x));
 
-                Intent intent = new Intent(Test.this,Images.class);
-                intent.putExtra(Util.path,Util.imagesPath);
-                startActivity(intent);
             }
         });
 
+    }
+
+
+    private int getCompressionFactor(int byteCount) {
+
+        final int byteUpperLimit = 3145728;
+        final int byteLowerLimit = 307200;
+        final int upperCompression = 10;
+        final int lowerCompression = 80;
+        if(byteCount>byteUpperLimit)
+            return upperCompression;
+        else if(byteCount<byteLowerLimit)
+            return lowerCompression;
+        else
+        {
+            int factor = (byteUpperLimit - byteLowerLimit)/(lowerCompression-upperCompression);
+            return 80 - (byteCount-byteLowerLimit)/factor;
+        }
     }
 
     @Override

@@ -3,7 +3,7 @@
     <files-path
         name="local-images"
         path="/"/>
-    <external-files-path
+    <external-path
         name="all"
-        path="/"/>
+        path="."/>
 </paths>

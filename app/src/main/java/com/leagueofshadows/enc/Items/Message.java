@@ -1,6 +1,7 @@
 package com.leagueofshadows.enc.Items;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class Message {
 
@@ -145,4 +146,21 @@ public class Message {
         this.message_id = message_id;
     }
 
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if(obj!=null) {
+            if(obj.getClass().equals(this.getClass())) {
+                Message m = (Message) obj;
+                try {
+                    return this.message_id.equals(m.getMessage_id());
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
 }

@@ -27,6 +27,7 @@
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:tint="#000000"
+                android:visibility="gone"
                 app:srcCompat="@drawable/baseline_reply_24" />
 
             <ImageButton
@@ -113,7 +114,7 @@
                     android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="5dp"
-                    android:background="@drawable/to_msg_background"
+                    android:background="@drawable/file_background"
                     android:padding="8dp">
 
                     <ImageView
@@ -137,7 +138,7 @@
                         android:layout_toRightOf="@id/file_icon"
                         android:layout_weight="1"
                         android:text="app-debu.apk app-"
-                        android:textColor="#B3B0B0"
+                        android:textColor="#FFFFFF"
                         android:textSize="18sp" />
 
                 </RelativeLayout>

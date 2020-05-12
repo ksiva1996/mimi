@@ -141,7 +141,6 @@ public class OTP extends AppCompatActivity implements UserCallback {
 
                     @Override
                     public void onVerificationFailed(@NonNull FirebaseException e) {
-                        Log.e("code","");
                         e.printStackTrace();
                     }
 

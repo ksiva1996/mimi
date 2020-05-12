@@ -49,12 +49,13 @@
         </activity>
         <activity
             android:name=".ChatActivity"
+            android:launchMode="singleTop"
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize">
         </activity>
         <activity
             android:name=".MainActivity"
-            android:label="@string/title_activity_main"
+            android:label="Mimi"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".OTP"
@@ -62,7 +63,25 @@
             android:theme="@style/UserTheme" />
         <activity
             android:name=".Login"
-            android:theme="@style/UserTheme" />
+            android:theme="@style/UserTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="file/*"/>
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".Register"
             android:theme="@style/UserTheme" />

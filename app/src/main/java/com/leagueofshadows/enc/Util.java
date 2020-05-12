@@ -16,8 +16,14 @@ public class Util {
     public static final String preferences = "preferences";
     public static String type = "type";
     public static String path = "path";
+    public static String messageId = "messageId";
     static String camera = "camera";
     static String currentFocus = "currentFocus";
+
+    static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
+    static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";
+    static String ServiceNotificationChannelTitle = "Service notifications channel";
+    static String NewMessageNotificationChannelTitle = "New Message notifications";
 
 
     static String CheckMessageEncrypted = "CheckMessageEncrypted";

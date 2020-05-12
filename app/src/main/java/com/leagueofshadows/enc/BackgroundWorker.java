@@ -178,8 +178,6 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
     @Override
     public void onChildAdded(@NonNull DataSnapshot d, @Nullable String s) {
 
-       Log.e("new message",d.toString());
-
         d.getRef().removeValue();
         final EncryptedMessage encryptedMessage = new EncryptedMessage();
         encryptedMessage.setId((String) d.child(id).getValue());

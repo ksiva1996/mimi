@@ -1,7 +1,9 @@
 package com.leagueofshadows.enc;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -12,7 +14,11 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 
 import com.jsibbold.zoomage.ZoomageView;
@@ -28,16 +34,51 @@ public class ImagePreview extends AppCompatActivity {
     boolean flag = false;
     String path;
     Uri uri;
+    boolean isVisible = true;
+    ActionBar actionBar;
 
     @Override
+    @SuppressLint("ClickableViewAccessibility")
     protected void onCreate(Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_preview);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        final ActionBar actionBar = getSupportActionBar();
+        actionBar.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
         zoomageView = findViewById(R.id.imageView);
+        final GestureDetector gestureDetector = new GestureDetector(this,new SingleTapConfirm());
+
+        zoomageView.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if(gestureDetector.onTouchEvent(motionEvent))
+                {
+                    if(isVisible) {
+                        isVisible = false;
+                        actionBar.hide();
+                    }
+                    else {
+                        isVisible = true;
+                        actionBar.show();
+                    }
+                    return true;
+                }
+                else
+                    return false;
+            }
+        });
+
+        /*zoomageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+            }
+        });*/
+
         Intent intent = getIntent();
         String name = intent.getStringExtra(Util.name);
 
@@ -113,13 +154,25 @@ public class ImagePreview extends AppCompatActivity {
                 }
             }
         });
+    }
 
+    @Override
+    public boolean onNavigateUp() {
+        onBackPressed();
+        return true;
     }
 
     private Bitmap rotateBitmap(Bitmap bitmap, float i) {
         Matrix matrix = new Matrix();
         matrix.setRotate(i);
         return Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+    }
+
+    private static class SingleTapConfirm extends GestureDetector.SimpleOnGestureListener{
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            return true;
+        }
     }
 
 }

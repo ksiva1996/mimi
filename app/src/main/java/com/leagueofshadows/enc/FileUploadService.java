@@ -56,17 +56,14 @@ public class FileUploadService extends Service implements MessageSentCallback {
 
         final String path;
 
-        if(type==Message.MESSAGE_TYPE_FILE)
-            path = Util.documentsPath+otherUserId+"/sent/"+fileName;
-        else
-            path = Util.privatePath+fileName;
+        path = Util.privatePath+fileName;
 
         final int notificationId = new Random().nextInt();
 
-        String CHANNEL_ID = "file_upload";
-        createNotificationChannel(CHANNEL_ID);
+
+        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
         final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-        final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Util.ServiceNotificationChannelID);
         builder.setContentTitle(getResources().getString(R.string.app_name))
                 .setContentText("sending file to "+userName)
                 .setSmallIcon(R.mipmap.ic_launcher_round)
@@ -89,7 +86,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Log.e("success","success");
 
-                file.deleteOnExit();
+                file.delete();
                 builder.setProgress(0,0,false);
                 notificationManagerCompat.cancelAll();
                 message = new Message(0,id,otherUserId,currentUserId,fileName,uri.toString(),timeStamp,
@@ -126,11 +123,11 @@ public class FileUploadService extends Service implements MessageSentCallback {
         return START_STICKY;
     }
 
-    private void createNotificationChannel(String channelId) {
+    private void createNotificationChannel(String channelId,String channelTitle) {
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             assert notificationManager != null;
             notificationManager.createNotificationChannel(serviceChannel);

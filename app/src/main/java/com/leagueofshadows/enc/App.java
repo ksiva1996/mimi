@@ -6,8 +6,8 @@ import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
-
 import java.security.PrivateKey;
+import javax.crypto.SecretKey;
 
 public class App extends Application {
 
@@ -16,7 +16,7 @@ public class App extends Application {
     private MessageSentCallback messageSentCallback;
     private CompleteCallback completeCallback;
     private ResendMessageCallback resendMessageCallback;
-
+    private SecretKey masterKey;
     public CompleteCallback getCompleteCallback() {
         return completeCallback;
     }
@@ -60,5 +60,13 @@ public class App extends Application {
 
     public void setResendMessageCallback(ResendMessageCallback resendMessageCallback) {
         this.resendMessageCallback = resendMessageCallback;
+    }
+
+    public SecretKey getMasterKey() {
+        return masterKey;
+    }
+
+    public void setMasterKey(SecretKey masterKey) {
+        this.masterKey = masterKey;
     }
 }
