@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.Select;
@@ -39,6 +40,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     RecyclerView listView;
     ContactListAdapter contactListAdapter;
     Intent receivedIntent;
+    MenuItem syncingIcon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +49,6 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         getSupportActionBar().setTitle("People using Mimi");
 
         receivedIntent = getIntent();
-
         users = new ArrayList<>();
         listView = findViewById(R.id.recycler_view);
         contactListAdapter = new ContactListAdapter(users,this,this,receivedIntent);
@@ -83,6 +84,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.options,menu);
+        syncingIcon = menu.findItem(R.id.syncingIcon);
         return true;
     }
 
@@ -98,6 +100,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             else {
                 startService(intent1);
             }
+            syncingIcon.setVisible(true);
         }
         else if(item.getItemId() == R.id.contacts)
         {
@@ -121,7 +124,9 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
 
     @Override
     public void onComplete(int x) {
+        syncingIcon.setVisible(false);
         load();
+        Toast.makeText(this,"Your contact list has been updated",Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -219,5 +224,4 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             }
         }
     }
-
 }

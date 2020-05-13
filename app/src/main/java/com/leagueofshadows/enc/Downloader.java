@@ -24,6 +24,9 @@ import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -43,6 +46,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import static com.leagueofshadows.enc.ChatActivity.MESSAGE_CONTENT;
 import static com.leagueofshadows.enc.FirebaseHelper.Files;
 
 public class Downloader extends Service {
@@ -86,67 +90,72 @@ public class Downloader extends Service {
 
         final String finalPath;
 
-        final String privatePath = Util.privatePath+message.getContent();
+        try {
+            JSONObject jsonObject = new JSONObject(message.getContent());
+            final String privatePath = Util.privatePath+jsonObject.getString(MESSAGE_CONTENT);
 
-        if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
-            finalPath = Util.imagesPath+otherUserId+"/"+message.getContent();
-        else
-            finalPath = Util.documentsPath+otherUserId+"/"+message.getContent();
+            if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
+                finalPath = Util.imagesPath+otherUserId+"/"+jsonObject.getString(MESSAGE_CONTENT);
+            else
+                finalPath = Util.documentsPath+otherUserId+"/"+jsonObject.getString(MESSAGE_CONTENT);
+            final File file = new File(privatePath);
 
-        final File file = new File(privatePath);
+            final StorageReference storageReference = FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp());
+            storageReference.getFile(file).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    stopForeground(true);
+                }
+            }).addOnCompleteListener(new OnCompleteListener<FileDownloadTask.TaskSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<FileDownloadTask.TaskSnapshot> task) {
+                    stopForeground(true);
 
-        final StorageReference storageReference = FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp());
-        storageReference.getFile(file).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                stopForeground(true);
-            }
-        }).addOnCompleteListener(new OnCompleteListener<FileDownloadTask.TaskSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<FileDownloadTask.TaskSnapshot> task) {
-                stopForeground(true);
+                    FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
+                    firebaseHelper.getUserPublic(message.getFrom(), new PublicKeyCallback() {
+                        @Override
+                        public void onSuccess(String Base64PublicKey) {
+                            AsyncTask.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        FileInputStream fileInputStream = new FileInputStream(privatePath);
+                                        FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
+                                        AESHelper aesHelper = new AESHelper(Downloader.this);
 
-                FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
-                firebaseHelper.getUserPublic(message.getFrom(), new PublicKeyCallback() {
-                    @Override
-                    public void onSuccess(String Base64PublicKey) {
-                        AsyncTask.execute(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    FileInputStream fileInputStream = new FileInputStream(privatePath);
-                                    FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
-                                    AESHelper aesHelper = new AESHelper(Downloader.this);
+                                        App app = (App) getApplication();
+                                        String publicKey = databaseManager.getPublicKey(otherUserId);
 
-                                    App app = (App) getApplication();
-                                    String publicKey = databaseManager.getPublicKey(otherUserId);
-
-                                    aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
-                                    app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
-                                    storageReference.delete();
-                                    message.setFilePath(null);
-                                    databaseManager.updateMessage(message,message.getFrom());
-                                    file.delete();
-                                } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | MalFormedFileException
-                                        | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidKeySpecException
-                                        | InvalidAlgorithmParameterException | RunningOnMainThreadException e) {
-                                    e.printStackTrace();
+                                        aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
+                                        app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
+                                        storageReference.delete();
+                                        message.setFilePath(null);
+                                        databaseManager.updateMessage(message,message.getFrom());
+                                        file.delete();
+                                    } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | MalFormedFileException
+                                            | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | InvalidKeySpecException
+                                            | InvalidAlgorithmParameterException | RunningOnMainThreadException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
-                            }
-                        });
-                    }
-                    @Override
-                    public void onCancelled(String error) {}
-                });
-            }
-        }).addOnProgressListener(new OnProgressListener<FileDownloadTask.TaskSnapshot>() {
-            @Override
-            public void onProgress(@NonNull FileDownloadTask.TaskSnapshot taskSnapshot) {
-                int currentProgress = (int) ((100*taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount());
-                builder.setProgress(progressMax,currentProgress,false);
-                notificationManagerCompat.notify(notificationId,builder.build());
-            }
-        });
+                            });
+                        }
+                        @Override
+                        public void onCancelled(String error) {}
+                    });
+                }
+            }).addOnProgressListener(new OnProgressListener<FileDownloadTask.TaskSnapshot>() {
+                @Override
+                public void onProgress(@NonNull FileDownloadTask.TaskSnapshot taskSnapshot) {
+                    int currentProgress = (int) ((100*taskSnapshot.getBytesTransferred())/taskSnapshot.getTotalByteCount());
+                    builder.setProgress(progressMax,currentProgress,false);
+                    notificationManagerCompat.notify(notificationId,builder.build());
+                }
+            });
+        } catch (JSONException e) {
+            e.printStackTrace();
+            stopSelf();
+        }
 
         return START_STICKY;
     }

@@ -96,9 +96,9 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
             public void run() {
 
                 if (databaseManager.check(e.getId(),e.getFrom())||e.isResend()) {
+                    final App app = (App) getApplication();
                     if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
                     {
-                        final App app = (App) getApplication();
 
                         try {
                             String m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
@@ -128,8 +128,58 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                                 DataCorruptedException | RunningOnMainThreadException ex) {
                             restHelper.sendResendMessageNotification(e);
                             //new change
+                            firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
+                                @Override
+                                public void onSuccess(String Base64PublicKey) {
+                                    databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                                }
+                                @Override
+                                public void onCancelled(String error) {}
+                            });
 
                             String timeStamp = Calendar.getInstance().getTime().toString();
+                            Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null,
+                                    e.getFilePath(), e.getTimeStamp(), e.getType(), e.getTimeStamp(), timeStamp, null);
+
+                            databaseManager.insertNewMessage(message, message.getFrom());
+                            if (app.getMessagesRetrievedCallback() != null) {
+                                MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                                messagesRetrievedCallback.onNewMessage(message);
+                            } else {
+                                showNotification(message);
+                            }
+                            ex.printStackTrace();
+
+                        }
+                    }
+                    else {
+                        String timeStamp = Calendar.getInstance().getTime().toString();
+                        String messageString = e.getContent();
+                        try {
+                            messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),Base64PublicKey);
+                            Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
+                                    ,e.getType(),e.getTimeStamp(),timeStamp,null);
+                            databaseManager.insertNewMessage(message,message.getFrom());
+                            restHelper.sendMessageReceivedStatus(e);
+                            if(app.getMessagesRetrievedCallback()!=null) {
+                                app.getMessagesRetrievedCallback().onNewMessage(message);
+                            }
+                            else {
+                                showNotification(message);
+                            }
+
+                        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException |
+                                InvalidKeySpecException | InvalidAlgorithmParameterException | DataCorruptedException |
+                                RunningOnMainThreadException | IllegalBlockSizeException ex) {
+                            firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
+                                @Override
+                                public void onSuccess(String Base64PublicKey) {
+                                    databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                                }
+                                @Override
+                                public void onCancelled(String error) {}
+                            });
+
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                     e.getTimeStamp(), timeStamp, null);
                             databaseManager.insertNewMessage(message, message.getFrom());
@@ -141,19 +191,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                             }
                             ex.printStackTrace();
                         }
-                    } else {
-                        String timeStamp = Calendar.getInstance().getTime().toString();
-                        Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),e.getContent(),e.getFilePath(),e.getTimeStamp()
-                                ,e.getType(),e.getTimeStamp(),timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
-                        restHelper.sendMessageReceivedStatus(e);
-                        App app = (App) getApplication();
-                        if(app.getMessagesRetrievedCallback()!=null) {
-                            app.getMessagesRetrievedCallback().onNewMessage(message);
-                        }
-                        else {
-                            showNotification(message);
-                        }
+
                     }
                 }
             }

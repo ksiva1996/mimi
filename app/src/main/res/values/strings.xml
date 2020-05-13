@@ -37,4 +37,5 @@
     <string name="open_contacts">Open contacts</string>
     <string name="refresh">refresh</string>
     <string name="delete_media">Delete media</string>
+    <string name="syncing_contacts">Syncing contacts</string>
 </resources>

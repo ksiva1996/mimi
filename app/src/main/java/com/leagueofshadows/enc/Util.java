@@ -2,6 +2,11 @@ package com.leagueofshadows.enc;
 
 import android.os.Environment;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import static com.leagueofshadows.enc.ChatActivity.MESSAGE_CONTENT;
+
 
 public class Util {
 
@@ -17,6 +22,8 @@ public class Util {
     public static String type = "type";
     public static String path = "path";
     public static String messageId = "messageId";
+    public static String content = "content";
+    public static String cipherText = "cipherText";
     static String camera = "camera";
     static String currentFocus = "currentFocus";
 
@@ -45,5 +52,16 @@ public class Util {
     static final String PublicKeyString = "PublicKeyString";
 
     static final String  CheckMessage = "CheckMessage";
+
+    static String getMessageContent(String messageContent)
+    {
+        try {
+            JSONObject jsonObject = new JSONObject(messageContent);
+            return jsonObject.getString(MESSAGE_CONTENT);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 
 }

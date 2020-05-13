@@ -10,50 +10,7 @@
     tools:ignore="ContentDescription"
     android:layout_marginTop="5dp">
 
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical|end"
-            android:orientation="horizontal"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp">
-
-            <ImageButton
-                android:id="@+id/reply_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:tint="#000000"
-                android:visibility="gone"
-                app:srcCompat="@drawable/baseline_reply_24" />
-
-            <ImageButton
-                android:id="@+id/copy_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:rotation="90"
-                android:tint="#000000"
-                app:srcCompat="@drawable/baseline_filter_none_24" />
-
-            <ImageButton
-                android:id="@+id/info_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:tint="#000000"
-                app:srcCompat="@drawable/ic_info_outline" />
-
-            <ImageButton
-                android:id="@+id/delete_button"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:backgroundTint="#E10000"
-                app:srcCompat="@android:drawable/ic_menu_delete" />
-
-        </LinearLayout>
-    </FrameLayout>
+    <include layout="@layout/message_options_layout"/>
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -83,33 +40,10 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-            <LinearLayout
-                android:id="@+id/reply_send_layout"
+            <include
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/reply_background"
-                android:orientation="vertical"
-                android:padding="10dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="2dp"
-                    android:text="TextView"
-                    android:textColor="#000833"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/reply_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="180dp"
-                    android:text="Test view here"
-                    android:textColor="#A3A3A3" />
-            </LinearLayout>
+                layout="@layout/message_sent_reply_layout"/>
 
             <RelativeLayout
             android:layout_width="300dp"

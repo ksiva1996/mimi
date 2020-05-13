@@ -104,9 +104,10 @@ public class Worker extends Service implements CompleteCallback{
         Intent notificationIntent = new Intent(getApplicationContext(),SplashActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
         Notification notification = new NotificationCompat.Builder(getApplicationContext(),Util.NewMessageNotificationChannelID).setContentTitle(getString(R.string.app_name))
-                .setContentText("New message/s")
+                .setContentText("New message/messages")
                 .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentIntent(pendingIntent).setAutoCancel(false).build();
+                .setContentIntent(pendingIntent).setAutoCancel(false)
+                .build();
         NotificationManagerCompat.from(getApplicationContext()).notify((int) System.currentTimeMillis(),notification);
 
     }
@@ -176,6 +177,7 @@ public class Worker extends Service implements CompleteCallback{
 
     @Override
     public void onComplete(int numberOfMessages) {
+
         work();
     }
 

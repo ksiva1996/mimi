@@ -88,7 +88,7 @@
                     android:layout_height="wrap_content"
                     android:autoLink="web"
                     android:paddingLeft="6dp"
-                    android:text="You might not be receiving this message. Please check with someone else."
+                    android:text="If this is a text message you will be receiving this shortly, if it contains media please ask the user to send it again."
                     android:textColor="#CC676767" />
             </LinearLayout>
 

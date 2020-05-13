@@ -34,6 +34,8 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import static com.leagueofshadows.enc.Util.getMessageContent;
+
 public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback {
 
     ArrayList<UserData> userDataArrayList;
@@ -226,10 +228,10 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             holder.name.setText(userData.getUser().getName());
 
             if(userData.getLatestMessage().getFrom().equals(userId)) {
-                holder.message.setText("you: "+userData.getLatestMessage().getContent());
+                holder.message.setText("you: "+getMessageContent(userData.getLatestMessage().getContent()));
             }
             else {
-                holder.message.setText(userData.getUser().getName()+": "+userData.getLatestMessage().getContent());
+                holder.message.setText(userData.getUser().getName()+": "+getMessageContent(userData.getLatestMessage().getContent()));
             }
 
 

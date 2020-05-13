@@ -12,7 +12,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -31,6 +30,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
+
+import static com.leagueofshadows.enc.Util.getMessageContent;
 
 public class Images extends AppCompatActivity {
 
@@ -76,13 +77,11 @@ public class Images extends AppCompatActivity {
                 else
                     title = "You";
                 getSupportActionBar().setTitle(title);
-                getSupportActionBar().setSubtitle(message.getContent());
+                getSupportActionBar().setSubtitle(getMessageContent(message.getContent()));
             }
         });
-
         //get messages which contain images from local database
         getImages();
-
     }
 
     private void getImages() {
@@ -91,9 +90,9 @@ public class Images extends AppCompatActivity {
         for (Message message:messages) {
             String path;
             if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+otherUserId+"/"+message.getContent();
+                path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
             else
-                path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+                path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
 
             File file = new File(path);
             if(file.exists())
@@ -117,14 +116,12 @@ public class Images extends AppCompatActivity {
 
         String path;
         if(message.getFrom().equals(otherUserId))
-            path = Util.imagesPath+otherUserId+"/"+message.getContent();
+            path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
         else
-            path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+            path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
 
         final File file = new File(path);
-        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
         String name = file.getName();
-        name = name.substring(name.lastIndexOf('.'));
         String mimeType = "image/*";
 
         switch (id)
@@ -221,9 +218,9 @@ public class Images extends AppCompatActivity {
             Image image = (Image) holder;
             String path;
             if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+otherUserId+"/"+message.getContent();
+                path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
             else
-                path = Util.imagesPath+otherUserId+"/sent/"+message.getContent();
+                path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
             Glide.with(context).load(path).into(image.zoomageView);
         }
 

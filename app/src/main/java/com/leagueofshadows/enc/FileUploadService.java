@@ -50,6 +50,8 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final String timeStamp = intent.getStringExtra(Util.timeStamp);
         String userName = intent.getStringExtra(Util.name);
         final String fileName = intent.getStringExtra(Util.fileName);
+        final String messageContent = intent.getStringExtra(Util.content);
+        final String cipherText = intent.getStringExtra(Util.cipherText);
         final String id = intent.getStringExtra(Util.id);
         final Uri uri = Uri.parse(intent.getStringExtra(Util.uri));
         final int type = intent.getIntExtra(Util.type,Message.MESSAGE_TYPE_FILE);
@@ -89,10 +91,10 @@ public class FileUploadService extends Service implements MessageSentCallback {
                 file.delete();
                 builder.setProgress(0,0,false);
                 notificationManagerCompat.cancelAll();
-                message = new Message(0,id,otherUserId,currentUserId,fileName,uri.toString(),timeStamp,
+                message = new Message(0,id,otherUserId,currentUserId,messageContent,uri.toString(),timeStamp,
                         type,null,null,null);
 
-                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),fileName,timeStamp,timeStamp,type);
+                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),cipherText,timeStamp,timeStamp,type);
                 FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                 try {
                     firebaseHelper.sendTextOnlyMessage(message,encryptedMessage,FileUploadService.this,id);

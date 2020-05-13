@@ -43,6 +43,8 @@ public class DecryptMessageWorker extends Service {
     public static final int id = 1648;
     ArrayList<EncryptedMessage> encryptedMessages;
     DatabaseManager2 databaseManager;
+    FirebaseHelper firebaseHelper;
+    Native restHelper;
 
     @Nullable
     @Override
@@ -54,6 +56,8 @@ public class DecryptMessageWorker extends Service {
     public void onCreate() {
         super.onCreate();
         encryptedMessages = new ArrayList<>();
+        firebaseHelper = new FirebaseHelper(this);
+        restHelper = new Native(this);
     }
 
     @Override
@@ -138,10 +142,9 @@ public class DecryptMessageWorker extends Service {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
+                final App app = (App) getApplication();
                 if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
                 {
-                    final App app = (App) getApplication();
-
                     try {
                         String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PulicKey);
                         String timeStamp = Calendar.getInstance().getTime().toString();
@@ -173,10 +176,9 @@ public class DecryptMessageWorker extends Service {
                     } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
                             InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
                             DataCorruptedException | RunningOnMainThreadException ex) {
-                        new Native(getApplicationContext()).sendResendMessageNotification(e);
+                        restHelper.sendResendMessageNotification(e);
                         update(e);
 
-                        //new change
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,null);
@@ -193,18 +195,49 @@ public class DecryptMessageWorker extends Service {
                 }
                 else {
                     String timeStamp = Calendar.getInstance().getTime().toString();
-                    Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),e.getContent(),e.getFilePath(),e.getTimeStamp()
-                            ,e.getType(),e.getTimeStamp(),timeStamp,null);
-                    databaseManager.insertNewMessage(message,message.getFrom());
-                    new Native(getApplicationContext()).sendMessageReceivedStatus(e);
-                    App app = (App) getApplication();
-                    if(app.getMessagesRetrievedCallback()!=null) {
-                        app.getMessagesRetrievedCallback().onNewMessage(message);
+                    String messageString = e.getContent();
+                    try {
+                        messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),Base64PulicKey);
+                        Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
+                                ,e.getType(),e.getTimeStamp(),timeStamp,null);
+                        databaseManager.insertNewMessage(message,message.getFrom());
+                        restHelper.sendMessageReceivedStatus(e);
+                        update(e);
+                        if(app.getMessagesRetrievedCallback()!=null) {
+                            app.getMessagesRetrievedCallback().onNewMessage(message);
+                        }
+                        else {
+                            showNotification(message);
+                        }
+
+                    } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException |
+                            InvalidKeySpecException | InvalidAlgorithmParameterException | DataCorruptedException |
+                            RunningOnMainThreadException | IllegalBlockSizeException ex) {
+
+
+                        Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
+                                e.getTimeStamp(), timeStamp, null);
+                        databaseManager.insertNewMessage(message, message.getFrom());
+                        if (app.getMessagesRetrievedCallback() != null) {
+                            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
+                            messagesRetrievedCallback.onNewMessage(message);
+                        } else {
+                            showNotification(message);
+                        }
+
+                        firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
+                        @Override
+                        public void onSuccess(String Base64PublicKey) {
+                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                            update(e);
+                        }
+                        @Override
+                        public void onCancelled(String error) {}
+                        });
+
+                        ex.printStackTrace();
                     }
-                    else {
-                        showNotification(message);
-                    }
-                    update(e);
+
                 }
             }
         });
