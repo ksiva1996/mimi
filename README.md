@@ -1,1 +1,1 @@
-# mimi
+# mimi group chat
