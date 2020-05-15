@@ -21,13 +21,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".Images"
-            android:parentActivityName=".Test">
-        </activity>
+        <activity android:name=".ShareActivity"></activity>
+        <activity android:name=".GroupChatActivity" />
+        <activity android:name=".CreateGroupActivity" />
+        <activity
+            android:name=".Images"
+            android:parentActivityName=".Test" />
         <activity
             android:name=".ImagePreview"
-            android:parentActivityName=".ChatActivity">
-        </activity>
+            android:parentActivityName=".ChatActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -45,14 +47,12 @@
 
         <activity
             android:name=".ContactsActivity"
-            android:parentActivityName=".MainActivity">
-        </activity>
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".ChatActivity"
             android:launchMode="singleTop"
             android:parentActivityName=".MainActivity"
-            android:windowSoftInputMode="adjustResize">
-        </activity>
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".MainActivity"
             android:label="Mimi"
@@ -65,21 +65,25 @@
             android:name=".Login"
             android:theme="@style/UserTheme">
             <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="file/*"/>
-            </intent-filter>
+                <action android:name="android.intent.action.SEND" />
 
-            <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="image/*"/>
-            </intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
 
+                <data android:mimeType="file/*" />
+            </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="text/plain"/>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
         <activity
@@ -87,8 +91,7 @@
             android:theme="@style/UserTheme" />
         <activity
             android:name=".Test"
-            android:windowSoftInputMode="adjustPan">
-        </activity>
+            android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".MessageInfo"
             android:parentActivityName=".ChatActivity" />
@@ -97,6 +100,7 @@
             android:theme="@style/UserTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -139,4 +143,5 @@
             </intent-filter>
         </service>
     </application>
+
 </manifest>

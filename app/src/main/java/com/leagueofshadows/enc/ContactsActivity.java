@@ -7,7 +7,6 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,7 +38,6 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     ArrayList<User> users;
     RecyclerView listView;
     ContactListAdapter contactListAdapter;
-    Intent receivedIntent;
     MenuItem syncingIcon;
 
     @Override
@@ -48,10 +46,9 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         setContentView(R.layout.activity_contact_list);
         getSupportActionBar().setTitle("People using Mimi");
 
-        receivedIntent = getIntent();
         users = new ArrayList<>();
         listView = findViewById(R.id.recycler_view);
-        contactListAdapter = new ContactListAdapter(users,this,this,receivedIntent);
+        contactListAdapter = new ContactListAdapter(users,this,this);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         listView.setLayoutManager(linearLayoutManager);
         listView.setAdapter(contactListAdapter);
@@ -64,7 +61,6 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         App app = (App) getApplication();
         app.setCompleteCallback(this);
         load();
-
     }
 
     @Override
@@ -142,13 +138,11 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         private ArrayList<User> users;
         private Context context;
         private Select select;
-        private Intent receivedIntent;
 
-        ContactListAdapter(ArrayList<User> msgList, Context context,Select select,Intent receivedIntent) {
+        ContactListAdapter(ArrayList<User> msgList, Context context,Select select) {
             this.users = msgList;
             this.context = context;
             this.select = select;
-            this.receivedIntent = receivedIntent;
         }
 
         @NonNull
@@ -178,27 +172,10 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
             mainListItem.relativeLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if (receivedIntent.getAction()!=null) {
-                        if(receivedIntent.getAction().equals(Intent.ACTION_SEND))
-                        {
-                            Log.e("share","share");
-                            Intent intent = new Intent(context,ChatActivity.class);
-                            intent.setAction(Intent.ACTION_SEND);
-                            intent.setType(receivedIntent.getType());
-                            intent.putExtra(Util.userId, user.getId());
-                            intent.putExtra(Intent.EXTRA_TEXT,receivedIntent.getStringExtra(Intent.EXTRA_TEXT));
-                            intent.putExtra(Intent.EXTRA_SUBJECT,receivedIntent.getStringExtra(Intent.EXTRA_SUBJECT));
-                            intent.putExtra(Intent.EXTRA_STREAM,receivedIntent.getParcelableExtra(Intent.EXTRA_STREAM));
-                            context.startActivity(intent);
-                            select.onClick();
-                        }
-                    }
-                    else {
-                        Intent intent = new Intent(context, ChatActivity.class);
-                        intent.putExtra(Util.userId, user.getId());
-                        context.startActivity(intent);
-                        select.onClick();
-                    }
+                    Intent intent = new Intent(context, ChatActivity.class);
+                    intent.putExtra(Util.userId, user.getId());
+                    context.startActivity(intent);
+                    select.onClick();
                 }
             });
         }

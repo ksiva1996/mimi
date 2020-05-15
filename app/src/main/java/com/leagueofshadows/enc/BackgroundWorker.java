@@ -109,7 +109,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                             restHelper.sendMessageReceivedStatus(e);
 
                             if (!e.isResend()) {
-                                databaseManager.insertNewMessage(message, message.getFrom());
+                                databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
                                 if (app.getMessagesRetrievedCallback() != null) {
                                     MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                     messagesRetrievedCallback.onNewMessage(message);
@@ -141,7 +141,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null,
                                     e.getFilePath(), e.getTimeStamp(), e.getType(), e.getTimeStamp(), timeStamp, null);
 
-                            databaseManager.insertNewMessage(message, message.getFrom());
+                            databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
                             if (app.getMessagesRetrievedCallback() != null) {
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);
@@ -159,7 +159,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
                             messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),Base64PublicKey);
                             Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
                                     ,e.getType(),e.getTimeStamp(),timeStamp,null);
-                            databaseManager.insertNewMessage(message,message.getFrom());
+                            databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
                             restHelper.sendMessageReceivedStatus(e);
                             if(app.getMessagesRetrievedCallback()!=null) {
                                 app.getMessagesRetrievedCallback().onNewMessage(message);
@@ -182,7 +182,7 @@ public class BackgroundWorker extends Service implements com.google.firebase.dat
 
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                     e.getTimeStamp(), timeStamp, null);
-                            databaseManager.insertNewMessage(message, message.getFrom());
+                            databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
                             if (app.getMessagesRetrievedCallback() != null) {
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);

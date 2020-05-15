@@ -18,7 +18,7 @@ import com.leagueofshadows.enc.Interfaces.OptionsCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.Items.UserData;
+import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -38,7 +38,7 @@ import static com.leagueofshadows.enc.Util.getMessageContent;
 
 public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback {
 
-    ArrayList<UserData> userDataArrayList;
+    ArrayList<ChatData> chatDataArrayList;
     RecyclerAdapter recyclerAdapter;
     DatabaseManager2 databaseManager;
     static String userId;
@@ -58,12 +58,12 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         databaseManager = DatabaseManager2.getInstance();
 
         RecyclerView recyclerView = findViewById(R.id.listView);
-        userDataArrayList = new ArrayList<>();
+        chatDataArrayList = new ArrayList<>();
 
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(linearLayoutManager);
 
-        recyclerAdapter = new RecyclerAdapter(userDataArrayList,this,this);
+        recyclerAdapter = new RecyclerAdapter(chatDataArrayList,this,this);
         recyclerView.setAdapter(recyclerAdapter);
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -92,7 +92,6 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             startActivity(intent);
             finish();
         }
-
         app.setMessagesRetrievedCallback(this);
         app.setResendMessageCallback(this);
         app.setMessageSentCallback(this);
@@ -115,20 +114,20 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                userDataArrayList.clear();
-                userDataArrayList.addAll( databaseManager.getUserData());
-                sort(userDataArrayList);
+                chatDataArrayList.clear();
+                chatDataArrayList.addAll( databaseManager.getUserData());
+                sort(chatDataArrayList);
                 //Log.e("size", String.valueOf(userDataArrayList.size()));
                 recyclerAdapter.notifyDataSetChanged();
             }
         });
     }
 
-    private void sort(ArrayList<UserData> userDataArrayList) {
+    private void sort(ArrayList<ChatData> chatDataArrayList) {
 
-        Collections.sort(userDataArrayList, new Comparator<UserData>() {
+        Collections.sort(chatDataArrayList, new Comparator<ChatData>() {
             @Override
-            public int compare(UserData u1, UserData u2) {
+            public int compare(ChatData u1, ChatData u2) {
                 return (int)(u2.getTime()-u1.getTime());
             }
         });
@@ -140,8 +139,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
     }
 
     @Override
-    public void onUpdateMessageStatus(String messageId, String userId) {
-    }
+    public void onUpdateMessageStatus(String messageId, String userId) {}
 
     @Override
     public void newResendMessageCallback(Message message) {
@@ -157,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         if(option==DELETE_CONSERVATION)
         {
             AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
-            final User user = userDataArrayList.get(position).getUser();
+            final User user = chatDataArrayList.get(position).getUser();
             builder.setMessage("Delete conversation with "+user.getName()+" ?");
             builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
                 @Override
@@ -177,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyViewHolder> {
 
-        private ArrayList<UserData> userDataArrayList;
+        private ArrayList<ChatData> chatDataArrayList;
         Context context;
         private OptionsCallback optionsCallback;
 
@@ -208,9 +206,9 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             }
         }
 
-        RecyclerAdapter(ArrayList<UserData> userDataArrayList,Context context,OptionsCallback optionsCallback) {
+        RecyclerAdapter(ArrayList<ChatData> chatDataArrayList, Context context, OptionsCallback optionsCallback) {
             this.context = context;
-            this.userDataArrayList = userDataArrayList;
+            this.chatDataArrayList = chatDataArrayList;
             this.optionsCallback = optionsCallback;
         }
 
@@ -224,24 +222,28 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
         @Override
         public void onBindViewHolder(@NonNull final MyViewHolder holder, final int position) {
-            final UserData userData = userDataArrayList.get(position);
-            holder.name.setText(userData.getUser().getName());
+            final ChatData chatData = chatDataArrayList.get(position);
+            holder.name.setText(chatData.getUser().getName());
 
-            if(userData.getLatestMessage().getFrom().equals(userId)) {
-                holder.message.setText("you: "+getMessageContent(userData.getLatestMessage().getContent()));
+            if(chatData.getLatestMessage()!=null) {
+                if (chatData.getLatestMessage().getFrom().equals(userId)) {
+                    holder.message.setText("you: " + getMessageContent(chatData.getLatestMessage().getContent()));
+                } else {
+                    holder.message.setText(chatData.getUser().getName() + ": " + getMessageContent(chatData.getLatestMessage().getContent()));
+                }
             }
             else {
-                holder.message.setText(userData.getUser().getName()+": "+getMessageContent(userData.getLatestMessage().getContent()));
+                holder.message.setText("Send you first message");
             }
 
 
-            holder.thumbNail.setText(userData.getUser().getName().substring(0,1));
+            holder.thumbNail.setText(chatData.getUser().getName().substring(0,1));
             //TODO: time
-            holder.time.setText(formatTime(userData.getLatestMessage().getTimeStamp()));
-            int count = userData.getCount();
+            holder.time.setText(formatTime(chatData.getLatestMessage().getTimeStamp()));
+            int count = chatData.getCount();
             if(count!=0) {
                 holder.count.setVisibility(View.VISIBLE);
-                holder.count.setText(String.valueOf(userData.getCount()));
+                holder.count.setText(String.valueOf(chatData.getCount()));
                 holder.time.setTextColor(context.getResources().getColor(R.color.msg_received_time,null));
             }
             else
@@ -253,10 +255,17 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             holder.container.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(context.getApplicationContext(),ChatActivity.class);
-                    intent.putExtra(Util.userId,userData.getUser().getId());
-                    context.startActivity(intent);
-                    //Log.e("click","click");
+                    if(chatData.getType()==ChatData.CHAT_TYPE_SINGLE_USER) {
+                        Intent intent = new Intent(context.getApplicationContext(), ChatActivity.class);
+                        intent.putExtra(Util.userId, chatData.getUser().getId());
+                        context.startActivity(intent);
+                    }
+                    else
+                    {
+                        Intent intent = new Intent(context.getApplicationContext(), ChatActivity.class);
+                        intent.putExtra(Util.userId, chatData.getGroup().getId());
+                        context.startActivity(intent);
+                    }
                 }
             });
             holder.swipe.close(false);
@@ -277,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
         @Override
         public int getItemCount() {
-            return userDataArrayList.size();
+            return chatDataArrayList.size();
         }
     }
 }

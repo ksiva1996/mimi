@@ -104,7 +104,7 @@ public class Login extends AppCompatActivity {
                         {
                             if (intent.getAction().equals(Intent.ACTION_SEND))
                             {
-                                Intent intent3 = new Intent(Login.this,ContactsActivity.class);
+                                Intent intent3 = new Intent(Login.this,ShareActivity.class);
                                 intent3.setAction(Intent.ACTION_SEND);
                                 intent3.setType(intent.getType());
                                 intent3.putExtra(Intent.EXTRA_STREAM,intent.getParcelableExtra(Intent.EXTRA_STREAM));

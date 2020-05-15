@@ -4,12 +4,11 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.Items.UserData;
+import com.leagueofshadows.enc.Items.ChatData;
 
 import java.util.ArrayList;
 
@@ -388,9 +387,9 @@ public class DatabaseManager  {
 
     }
 
-    public ArrayList<UserData> getUserData()
+    public ArrayList<ChatData> getUserData()
     {
-        ArrayList<UserData> userDataArrayList = new ArrayList<>();
+        ArrayList<ChatData> chatDataArrayList = new ArrayList<>();
         String raw = "SELECT * FROM "+TABLE_USER_DATA;
         SQLiteDatabase database = openDatabase();
 
@@ -406,13 +405,13 @@ public class DatabaseManager  {
                     Message message = getMessage(messageId);
                     int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
 
-                    UserData userData = new UserData(user,message,count,0);
-                    userDataArrayList.add(userData);
+                    ChatData chatData = new ChatData(user,message,count,0);
+                    chatDataArrayList.add(chatData);
                 }while (cursor.moveToNext());
             }
             cursor.close();
         }
-        return userDataArrayList;
+        return chatDataArrayList;
     }
 
     public void insertPublicKey(String Base64PublicKey,String userId)

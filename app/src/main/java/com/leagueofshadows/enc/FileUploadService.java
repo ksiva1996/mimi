@@ -150,7 +150,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
             String timeStamp = Calendar.getInstance().getTime().toString();
             message.setSent(timeStamp);
             DatabaseManager2.initializeInstance(new SQLHelper(this));
-            DatabaseManager2.getInstance().insertNewMessage(message, message.getTo());
+            DatabaseManager2.getInstance().insertNewMessage(message, message.getTo(),message.getFrom());
             Native n = new Native(this);
             n.sendNewMessageNotification(message.getTo());
             app.getMessageSentCallback().onComplete(message, true, null);

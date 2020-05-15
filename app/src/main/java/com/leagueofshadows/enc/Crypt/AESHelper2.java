@@ -9,6 +9,10 @@ import com.leagueofshadows.enc.App;
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+import com.leagueofshadows.enc.Items.User;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +42,8 @@ import androidx.annotation.NonNull;
 
 import static com.leagueofshadows.enc.Util.CheckMessageIV;
 
-public class AESHelper {
+public class AESHelper2 {
+
 
     private Context context;
 
@@ -63,7 +68,13 @@ public class AESHelper {
 
     private static final String malFormedFile = "it seems that the file is not encrypted properly";
 
-    public AESHelper (Context context) throws NoSuchAlgorithmException, NoSuchPaddingException {
+    public static final String MESSAGE_CONTENT = "M_C";
+    public static final String MESSAGE_KEYS = "M_K";
+    public static final String MESSAGE_HASH_BYTES = "M_H";
+    public static final String MESSAGE_IV = "M_I";
+    public static final String MESSAGE_FILE_HASH_BYTES = "MF_H";
+
+    public AESHelper2 (Context context) throws NoSuchAlgorithmException, NoSuchPaddingException {
         this.context = context;
         init();
     }
@@ -133,76 +144,6 @@ public class AESHelper {
         return getBase64(encryptedMessageBytes);
     }
 
-     public String encryptMessage(@NonNull String message,@NonNull String Base64String,@NonNull PrivateKey privateKey) throws NoSuchAlgorithmException,
-             InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException,
-             IllegalBlockSizeException, NoSuchPaddingException, InvalidKeySpecException, RunningOnMainThreadException {
-
-        if(Looper.myLooper() == Looper.getMainLooper()) {
-            throw new RunningOnMainThreadException(threadException);
-        }
-
-         SecretKey secretKey = getOneTimeKey();
-         byte[] messageBytes = message.getBytes();
-         byte[] encodedKeyBytes = secretKey.getEncoded();
-
-         RSAHelper rsaHelper = new RSAHelper(context);
-
-        byte[] hashBytes = getHash(messageBytes,encodedKeyBytes);
-        byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes,Base64String);
-
-        hashBytes = rsaHelper.signHash(hashBytes,privateKey);
-
-        byte[] iv = getNewIV();
-        cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
-        byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
-        byte[] content = new byte[hashBytes.length+encryptedKeyBytes.length+iv.length+encryptedMessageBytes.length];
-
-        System.arraycopy(hashBytes,0,content,0,hashBytes.length);
-        System.arraycopy(encryptedKeyBytes,0,content,hashBytes.length,encryptedKeyBytes.length);
-        System.arraycopy(iv,0,content,hashBytes.length+encryptedKeyBytes.length,iv.length);
-        System.arraycopy(encryptedMessageBytes,0,content,hashBytes.length+encryptedKeyBytes.length+iv.length,encryptedMessageBytes.length);
-
-        // secretKey.destroy();
-        return getBase64(content);
-    }
-
-    public String DecryptMessage(@NonNull String Base64message,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-            InvalidKeyException, InvalidKeySpecException, InvalidAlgorithmParameterException,
-            DataCorruptedException, RunningOnMainThreadException {
-
-        if(Looper.myLooper() == Looper.getMainLooper()) {
-            throw new RunningOnMainThreadException(threadException);
-        }
-
-        byte[] content = getbytes(Base64message);
-        byte[] hashbytes = Arrays.copyOfRange(content,0,256);
-        byte[] encryptedKeyBytes = Arrays.copyOfRange(content,256,512);
-        byte[] iv = Arrays.copyOfRange(content,512,528);
-        byte[] messageBytes = Arrays.copyOfRange(content,528,content.length);
-
-        RSAHelper rsaHelper = new RSAHelper(context);
-        hashbytes = rsaHelper.unSignHash(hashbytes,Base64PublicKey);
-
-        byte[] encodedKeyByes = rsaHelper.decryptKey(encryptedKeyBytes,privateKey);
-
-        SecretKeySpec secretKeySpec = new SecretKeySpec(encodedKeyByes,algorithm);
-        cipher.init(Cipher.DECRYPT_MODE,secretKeySpec,new IvParameterSpec(iv));
-        messageBytes = cipher.doFinal(messageBytes);
-
-        byte[] newHahBytes = getHash(messageBytes,encodedKeyByes);
-        boolean x = Arrays.equals(hashbytes,newHahBytes);
-
-        if(x)
-            return new String(messageBytes);
-        else
-        {
-            throw new DataCorruptedException(dataCorruptedException+"\n"
-            +"original Hash - "+getBase64(hashbytes)
-            +"received Hash - "+getBase64(newHahBytes));
-        }
-    }
-
     void encryptPrivateKey(@NonNull byte[] encodedPrivateKey ,@NonNull String Password) throws InvalidKeySpecException,
             InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException,
             RunningOnMainThreadException {
@@ -214,7 +155,7 @@ public class AESHelper {
         SecretKey masterKey = getMasterKey(Password);
         byte[] iv = getNewIV();
         SharedPreferences.Editor editor = context.getSharedPreferences(com.leagueofshadows.enc.Util.preferences,Context.MODE_PRIVATE).edit();
-                editor.putString(Util.PrivateKeyIV,getBase64(iv)).apply();
+        editor.putString(Util.PrivateKeyIV,getBase64(iv)).apply();
         cipher.init(Cipher.ENCRYPT_MODE,masterKey,new IvParameterSpec(iv));
         byte[] out = cipher.doFinal(encodedPrivateKey);
         String privateKeyString = getBase64(out);
@@ -244,31 +185,143 @@ public class AESHelper {
         }
     }
 
-    public void encryptFile(@NonNull FileInputStream fileInputStream,@NonNull FileInputStream fileInputStream1, @NonNull FileOutputStream fileOutputStream, @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey) throws RunningOnMainThreadException,
-            NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+    public String encryptMessage(@NonNull String messageText, @NonNull User[] users, @NonNull PrivateKey privateKey) throws RunningOnMainThreadException {
+
+        if(Looper.myLooper() == Looper.getMainLooper()) {
+            throw new RunningOnMainThreadException(threadException);
+        }
+
+        try {
+            SecretKey secretKey = getOneTimeKey();
+            byte[] messageBytes = messageText.getBytes();
+            byte[] encodedKeyBytes = secretKey.getEncoded();
+
+            JSONObject messageJsonObject = new JSONObject();
+
+            RSAHelper rsaHelper = new RSAHelper(context);
+
+            byte[] hashBytes = getHash(messageBytes, encodedKeyBytes);
+            JSONObject keysJsonObject = new JSONObject();
+            for (User user : users) {
+                byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes, user.getBase64EncodedPublicKey());
+                keysJsonObject.put(user.getId(), getBase64(encryptedKeyBytes));
+            }
+
+            hashBytes = rsaHelper.signHash(hashBytes, privateKey);
+
+            byte[] iv = getNewIV();
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
+            byte[] encryptedMessageBytes = cipher.doFinal(messageBytes);
+
+            messageJsonObject.put(MESSAGE_CONTENT,getBase64(encryptedMessageBytes));
+            messageJsonObject.put(MESSAGE_KEYS,keysJsonObject);
+            messageJsonObject.put(MESSAGE_IV,getBase64(iv));
+            messageJsonObject.put(MESSAGE_HASH_BYTES,getBase64(hashBytes));
+
+            return messageJsonObject.toString();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String DecryptMessage(@NonNull String message,@NonNull PrivateKey privateKey,@NonNull User otherUser)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+            InvalidKeyException, InvalidKeySpecException, InvalidAlgorithmParameterException,
+            DataCorruptedException, RunningOnMainThreadException {
+
+        if(Looper.myLooper() == Looper.getMainLooper()) {
+            throw new RunningOnMainThreadException(threadException);
+        }
+        try {
+            JSONObject messageJsonObject = new JSONObject(message);
+            byte[] hashBytes = getbytes(messageJsonObject.getString(MESSAGE_HASH_BYTES));
+            byte[] encryptedKeyBytes = getbytes(messageJsonObject.getJSONObject(MESSAGE_KEYS).getString(otherUser.getId()));
+            byte[] iv = getbytes(messageJsonObject.getString(MESSAGE_IV));
+            byte[] messageBytes = getbytes(messageJsonObject.getString(MESSAGE_CONTENT));
+
+            RSAHelper rsaHelper = new RSAHelper(context);
+            hashBytes = rsaHelper.unSignHash(hashBytes, otherUser.getBase64EncodedPublicKey());
+
+            byte[] encodedKeyByes = rsaHelper.decryptKey(encryptedKeyBytes, privateKey);
+
+            SecretKeySpec secretKeySpec = new SecretKeySpec(encodedKeyByes, algorithm);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(iv));
+            messageBytes = cipher.doFinal(messageBytes);
+
+            byte[] newHahBytes = getHash(messageBytes, encodedKeyByes);
+            boolean x = Arrays.equals(hashBytes, newHahBytes);
+
+            if (x)
+                return new String(messageBytes);
+            else {
+                throw new DataCorruptedException(dataCorruptedException + "\n"
+                        + "original Hash - " + getBase64(hashBytes)
+                        + "received Hash - " + getBase64(newHahBytes));
+            }
+        }
+        catch (JSONException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String encryptFile(@NonNull FileInputStream fileInputStream,@NonNull FileInputStream fileInputStream1,
+                              @NonNull FileOutputStream fileOutputStream, @NonNull PrivateKey privateKey, @NonNull User[] users,String messageText)
+            throws RunningOnMainThreadException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
             InvalidKeySpecException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
 
         if(Looper.myLooper()== Looper.getMainLooper()) {
             throw new RunningOnMainThreadException(threadException);
         }
         SecretKey secretKey = getOneTimeKey();
-        byte[] encodedKeyBytes = secretKey.getEncoded();
-        RSAHelper rsaHelper = new RSAHelper(context);
-        byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes,Base64PublicKey);
-        byte[] hashBytes = getHashFromFile(fileInputStream,encodedKeyBytes);
-        hashBytes = rsaHelper.signHash(hashBytes,privateKey);
 
-        fileOutputStream.write(hashBytes);
-        fileOutputStream.write(encryptedKeyBytes);
-        byte[] iv = getNewIV();
-        fileOutputStream.write(iv);
+        try{
+            byte[] messageBytes = messageText.getBytes();
+            byte[] encodedKeyBytes = secretKey.getEncoded();
 
-        cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
-        convertFile(fileInputStream1,fileOutputStream,cipher);
+            JSONObject messageJsonObject = new JSONObject();
+
+            RSAHelper rsaHelper = new RSAHelper(context);
+
+            byte[] hashBytes = getHash(messageBytes, encodedKeyBytes);
+            JSONObject keysJsonObject = new JSONObject();
+            for (User user : users) {
+                byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes, user.getBase64EncodedPublicKey());
+                keysJsonObject.put(user.getId(), getBase64(encryptedKeyBytes));
+            }
+
+            hashBytes = rsaHelper.signHash(hashBytes, privateKey);
+
+            byte[] iv = getNewIV();
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
+            byte[] encryptedMessageBytes = cipher.doFinal(messageBytes);
+
+            messageJsonObject.put(MESSAGE_CONTENT,getBase64(encryptedMessageBytes));
+            messageJsonObject.put(MESSAGE_KEYS,keysJsonObject);
+            messageJsonObject.put(MESSAGE_IV,getBase64(iv));
+            messageJsonObject.put(MESSAGE_HASH_BYTES,getBase64(hashBytes));
+            hashBytes = getHashFromFile(fileInputStream,encodedKeyBytes);
+            hashBytes = rsaHelper.signHash(hashBytes,privateKey);
+
+            messageJsonObject.put(MESSAGE_FILE_HASH_BYTES,getBase64(hashBytes));
+
+            fileOutputStream.write(hashBytes);
+            cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
+            convertFile(fileInputStream1,fileOutputStream,cipher);
+
+            return messageJsonObject.toString();
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public void decryptFile(@NonNull FileInputStream fileInputStream, @NonNull  FileOutputStream fileOutputStream,
-                     @NonNull PrivateKey privateKey, @NonNull String Base64PublicKey, File outFile)
+                            @NonNull PrivateKey privateKey, @NonNull User otherUser,@NonNull File outFile,@NonNull String cipherText)
 
             throws IOException, MalFormedFileException, NoSuchPaddingException, NoSuchAlgorithmException,
             IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException,
@@ -277,41 +330,31 @@ public class AESHelper {
         if(Looper.myLooper()== Looper.getMainLooper()) {
             throw new RunningOnMainThreadException(threadException);
         }
-        int x;
 
-        byte[] hashBytes = new byte[256];
-        x = fileInputStream.read(hashBytes);
+        try{
+            JSONObject messageJsonObject = new JSONObject(cipherText);
+            byte[] hashBytes = getbytes(messageJsonObject.getString(MESSAGE_FILE_HASH_BYTES));
+            byte[] encryptedKeyBytes = getbytes(messageJsonObject.getJSONObject(MESSAGE_KEYS).getString(otherUser.getId()));
+            byte[] iv = getbytes(messageJsonObject.getString(MESSAGE_IV));
+            RSAHelper rsaHelper = new RSAHelper(context);
+            hashBytes = rsaHelper.unSignHash(hashBytes,otherUser.getBase64EncodedPublicKey());
 
-        if(x!=256) {
-            throw new MalFormedFileException(malFormedFile);
-        }
+            encryptedKeyBytes = rsaHelper.decryptKey(encryptedKeyBytes,privateKey);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(encryptedKeyBytes,algorithm);
+            cipher.init(Cipher.DECRYPT_MODE,secretKeySpec,new IvParameterSpec(iv));
 
-        byte[] encryptedKeyBytes = new byte[256];
-        x = fileInputStream.read(encryptedKeyBytes);
+            convertFile(fileInputStream,fileOutputStream,cipher);
 
-        if(x!=256) {
-            throw new MalFormedFileException(malFormedFile);
-        }
-
-        byte[] iv = new byte[16];
-        x = fileInputStream.read(iv);
-
-        RSAHelper rsaHelper = new RSAHelper(context);
-        hashBytes = rsaHelper.unSignHash(hashBytes,Base64PublicKey);
-
-        encryptedKeyBytes = rsaHelper.decryptKey(encryptedKeyBytes,privateKey);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(encryptedKeyBytes,algorithm);
-        cipher.init(Cipher.DECRYPT_MODE,secretKeySpec,new IvParameterSpec(iv));
-
-        convertFile(fileInputStream,fileOutputStream,cipher);
-
-        byte[] newHashBytes = getHashFromFile(new FileInputStream(outFile),encryptedKeyBytes);
-        if(!(Arrays.equals(hashBytes,newHashBytes))) {
-            throw new MalFormedFileException(malFormedFile
-                    +"\n"
-                    +"file deleted - ?"
-                    +" original Hash - "+getBase64(hashBytes)
-                    +" received Hash - "+getBase64(newHashBytes));
+            byte[] newHashBytes = getHashFromFile(new FileInputStream(outFile),encryptedKeyBytes);
+            if(!(Arrays.equals(hashBytes,newHashBytes))) {
+                throw new MalFormedFileException(malFormedFile
+                        +"\n"
+                        +"file deleted - ?"
+                        +" original Hash - "+getBase64(hashBytes)
+                        +" received Hash - "+getBase64(newHashBytes));
+            }
+        }catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 
@@ -364,7 +407,7 @@ public class AESHelper {
         return iv;
     }
 
-    public String getBase64(byte[] bytes) {
+    private String getBase64(byte[] bytes) {
         String s = Base64.encodeToString(bytes,Base64.DEFAULT);
         return s.trim();
     }

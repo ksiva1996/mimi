@@ -5,10 +5,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
+import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.Items.UserData;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -22,6 +24,10 @@ import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_RESEN
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TIMESTAMP;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TO;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_TYPE;
+import static com.leagueofshadows.enc.storage.SQLHelper.GROUPS_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.GROUPS_NAME;
+import static com.leagueofshadows.enc.storage.SQLHelper.GROUP_PARTICIPANTS_GROUP_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.GROUP_PARTICIPANTS_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_CONTENT;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_FILEPATH;
@@ -36,6 +42,8 @@ import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TYPE;
 import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_MESSAGE_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_ENCRYPTED_MESSAGES;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUPS;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUP_PARTICIPANTS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_RESEND_MESSAGE;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USERS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USER_DATA;
@@ -90,10 +98,9 @@ public class DatabaseManager2 {
 
     //Messages database operation
 
-    public void insertNewMessage(Message message, String otherUserId)
+    public void insertNewMessage(Message message, String id,String currentUserId)
     {
-
-        String tableName = getTableName(otherUserId);
+        String tableName = getTableName(id);
         checkTable(tableName);
 
         SQLiteDatabase sqLiteDatabase = openDatabase();
@@ -114,10 +121,18 @@ public class DatabaseManager2 {
             contentValues.put(MESSAGES_RECEIVED, message.getReceived());
             contentValues.put(MESSAGES_SEEN, message.getSeen());
             sqLiteDatabase.insert(tableName, null, contentValues);
-            updateMessageId(otherUserId, message.getMessage_id());
+            updateMessageId(id, message.getMessage_id());
 
-            if (message.getFrom().equals(otherUserId))
-                incrementNewMessageCount(otherUserId, message.getMessage_id());
+            if(getUser(id)!=null) {
+                if (message.getFrom().equals(id)) {
+                    incrementNewMessageCount(id, message.getMessage_id());
+                }
+            }
+            else {
+                if(!message.getFrom().equals(currentUserId)) {
+                    incrementNewMessageCount(id, message.getMessage_id());
+                }
+            }
             cursor.close();
         }
     }
@@ -206,7 +221,7 @@ public class DatabaseManager2 {
         database.update(tableName,contentValues,MESSAGES_ID+" = ?", new String[]{message_id});
     }
 
-    public void updateMessageSentStatus(String timestamp,String message_id,String otherUserId)
+    /*public void updateMessageSentStatus(String timestamp,String message_id,String otherUserId)
     {
         String tableName = getTableName(otherUserId);
         checkTable(tableName);
@@ -214,7 +229,7 @@ public class DatabaseManager2 {
         ContentValues contentValues = new ContentValues();
         contentValues.put(MESSAGES_SENT,timestamp);
         database.update(tableName,contentValues,MESSAGES_ID+" = ?", new String[]{message_id});
-    }
+    }*/
 
     public void updateMessageReceivedStatus(String timestamp, String message_id,String otherUserId)
     {
@@ -443,12 +458,12 @@ public class DatabaseManager2 {
 
     //UserData list
 
-    private void updateMessageId(String userId, String messageId)
+    private void updateMessageId(String id, String messageId)
     {
         SQLiteDatabase sqLiteDatabase = openDatabase();
 
         String raw = "SELECT * FROM "+TABLE_USER_DATA+" WHERE "+USER_DATA_USERS_ID+" = ?";
-        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{userId});
+        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{id});
 
         ContentValues contentValues = new ContentValues();
         Long time = Calendar.getInstance().getTimeInMillis();
@@ -456,12 +471,12 @@ public class DatabaseManager2 {
         contentValues.put(USER_DATA_TIME,time);
         if(cursor.getCount()==0)
         {
-            contentValues.put(USER_DATA_USERS_ID,userId);
+            contentValues.put(USER_DATA_USERS_ID,id);
             contentValues.put(USER_DATA_NEW_MESSAGE_COUNT,0);
             sqLiteDatabase.insert(TABLE_USER_DATA,null,contentValues);
         }
         else {
-            sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{userId});
+            sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{id});
         }
         cursor.close();
     }
@@ -492,32 +507,56 @@ public class DatabaseManager2 {
         sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{userId});
     }
 
-    public ArrayList<UserData> getUserData()
+    public ArrayList<ChatData> getUserData()
     {
-        ArrayList<UserData> userDataArrayList = new ArrayList<>();
+        ArrayList<ChatData> chatDataArrayList = new ArrayList<>();
         String raw = "SELECT * FROM "+TABLE_USER_DATA;
         SQLiteDatabase database = openDatabase();
+        ArrayList<String> groupIds = new ArrayList<>();
 
         Cursor cursor = database.rawQuery(raw,null);
-        if(cursor!=null)
+        if(cursor.moveToFirst())
         {
-            if(cursor.moveToFirst())
-            {
-                do {
-                   // Log.e("user","data");
-                    String userId = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
-                    User user = getUser(userId);
-                    String messageId = cursor.getString(cursor.getColumnIndex(USER_DATA_MESSAGES_ID));
-                    Message message = getMessage(messageId,userId);
-                    int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
-                    long time = cursor.getLong(cursor.getColumnIndex(USER_DATA_TIME));
-                    UserData userData = new UserData(user,message,count,time);
-                    userDataArrayList.add(userData);
-                }while (cursor.moveToNext());
-            }
+            do {
+                String id = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
+                User user = getUser(id);
+                String messageId = cursor.getString(cursor.getColumnIndex(USER_DATA_MESSAGES_ID));
+                Message message = getMessage(messageId, id);
+                int count = cursor.getInt(cursor.getColumnIndex(USER_DATA_NEW_MESSAGE_COUNT));
+                long time = cursor.getLong(cursor.getColumnIndex(USER_DATA_TIME));
+                if(user!=null) {
+                    ChatData chatData = new ChatData(user, message, count, time);
+                    chatDataArrayList.add(chatData);
+                }
+                else
+                {
+                    Group group = getGroup(id);
+                    groupIds.add(id);
+                    if(group!=null) {
+                        ChatData chatData = new ChatData(group,message,count,time);
+                        chatDataArrayList.add(chatData);
+                    }
+                }
+            }while (cursor.moveToNext());
+        }
+        cursor.close();
+        raw = "SELECT * FROM "+TABLE_GROUPS;
+        cursor = sqLiteDatabase.rawQuery(raw,null);
+
+        if(cursor.moveToFirst())
+        {
+            do{
+                String id = cursor.getString(cursor.getColumnIndex(GROUPS_ID));
+                if(!groupIds.contains(id))
+                {
+                    Group group = getGroup(id);
+                    ChatData chatData = new ChatData(group,null,0,0);
+                    chatDataArrayList.add(chatData);
+                }
+            }while (cursor.moveToNext());
             cursor.close();
         }
-        return userDataArrayList;
+        return chatDataArrayList;
     }
 
     //meta functions
@@ -608,5 +647,79 @@ public class DatabaseManager2 {
         String raw = "DELETE FROM "+tableName;
         sqLiteDatabase.execSQL(raw);
         sqLiteDatabase.delete(TABLE_USER_DATA,USER_DATA_USERS_ID+" = ?", new String[]{userId});
+    }
+
+    //Groups
+
+    void addNewGroup(Group group)
+    {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        String rawQuery = "SELECT * FROM "+TABLE_GROUPS +" WHERE "+GROUPS_ID+" = ?";
+        Cursor cursor = sqLiteDatabase.rawQuery(rawQuery, new String[]{group.getId()});
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(GROUPS_ID,group.getId());
+        contentValues.put(GROUPS_NAME,group.getName());
+        if(cursor.getCount()==0) {
+            sqLiteDatabase.insert(TABLE_GROUPS,null,contentValues);
+        }
+        else {
+            cursor.close();
+            sqLiteDatabase.update(TABLE_GROUPS,contentValues,GROUPS_ID +" = ?", new String[]{group.getId()});
+        }
+        ArrayList<User> users = group.getUsers();
+        for (User u:users) {
+            insertNewUserIntoGroup(group.getId(),u.getId());
+        }
+    }
+
+    private void insertNewUserIntoGroup(String groupId, String userId)
+    {
+        String rawQuery = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUP_PARTICIPANTS_GROUP_ID +" = ? AND "+GROUP_PARTICIPANTS_USER_ID+" = ?";
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        Cursor cursor = sqLiteDatabase.rawQuery(rawQuery,new String[]{groupId,userId});
+        if(cursor.getCount()==0) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(GROUP_PARTICIPANTS_GROUP_ID,groupId);
+            contentValues.put(GROUP_PARTICIPANTS_USER_ID,userId);
+            sqLiteDatabase.insert(TABLE_GROUP_PARTICIPANTS,null,contentValues);
+            cursor.close();
+        }
+        else
+            cursor.close();
+    }
+
+    void deleteUserFromGroup(String groupId,String userId) {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        sqLiteDatabase.delete(TABLE_GROUP_PARTICIPANTS,GROUP_PARTICIPANTS_GROUP_ID+" = ? AND "+GROUP_PARTICIPANTS_USER_ID+" = ?"
+                ,new String[]{groupId,userId});
+    }
+
+    private Group getGroup(String groupId)
+    {
+        String rawQuery = "SELECT * FROM "+TABLE_GROUPS+" WHERE "+GROUPS_ID +" = ?";
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        Cursor cursor = sqLiteDatabase.rawQuery(rawQuery, new String[]{groupId});
+        if(cursor.getCount()!=0)
+        {
+            cursor.moveToFirst();
+            String name = cursor.getString(cursor.getColumnIndex(GROUPS_NAME));
+            rawQuery = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUP_PARTICIPANTS_GROUP_ID+" = ?";
+            Cursor cursor1 = sqLiteDatabase.rawQuery(rawQuery, new String[]{groupId});
+            ArrayList<User> users = new ArrayList<>();
+            if(cursor1.moveToFirst())
+            {
+                do {
+                    String userId = cursor1.getString(cursor1.getColumnIndex(GROUP_PARTICIPANTS_USER_ID));
+                    User user = getUser(userId);
+                    if(user!=null) {
+                        users.add(user);
+                    }
+                }while (cursor1.moveToNext());
+            }
+            cursor1.close();
+            return new Group(groupId,name,users);
+        }
+        cursor.close();
+        return null;
     }
 }

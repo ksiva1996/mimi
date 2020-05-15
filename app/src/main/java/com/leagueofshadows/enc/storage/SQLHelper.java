@@ -49,6 +49,14 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String RESEND_MESSAGE_USER_ID = "User_id";
     static final String RESEND_MESSAGE_MESSAGE_ID = "Messages_Id";
 
+    static final String TABLE_GROUPS = "Groups";
+    static final String GROUPS_ID = "Groups_id";
+    static final String GROUPS_NAME = "Groups_name";
+
+    static final String TABLE_GROUP_PARTICIPANTS = "Group_participants";
+    static final String GROUP_PARTICIPANTS_GROUP_ID = "Group_id";
+    static final String GROUP_PARTICIPANTS_USER_ID = "User_id";
+
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
     }
@@ -102,11 +110,25 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + RESEND_MESSAGE_USER_ID+"  TEXT "
                 + ")";
 
+        String CREATE_GROUPS_TABLE = "CREATE TABLE "+TABLE_GROUPS + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + GROUPS_ID + " TEXT ,"
+                + GROUPS_NAME+"  TEXT "
+                + ")";
+
+        String CREATE_GROUPS_PARTICIPANTS_TABLE = "CREATE TABLE "+TABLE_GROUP_PARTICIPANTS + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + GROUP_PARTICIPANTS_GROUP_ID + " TEXT ,"
+                + GROUP_PARTICIPANTS_USER_ID+"  TEXT "
+                + ")";
+
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_ENCRYPTED_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_USERS_TABLE);
         sqLiteDatabase.execSQL(CREATE_USER_DATA_TABLE);
         sqLiteDatabase.execSQL(CREATE_RESEND_MESSAGE_TABLE);
+        sqLiteDatabase.execSQL(CREATE_GROUPS_TABLE);
+        sqLiteDatabase.execSQL(CREATE_GROUPS_PARTICIPANTS_TABLE);
     }
 
 
@@ -114,6 +136,11 @@ public class SQLHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGES);
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_USERS);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_RESEND_MESSAGE);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_USER_DATA);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_ENCRYPTED_MESSAGES);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_GROUP_PARTICIPANTS);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_GROUPS);
         onCreate(sqLiteDatabase);
     }
 }

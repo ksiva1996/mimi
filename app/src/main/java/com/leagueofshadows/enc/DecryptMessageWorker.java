@@ -155,11 +155,11 @@ public class DecryptMessageWorker extends Service {
                         databaseManager.deleteEncryptedMessage(e.getId());
                         if(!e.isResend()) {
                             if (app.getMessagesRetrievedCallback() != null) {
-                                databaseManager.insertNewMessage(message,message.getFrom());
+                                databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);
                             } else {
-                                databaseManager.insertNewMessage(message,message.getFrom());
+                                databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
                                 showNotification(message);
                             }
                         }
@@ -182,7 +182,7 @@ public class DecryptMessageWorker extends Service {
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
+                        databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
                         databaseManager.deleteEncryptedMessage(e.getId());
                         if (app.getMessagesRetrievedCallback() != null) {
                             MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
@@ -200,7 +200,7 @@ public class DecryptMessageWorker extends Service {
                         messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),Base64PulicKey);
                         Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
                                 ,e.getType(),e.getTimeStamp(),timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
+                        databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
                         restHelper.sendMessageReceivedStatus(e);
                         update(e);
                         if(app.getMessagesRetrievedCallback()!=null) {
@@ -217,7 +217,7 @@ public class DecryptMessageWorker extends Service {
 
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp, null);
-                        databaseManager.insertNewMessage(message, message.getFrom());
+                        databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
                         if (app.getMessagesRetrievedCallback() != null) {
                             MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                             messagesRetrievedCallback.onNewMessage(message);

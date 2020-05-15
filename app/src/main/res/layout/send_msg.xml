@@ -60,6 +60,7 @@
                 android:paddingEnd="5dp">
 
 
+
                 <TextView
                     android:id="@+id/time"
                     style="@style/chat_timings"

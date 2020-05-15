@@ -4,4 +4,6 @@
 
     <item android:title="Settings"
         android:id="@+id/settings"/>
+    <item android:title="Create group"
+        android:id="@+id/createGroup"/>
 </menu>

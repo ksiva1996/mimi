@@ -1,11 +1,13 @@
 package com.leagueofshadows.enc;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -16,18 +18,31 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
+import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -62,12 +77,39 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
         findViewById(R.id.camera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            int x = getCompressionFactor(Integer.parseInt(bytes.getText().toString()));
-            Log.e("factor", String.valueOf(x));
+                testBasic();
 
             }
         });
 
+    }
+
+    private void testBasic() {
+
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    AESHelper2 aesHelper2 = new AESHelper2(Test.this);
+                    String text = "hello testing aes2";
+
+                    DatabaseManager2.initializeInstance(new SQLHelper(Test.this));
+                    DatabaseManager2 databaseManager2 = DatabaseManager2.getInstance();
+                    SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
+                    User user = new User("+9194018555","siva","",sp.getString(Util.PublicKeyString,null));
+                    App app = (App) getApplication();
+                    String cipher = aesHelper2.encryptMessage(text,new User[]{user},app.getPrivateKey());
+                    Log.e("cipher",cipher);
+                    String plain = aesHelper2.DecryptMessage(cipher,app.getPrivateKey(),user);
+                    Log.e("final",plain);
+
+                } catch (NoSuchAlgorithmException | NoSuchPaddingException | RunningOnMainThreadException |
+                        DataCorruptedException | InvalidKeyException | InvalidAlgorithmParameterException |
+                        IllegalBlockSizeException | BadPaddingException | InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
 

@@ -83,7 +83,7 @@ public class FirebaseHelper {
             @Override
             public void onSuccess(Void aVoid) {
                 message.setSent(timeStamp);
-                databaseManager.insertNewMessage(message,message.getTo());
+                databaseManager.insertNewMessage(message,message.getTo(),message.getFrom());
                 Native n = new Native(context);
                 n.sendNewMessageNotification(message.getTo());
                 messageSentCallback.onComplete(message,true,null);
