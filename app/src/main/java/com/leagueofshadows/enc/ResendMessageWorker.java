@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.IBinder;
-import android.util.Log;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -89,15 +88,13 @@ public class ResendMessageWorker extends Service  {
                         @Override
                         public void onSuccess(final String Base64PublicKey) {
                             databaseManager.insertPublicKey(Base64PublicKey,m.getTo());
-
-
                                 AsyncTask.execute(new Runnable() {
                                     @Override
                                     public void run() {
 
                                         String cipherText = null;
                                         try {
-                                            cipherText = aesHelper.encryptMessage(m.getContent(),Base64PublicKey,privateKey );
+                                            cipherText = aesHelper.encryptMessage(m.getContent(),Base64PublicKey,privateKey);
                                             EncryptedMessage encryptedMessage = new EncryptedMessage(m.getMessage_id(),m.getTo(),m.getFrom(),cipherText,
                                                     null,m.getTimeStamp(),Message.MESSAGE_TYPE_ONLYTEXT,true);
                                             databaseReference.child(Messages).child(m.getTo()).child(m.getMessage_id()).setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {

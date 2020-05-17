@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 startActivity(intent);
             }
         });
-        startService(new Intent(this,BackgroundWorker.class));
+        startService(new Intent(this,BackgroundService.class));
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.cancelAll();
     }
@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
     @Override
     protected void onDestroy() {
-        stopService(new Intent(this,BackgroundWorker.class));
+        stopService(new Intent(this,BackgroundService.class));
         super.onDestroy();
     }
 

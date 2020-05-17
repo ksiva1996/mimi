@@ -129,7 +129,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     public void onCanceled() {}
 
     @Override
-    public void onClick() {
+    public void onClick(User user) {
         finish();
     }
 
@@ -175,7 +175,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
                     Intent intent = new Intent(context, ChatActivity.class);
                     intent.putExtra(Util.userId, user.getId());
                     context.startActivity(intent);
-                    select.onClick();
+                    select.onClick(null);
                 }
             });
         }

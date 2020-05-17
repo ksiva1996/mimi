@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.ChatData;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -76,7 +77,7 @@ public class ShareActivity extends AppCompatActivity implements Select {
     }
 
     @Override
-    public void onClick() {
+    public void onClick(User user) {
         finish();
     }
 
@@ -115,7 +116,7 @@ public class ShareActivity extends AppCompatActivity implements Select {
             ContactsActivity.ContactListAdapter.MainListItem mainListItem = (ContactsActivity.ContactListAdapter.MainListItem) holder;
 
             final ChatData chatData = chatDataArrayList.get(position);
-            String name;
+            final String name;
             String number;
 
             if(chatData.getType()==ChatData.CHAT_TYPE_SINGLE_USER) {
@@ -154,7 +155,7 @@ public class ShareActivity extends AppCompatActivity implements Select {
                             intent.putExtra(Intent.EXTRA_SUBJECT,receivedIntent.getStringExtra(Intent.EXTRA_SUBJECT));
                             intent.putExtra(Intent.EXTRA_STREAM,receivedIntent.getParcelableExtra(Intent.EXTRA_STREAM));
                             context.startActivity(intent);
-                            select.onClick();
+                            select.onClick(null);
                         }
                     }
                     else {
@@ -168,7 +169,7 @@ public class ShareActivity extends AppCompatActivity implements Select {
                             intent.putExtra(Util.userId, chatData.getGroup().getId());
                         }
                         context.startActivity(intent);
-                        select.onClick();
+                        select.onClick(null);
                     }
                 }
             });

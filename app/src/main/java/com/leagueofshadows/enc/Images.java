@@ -90,9 +90,9 @@ public class Images extends AppCompatActivity {
         for (Message message:messages) {
             String path;
             if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
+                path = Util.imagesPath+getMessageContent(message.getContent());
             else
-                path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
+                path = Util.sentImagesPath+getMessageContent(message.getContent());
 
             File file = new File(path);
             if(file.exists())
@@ -116,9 +116,9 @@ public class Images extends AppCompatActivity {
 
         String path;
         if(message.getFrom().equals(otherUserId))
-            path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
+            path = Util.imagesPath+getMessageContent(message.getContent());
         else
-            path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
+            path = Util.sentImagesPath+getMessageContent(message.getContent());
 
         final File file = new File(path);
         String name = file.getName();
@@ -218,9 +218,9 @@ public class Images extends AppCompatActivity {
             Image image = (Image) holder;
             String path;
             if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+otherUserId+"/"+getMessageContent(message.getContent());
+                path = Util.imagesPath+getMessageContent(message.getContent());
             else
-                path = Util.imagesPath+otherUserId+"/sent/"+getMessageContent(message.getContent());
+                path = Util.sentImagesPath+getMessageContent(message.getContent());
             Glide.with(context).load(path).into(image.zoomageView);
         }
 

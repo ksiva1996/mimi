@@ -68,7 +68,6 @@ public class AESHelper {
         init();
     }
 
-
     private void init() throws NoSuchAlgorithmException, NoSuchPaddingException {
         secureRandom = new SecureRandom();
         keyGenerator = KeyGenerator.getInstance(algorithm);
@@ -127,7 +126,6 @@ public class AESHelper {
         SecretKey secretKey = getMasterKey(password);
         byte[] messageBytes = getbytes(message);
 
-
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
         return getBase64(encryptedMessageBytes);
@@ -137,9 +135,9 @@ public class AESHelper {
              InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException,
              IllegalBlockSizeException, NoSuchPaddingException, InvalidKeySpecException, RunningOnMainThreadException {
 
-        if(Looper.myLooper() == Looper.getMainLooper()) {
-            throw new RunningOnMainThreadException(threadException);
-        }
+         if(Looper.myLooper() == Looper.getMainLooper()) {
+             throw new RunningOnMainThreadException(threadException);
+         }
 
          SecretKey secretKey = getOneTimeKey();
          byte[] messageBytes = message.getBytes();
@@ -147,23 +145,23 @@ public class AESHelper {
 
          RSAHelper rsaHelper = new RSAHelper(context);
 
-        byte[] hashBytes = getHash(messageBytes,encodedKeyBytes);
-        byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes,Base64String);
+         byte[] hashBytes = getHash(messageBytes,encodedKeyBytes);
+         byte[] encryptedKeyBytes = rsaHelper.encryptKey(encodedKeyBytes,Base64String);
 
-        hashBytes = rsaHelper.signHash(hashBytes,privateKey);
+         hashBytes = rsaHelper.signHash(hashBytes,privateKey);
 
-        byte[] iv = getNewIV();
-        cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
-        byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
-        byte[] content = new byte[hashBytes.length+encryptedKeyBytes.length+iv.length+encryptedMessageBytes.length];
+         byte[] iv = getNewIV();
+         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
+         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);
+         byte[] content = new byte[hashBytes.length+encryptedKeyBytes.length+iv.length+encryptedMessageBytes.length];
 
-        System.arraycopy(hashBytes,0,content,0,hashBytes.length);
-        System.arraycopy(encryptedKeyBytes,0,content,hashBytes.length,encryptedKeyBytes.length);
-        System.arraycopy(iv,0,content,hashBytes.length+encryptedKeyBytes.length,iv.length);
-        System.arraycopy(encryptedMessageBytes,0,content,hashBytes.length+encryptedKeyBytes.length+iv.length,encryptedMessageBytes.length);
+         System.arraycopy(hashBytes,0,content,0,hashBytes.length);
+         System.arraycopy(encryptedKeyBytes,0,content,hashBytes.length,encryptedKeyBytes.length);
+         System.arraycopy(iv,0,content,hashBytes.length+encryptedKeyBytes.length,iv.length);
+         System.arraycopy(encryptedMessageBytes,0,content,hashBytes.length+encryptedKeyBytes.length+iv.length,encryptedMessageBytes.length);
 
-        // secretKey.destroy();
-        return getBase64(content);
+         // secretKey.destroy();
+         return getBase64(content);
     }
 
     public String DecryptMessage(@NonNull String Base64message,@NonNull PrivateKey privateKey,@NonNull String Base64PublicKey)

@@ -722,4 +722,21 @@ public class DatabaseManager2 {
         cursor.close();
         return null;
     }
+
+    public ArrayList<String> getGroups()
+    {
+        String raw = "SELECT * FROM "+TABLE_GROUPS;
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        ArrayList<String> ids = new ArrayList<>();
+        Cursor cursor = sqLiteDatabase.rawQuery(raw,null);
+
+        if(cursor.moveToFirst())
+        {
+            do{
+                ids.add(cursor.getString(cursor.getColumnIndex(GROUPS_ID)));
+            }while (cursor.moveToNext());
+        }
+        cursor.close();
+        return ids;
+    }
 }

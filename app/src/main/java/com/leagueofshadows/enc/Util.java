@@ -15,7 +15,9 @@ public class Util {
 
     static final String originalPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/";
     static final String imagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/";
+    static final String sentImagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/sent/";
     static final String documentsPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Documents/";
+    static final String sentDocumentsPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Documents/sent/";
     static final String privatePath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/private/";
 
     public static final String preferences = "preferences";
@@ -23,9 +25,8 @@ public class Util {
     public static String path = "path";
     public static String messageId = "messageId";
     public static String content = "content";
-    public static String cipherText = "cipherText";
+    static String cipherText = "cipherText";
     static String camera = "camera";
-    static String currentFocus = "currentFocus";
 
     static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
     static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";

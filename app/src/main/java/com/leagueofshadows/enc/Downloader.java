@@ -95,9 +95,9 @@ public class Downloader extends Service {
             final String privatePath = Util.privatePath+jsonObject.getString(MESSAGE_CONTENT);
 
             if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
-                finalPath = Util.imagesPath+otherUserId+"/"+jsonObject.getString(MESSAGE_CONTENT);
+                finalPath = Util.imagesPath+jsonObject.getString(MESSAGE_CONTENT);
             else
-                finalPath = Util.documentsPath+otherUserId+"/"+jsonObject.getString(MESSAGE_CONTENT);
+                finalPath = Util.documentsPath+jsonObject.getString(MESSAGE_CONTENT);
             final File file = new File(privatePath);
 
             final StorageReference storageReference = FirebaseStorage.getInstance().getReference().child(Files).child(userId).child(message.getTimeStamp());

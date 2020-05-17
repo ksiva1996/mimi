@@ -256,9 +256,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
         });
 
-        String path = Util.imagesPath+otherUserId;
+        String path = Util.imagesPath;
         checkPath(path,IMAGE_ATTACHMENT_REQUEST);
-        path = Util.documentsPath+otherUserId;
+        path = Util.documentsPath;
         checkPath(path,FILE_ATTACHMENT_REQUEST);
 
         if(receivedIntent.getAction()!=null&&receivedIntent.getAction().equals(Intent.ACTION_SEND))
@@ -484,13 +484,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  try {
                      Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
                      int compressionFactor = getCompressionFactor(bitmap.getByteCount());
-                     String path = Util.imagesPath+otherUserId;
+                     String path = Util.sentImagesPath;
                      checkPath(path,IMAGE_ATTACHMENT_REQUEST);
                      SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYYMMDD-HHmmss");
                      String fileName = "IMG-"+simpleDateFormat.format(new Date())+".jpg";
                      String timeStamp = Calendar.getInstance().getTime().toString();
 
-                     path = path+"/sent/"+fileName;
+                     path = path+fileName;
                      FileOutputStream fileOutputStream = new FileOutputStream(path);
                      bitmap.compress(Bitmap.CompressFormat.JPEG,compressionFactor,fileOutputStream);
 
@@ -575,9 +575,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              @Override
              public void run() {
                  try {
-                     String path = Util.documentsPath+otherUserId;
+                     String path = Util.sentDocumentsPath;
                      checkPath(path,FILE_ATTACHMENT_REQUEST);
-                     path = path+"/sent/"+fileName;
+                     path = path+fileName;
                      FileInputStream fileInputStream = (FileInputStream) getContentResolver().openInputStream(uri);
 
                      AESHelper aesHelper = new AESHelper(ChatActivity.this);
@@ -655,20 +655,18 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              file = new File(Util.imagesPath);
              if(!file.exists())
                  file.mkdir();
+             file = new File(Util.sentImagesPath);
+             if(!file.exists())
+                 file.mkdir();
          }
          if(x==FILE_ATTACHMENT_REQUEST) {
              file = new File(Util.documentsPath);
              if(!file.exists())
                  file.mkdir();
+             file = new File(Util.sentDocumentsPath);
+             if(!file.exists())
+                 file.mkdir();
          }
-
-         file = new File(path);
-         if(!file.exists())
-             file.mkdir();
-
-         file = new File(path+"/sent");
-         if(!file.exists())
-             file.mkdir();
      }
 
      private String getFileName(Uri uri) {
@@ -718,9 +716,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                     if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
                     {
                         if(message.getFrom().equals(currentUserId))
-                            path = Util.imagesPath+otherUserId+"/sent/"+messageContent;
+                            path = Util.sentImagesPath+messageContent;
                         else
-                            path = Util.imagesPath+otherUserId+"/"+messageContent;
+                            path = Util.imagesPath+messageContent;
                         File file = new File(path);
                         if(file.exists())
                             file.delete();
@@ -728,9 +726,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                     if(message.getType()==Message.MESSAGE_TYPE_FILE)
                     {
                         if(message.getFrom().equals(currentUserId))
-                            path = Util.documentsPath+otherUserId+"/sent/"+messageContent;
+                            path = Util.sentDocumentsPath+messageContent;
                         else
-                            path = Util.documentsPath+otherUserId+"/"+messageContent;
+                            path = Util.documentsPath+messageContent;
                         File file = new File(path);
                         if(file.exists())
                             file.delete();
@@ -1562,7 +1560,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                            }
                        }
                    });
-                   String path = Util.imagesPath+otherUserId+"/"+messageContent;
+                   String path = Util.imagesPath+messageContent;
                    File file = new File(path);
                    if(file.exists())
                    {
@@ -1666,7 +1664,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                            }
                        }
                    });
-                   String path = Util.imagesPath+otherUserId+"/sent/"+messageContent;
+                   String path = Util.sentImagesPath+messageContent;
                    File file = new File(path);
                    if (file.exists()) {
                        Glide.with(context).load(file).fitCenter().into(h.main);
@@ -1776,7 +1774,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                             }
                         }
                     });
-                    String path = Util.documentsPath+otherUserId+"/"+messageContent;
+                    String path = Util.documentsPath+messageContent;
                     final File file = new File(path);
                     if(file.exists())
                     {
@@ -1887,7 +1885,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                     h.fileName.setText(formatName(fileName));
                     fileName = fileName.substring(fileName.lastIndexOf('.'));
                     final String finalFileName = fileName;
-                    final File file = new File(Util.documentsPath+otherUserId+"/sent/"+messageContent);
+                    final File file = new File(Util.sentDocumentsPath+messageContent);
                     h.fileName.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {

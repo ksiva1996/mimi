@@ -37,6 +37,7 @@ public class FirebaseHelper {
 
     static final String Messages = "Messages";
     public static final String Users = "Users";
+    public static final String Groups = "Groups";
 
     private static final String DeviceOfflineException = "Cannot send Message without internet connection...TODO: offline capability in the next update";
 
