@@ -1,6 +1,7 @@
 package com.leagueofshadows.enc.Items;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class User {
 
@@ -50,4 +51,23 @@ public class User {
     public void setBase64EncodedPublicKey(String base64EncodedPublicKey) {
         this.Base64EncodedPublicKey = base64EncodedPublicKey;
     }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if(obj!=null) {
+            if(obj.getClass().equals(this.getClass())) {
+                User u = (User) obj;
+                try {
+                    return this.id.equals(u.getId());
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
 }

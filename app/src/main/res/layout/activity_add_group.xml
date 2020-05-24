@@ -23,116 +23,17 @@
             android:textColor="@android:color/white"
             android:visibility="gone" />
 
-        <RelativeLayout
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/icons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingLeft="3dip"
-            android:paddingTop="10dip"
-            android:paddingRight="3dip"
-            android:paddingBottom="10dip">
-
-            <TextView
-                android:id="@+id/person_one"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:layout_toStartOf="@+id/person_two"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#3F51B5"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:text="A"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/person_two"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:layout_toStartOf="@+id/person_three"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#000000"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/person_three"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:layout_toStartOf="@+id/person_four"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#000000"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/person_four"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:layout_toStartOf="@+id/person_five"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#000000"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/person_five"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:layout_toStartOf="@+id/person_six"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#000000"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:text=""
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/person_six"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="false"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginRight="15dp"
-                android:background="@drawable/round_text"
-                android:backgroundTint="#000000"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="3dip"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
-
-        </RelativeLayout>
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"/>
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view"
+            android:id="@+id/contacts"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginBottom="8dp"
@@ -144,4 +45,15 @@
 
     </LinearLayout>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:backgroundTint="@color/background_tab_pressed"
+        android:clickable="true"
+        android:elevation="10dp"
+        app:fabCustomSize="55dp"
+        app:srcCompat="@drawable/add" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

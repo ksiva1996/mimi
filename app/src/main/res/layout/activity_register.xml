@@ -86,7 +86,7 @@
         android:textColor="@android:color/white"
         android:padding="12dp"
         android:hint="@string/including_country_code"
-        android:textColorHint="#AEBBE1FA"
+        android:textColorHint="@color/hint_text_color"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@id/password_label"
         app:layout_constraintLeft_toLeftOf="parent"

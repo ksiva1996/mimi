@@ -45,6 +45,11 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
     final static int DELETE_CONSERVATION = 1;
 
+    FloatingActionButton fab;
+    FloatingActionButton newGroup;
+    FloatingActionButton newUser;
+    Boolean flag = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,17 +71,55 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         recyclerAdapter = new RecyclerAdapter(chatDataArrayList,this,this);
         recyclerView.setAdapter(recyclerAdapter);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
+        fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
+            public void onClick(View view) { setFloatingActionLayout(); }
+        });
+
+        newGroup = findViewById(R.id.newGroup);
+        newUser = findViewById(R.id.newUser);
+
+        newGroup.setVisibility(View.GONE);
+        newUser.setVisibility(View.GONE);
+
+        newGroup.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this,ContactsActivity.class);
-                startActivity(intent);
+                startActivity(new Intent(MainActivity.this,CreateGroupActivity.class));
             }
         });
+
+        newUser.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(MainActivity.this,ContactsActivity.class));
+            }
+        });
+
         startService(new Intent(this,BackgroundService.class));
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.cancelAll();
+    }
+
+    private void setFloatingActionLayout() {
+        if(flag)
+        {
+            fab.setImageResource(R.drawable.add);
+            newUser.animate().translationY(0);
+            newGroup.animate().translationY(0);
+            newUser.setVisibility(View.GONE);
+            newGroup.setVisibility(View.GONE);
+        }
+        else
+        {
+            fab.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+            newUser.setVisibility(View.VISIBLE);
+            newGroup.setVisibility(View.VISIBLE);
+            newUser.animate().translationY(getResources().getDimension(R.dimen.st_130));
+            newGroup.animate().translationY(getResources().getDimension(R.dimen.st_65));
+        }
+        flag = !flag;
     }
 
 

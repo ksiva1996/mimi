@@ -18,5 +18,8 @@
     <color name="orange">@android:color/holo_blue_light</color>
     <color name="msg_received_time">#10bcc9</color>
     <color name="main_screen_normal">#919191</color>
+    <color name="add_group_primary_user">#3F51B5</color>
+    <color name="black">#000000</color>
+    <color name="hint_text_color">#AEBBE1FA</color>
 
 </resources>

@@ -99,46 +99,48 @@ public class BackgroundService extends Service {
 
         for (final String node:ids) {
 
-            if(node.equals(userId))
-                databaseReference = databaseReference.child(FirebaseHelper.Users).child(node);
-            else
-                databaseReference = databaseReference.child(FirebaseHelper.Groups).child(node);
-
-           databaseReference.addChildEventListener(new ChildEventListener() {
+            databaseReference = databaseReference.child(FirebaseHelper.Messages).child(node);
+            databaseReference.addChildEventListener(new ChildEventListener() {
 
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot d, @Nullable String s) {
 
+                    Log.e("message",d.toString());
                     d.getRef().removeValue();
-                    final EncryptedMessage encryptedMessage = new EncryptedMessage();
-                    encryptedMessage.setId((String) d.child(id).getValue());
-                    encryptedMessage.setTo((String) d.child(to).getValue());
-                    encryptedMessage.setFrom((String) d.child(from).getValue());
-                    encryptedMessage.setContent((String) d.child(content).getValue());
-                    encryptedMessage.setFilePath((String) d.child(filePath).getValue());
-                    encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
-                    encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
+                    try {
+                        final EncryptedMessage encryptedMessage = new EncryptedMessage();
+                        encryptedMessage.setId((String) d.child(id).getValue());
+                        encryptedMessage.setTo((String) d.child(to).getValue());
+                        encryptedMessage.setFrom((String) d.child(from).getValue());
+                        encryptedMessage.setContent((String) d.child(content).getValue());
+                        encryptedMessage.setFilePath((String) d.child(filePath).getValue());
+                        encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
+                        encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
 
-                    if(d.hasChild(resend))
-                        encryptedMessage.setResend((boolean)d.child(resend).getValue());
+                        if (d.hasChild(resend))
+                            encryptedMessage.setResend((boolean) d.child(resend).getValue());
 
-                    String userId = encryptedMessage.getFrom();
-                    final String publicKey = databaseManager.getPublicKey(userId);
-                    if(publicKey==null) {
-                        firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
-                            @Override
-                            public void onSuccess(String Base64PublicKey) {
-                                databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
-                                decryptMessage(encryptedMessage,Base64PublicKey);
-                            }
-                            @Override
-                            public void onCancelled(String error) {
-                                Log.e("error",error);
-                            }
-                        });
+                        String userId = encryptedMessage.getFrom();
+                        final String publicKey = databaseManager.getPublicKey(userId);
+                        if (publicKey == null) {
+                            firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
+                                @Override
+                                public void onSuccess(String Base64PublicKey) {
+                                    databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
+                                    decryptMessage(encryptedMessage, Base64PublicKey);
+                                }
+
+                                @Override
+                                public void onCancelled(String error) {
+                                    Log.e("error", error);
+                                }
+                            });
+                        } else {
+                            decryptMessage(encryptedMessage, publicKey);
+                        }
                     }
-                    else {
-                        decryptMessage(encryptedMessage,publicKey);
+                    catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 

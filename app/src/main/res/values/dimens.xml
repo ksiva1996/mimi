@@ -7,4 +7,7 @@
     <dimen name="st_55">-57dp</dimen>
     <dimen name="st_100">-107dp</dimen>
     <dimen name="st_145">-157dp</dimen>
+    <dimen name="st_130">-130dp</dimen>
+    <dimen name="st_65">-65dp</dimen>
+
 </resources>
