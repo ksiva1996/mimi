@@ -55,5 +55,5 @@
         android:clickable="true"
         android:elevation="10dp"
         app:fabCustomSize="55dp"
-        app:srcCompat="@drawable/add" />
+        app:srcCompat="@drawable/baseline_done_white_48" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
