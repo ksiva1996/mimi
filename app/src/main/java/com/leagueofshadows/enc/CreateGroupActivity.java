@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,7 +60,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_group);
-        setTitle("Add Participants");
+        setTitle("Create group");
 
         users = new ArrayList<>();
 
@@ -100,20 +101,23 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
                 builder.setView(view1);
                 builder.setCancelable(true);
 
+                final AlertDialog alertDialog = builder.create();
                 final EditText name = view1.findViewById(R.id.name);
-                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                ImageButton ok = view1.findViewById(R.id.confirm);
+                ok.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
+                    public void onClick(View view) {
                         String n = name.getText().toString();
                         if(!n.equals("")) {
                             askConfirmation(n);
+                            alertDialog.dismiss();
                         }
                         else {
                             Toast.makeText(CreateGroupActivity.this,"Name cannot be empty",Toast.LENGTH_SHORT).show();
                         }
-
                     }
-                }).create().show();
+                });
+                alertDialog.show();
             }
         });
 
@@ -157,7 +161,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
     void createGroup(String name)
     {
-        progressDialog.setMessage("Creating group...");
+        /*progressDialog.setMessage("Creating group...");
         progressDialog.show();
 
         final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
@@ -196,7 +200,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
             public void onFailure(@NonNull Exception e) {
                 Toast.makeText(CreateGroupActivity.this,"Something went wrong, please try again",Toast.LENGTH_SHORT).show();
             }
-        });
+        });*/
     }
 
     void finalMethod(String groupId)
@@ -242,7 +246,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.list_item_contact, parent, false);
+                    .inflate(R.layout.list_item_create_group, parent, false);
             return new ContactListAdapter.MainListItem(view);
         }
 
@@ -261,10 +265,13 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
             if(checkUser.check(user)) {
 
-                mainListItem.alphabet.setBackgroundTintList(ColorStateList.valueOf((context.getColor(R.color.colorPrimary))));
+                mainListItem.alphabet.setVisibility(View.INVISIBLE);
+                mainListItem.imageView.setVisibility(View.VISIBLE);
                 mainListItem.alphabet.setText("");
             }
             else {
+                mainListItem.alphabet.setVisibility(View.VISIBLE);
+                mainListItem.imageView.setVisibility(View.INVISIBLE);
                 mainListItem.alphabet.setText(user.getName().substring(0,1));
                 mainListItem.alphabet.setBackgroundTintList(ColorStateList.valueOf((randomColor)));
             }
@@ -289,13 +296,15 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
             TextView username;
             TextView alphabet;
             TextView number;
+            ImageView imageView;
             RelativeLayout relativeLayout;
 
             MainListItem(View itemView) {
                 super(itemView);
-                username = itemView.findViewById(R.id.username);
+                username = itemView.findViewById(R.id.name);
                 alphabet = itemView.findViewById(R.id.thumbnail);
                 number = itemView.findViewById(R.id.number);
+                imageView = itemView.findViewById(R.id.tick);
                 relativeLayout = itemView.findViewById(R.id.container);
             }
         }
@@ -331,42 +340,49 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
             Item h = (Item) holder;
 
-            h.textView.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
+            if(position>=participants.size())
+            {
+                h.textView.setBackgroundTintList(ColorStateList.valueOf((Color.BLACK)));
+                h.textView.setText("");
+                h.textView.setOnClickListener(null);
+            }
 
-            final User user = participants.get(position);
+            else {
+                final User user = participants.get(position);
+                h.textView.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
+                h.textView.setText(user.getName().substring(0, 1));
+                h.textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AlertDialog);
 
-            h.textView.setText(user.getName().substring(0,1));
-            h.textView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    AlertDialog.Builder builder= new AlertDialog.Builder(context,R.style.AlertDialog);
+                        View view1 = LayoutInflater.from(context).inflate(R.layout.create_group_icon_click_dialog, null);
+                        builder.setView(view1);
+                        builder.setCancelable(true);
 
-                    View view1 = LayoutInflater.from(context).inflate(R.layout.create_group_icon_click_dialog,null);
-                    builder.setView(view1);
-                    builder.setCancelable(true);
+                        TextView name = view1.findViewById(R.id.name);
+                        TextView number = view1.findViewById(R.id.number);
+                        TextView thumbnail = view1.findViewById(R.id.thumbnail);
+                        ImageButton delete = view1.findViewById(R.id.delete);
 
-                    TextView name = view1.findViewById(R.id.name);
-                    TextView number = view1.findViewById(R.id.number);
-                    TextView thumbnail = view1.findViewById(R.id.thumbnail);
-                    ImageButton delete = view1.findViewById(R.id.delete);
+                        thumbnail.setText(user.getName().substring(0, 1));
+                        thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
+                        name.setText(user.getName());
+                        number.setText(user.getNumber());
 
-                    thumbnail.setText(user.getName().substring(0,1));
-                    thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
-                    name.setText(user.getName());
-                    number.setText(user.getNumber());
-
-                    final AlertDialog alertDialog = builder.create();
-                    delete.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            Select select = (Select) context;
-                            select.onClick(user);
-                            alertDialog.dismiss();
-                        }
-                    });
-                    alertDialog.show();
-                }
-            });
+                        final AlertDialog alertDialog = builder.create();
+                        delete.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                Select select = (Select) context;
+                                select.onClick(user);
+                                alertDialog.dismiss();
+                            }
+                        });
+                        alertDialog.show();
+                    }
+                });
+            }
         }
 
         @Override
@@ -376,7 +392,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
         @Override
         public int getItemCount() {
-            return participants.size();
+            return 6;
         }
     }
 }

@@ -32,8 +32,22 @@
             android:textColor="@android:color/white"
             android:textSize="16sp" />
 
+        <ImageView
+            android:id="@+id/tick"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="15dp"
+            android:background="@drawable/round_text"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="10dip"
+            app:srcCompat="@drawable/baseline_done_white_24"
+            android:visibility="gone" />
+
         <TextView
-            android:id="@+id/username"
+            android:id="@+id/name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignTop="@id/thumbnail"
@@ -48,7 +62,7 @@
             android:id="@+id/number"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/username"
+            android:layout_below="@id/name"
             android:layout_marginTop="7dp"
             android:layout_toRightOf="@id/thumbnail"
             android:text="+91 9876543210"

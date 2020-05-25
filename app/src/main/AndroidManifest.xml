@@ -21,10 +21,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".ShareActivity">
+        <activity android:name=".ShareActivity"
+            android:theme="@style/AppTheme.NoActionBar">
         </activity>
         <activity android:name=".GroupChatActivity" />
-        <activity android:name=".CreateGroupActivity" />
+
+        <activity android:name=".CreateGroupActivity"
+            android:parentActivityName=".MainActivity"/>
         <activity
             android:name=".Images"
             android:parentActivityName=".Test" />

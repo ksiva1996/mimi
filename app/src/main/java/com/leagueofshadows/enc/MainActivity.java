@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -34,6 +35,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import static android.view.View.GONE;
 import static com.leagueofshadows.enc.Util.getMessageContent;
 
 public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback {
@@ -80,8 +82,8 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         newGroup = findViewById(R.id.newGroup);
         newUser = findViewById(R.id.newUser);
 
-        newGroup.setVisibility(View.GONE);
-        newUser.setVisibility(View.GONE);
+        newGroup.setVisibility(GONE);
+        newUser.setVisibility(GONE);
 
         newGroup.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -108,12 +110,12 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             fab.setImageResource(R.drawable.add);
             newUser.animate().translationY(0);
             newGroup.animate().translationY(0);
-            newUser.setVisibility(View.GONE);
-            newGroup.setVisibility(View.GONE);
+            newUser.setVisibility(GONE);
+            newGroup.setVisibility(GONE);
         }
         else
         {
-            fab.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+            fab.setImageResource(R.drawable.baseline_close_white_48);
             newUser.setVisibility(View.VISIBLE);
             newGroup.setVisibility(View.VISIBLE);
             newUser.animate().translationY(getResources().getDimension(R.dimen.st_130));
@@ -235,6 +237,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             SwipeRevealLayout swipe;
             RelativeLayout container;
             ImageButton deleteButton;
+            ImageView groupIcon;
 
             MyViewHolder(View view) {
                 super(view);
@@ -246,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 container = view.findViewById(R.id.container);
                 swipe = view.findViewById(R.id.swipe);
                 deleteButton = view.findViewById(R.id.delete_button);
+                groupIcon = view.findViewById(R.id.group_thumbnail);
             }
         }
 
@@ -266,45 +270,50 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         @Override
         public void onBindViewHolder(@NonNull final MyViewHolder holder, final int position) {
             final ChatData chatData = chatDataArrayList.get(position);
-            holder.name.setText(chatData.getUser().getName());
 
-            if(chatData.getLatestMessage()!=null) {
+            if(chatData.getType()==ChatData.CHAT_TYPE_SINGLE_USER) {
+
+                holder.groupIcon.setVisibility(GONE);
+                holder.thumbNail.setVisibility(View.VISIBLE);
+                holder.name.setText(chatData.getUser().getName());
+                holder.thumbNail.setText(chatData.getUser().getName().substring(0, 1));
+            }
+            else
+            {
+                holder.thumbNail.setVisibility(View.INVISIBLE);
+                holder.name.setText(chatData.getGroup().getName());
+                holder.groupIcon.setVisibility(View.VISIBLE);
+            }
+
+            if (chatData.getLatestMessage() != null) {
                 if (chatData.getLatestMessage().getFrom().equals(userId)) {
                     holder.message.setText("you: " + getMessageContent(chatData.getLatestMessage().getContent()));
                 } else {
                     holder.message.setText(chatData.getUser().getName() + ": " + getMessageContent(chatData.getLatestMessage().getContent()));
                 }
-            }
-            else {
+            } else {
                 holder.message.setText("Send you first message");
             }
 
-
-            holder.thumbNail.setText(chatData.getUser().getName().substring(0,1));
-            //TODO: time
             holder.time.setText(formatTime(chatData.getLatestMessage().getTimeStamp()));
             int count = chatData.getCount();
-            if(count!=0) {
+            if (count != 0) {
                 holder.count.setVisibility(View.VISIBLE);
                 holder.count.setText(String.valueOf(chatData.getCount()));
-                holder.time.setTextColor(context.getResources().getColor(R.color.msg_received_time,null));
-            }
-            else
-            {
+                holder.time.setTextColor(context.getResources().getColor(R.color.msg_received_time, null));
+            } else {
                 holder.count.setText("");
                 holder.count.setVisibility(View.INVISIBLE);
-                holder.time.setTextColor(context.getResources().getColor(R.color.main_screen_normal,null));
+                holder.time.setTextColor(context.getResources().getColor(R.color.main_screen_normal, null));
             }
             holder.container.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(chatData.getType()==ChatData.CHAT_TYPE_SINGLE_USER) {
+                    if (chatData.getType() == ChatData.CHAT_TYPE_SINGLE_USER) {
                         Intent intent = new Intent(context.getApplicationContext(), ChatActivity.class);
                         intent.putExtra(Util.userId, chatData.getUser().getId());
                         context.startActivity(intent);
-                    }
-                    else
-                    {
+                    } else {
                         Intent intent = new Intent(context.getApplicationContext(), ChatActivity.class);
                         intent.putExtra(Util.userId, chatData.getGroup().getId());
                         context.startActivity(intent);
@@ -316,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 @Override
                 public void onClick(View view) {
                     if (holder.swipe.isOpen()) {
-                        optionsCallback.onOptionsSelected(DELETE_CONSERVATION,position);
+                        optionsCallback.onOptionsSelected(DELETE_CONSERVATION, position);
                     }
                 }
             });

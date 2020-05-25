@@ -412,6 +412,70 @@ public class DatabaseManager2 {
         return x!=0;
     }
 
+    public ArrayList<ChatData> getUsersForShare()
+    {
+        ArrayList<String> userIds = new ArrayList<>();
+        ArrayList<ChatData> chatDataArrayList = new ArrayList<>();
+        String raw = "SELECT * FROM "+TABLE_USER_DATA;
+        SQLiteDatabase database = openDatabase();
+
+        Cursor cursor = database.rawQuery(raw,null);
+        if(cursor.moveToFirst()) {
+            do {
+                String id = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
+                User user = getUser(id);
+                if(user!=null)
+                {
+                    userIds.add(user.getId());
+                    long time = cursor.getLong(cursor.getColumnIndex(USER_DATA_TIME));
+                    ChatData chatData = new ChatData(user,null,0,time);
+                    chatDataArrayList.add(chatData);
+                }
+            } while (cursor.moveToNext());
+        }
+        ArrayList<User> users = getUsers();
+        for (User u:users) {
+            if(!userIds.contains(u.getId())){
+                chatDataArrayList.add(new ChatData(u,null,0,0));
+            }
+        }
+        cursor.close();
+        return chatDataArrayList;
+    }
+
+    public ArrayList<ChatData> getGroupsForShare()
+    {
+        ArrayList<ChatData> chatDataArrayList = new ArrayList<>();
+        ArrayList<String> groupIds = new ArrayList<>();
+        String raw = "SELECT * FROM "+TABLE_USER_DATA;
+        SQLiteDatabase database = openDatabase();
+
+        Cursor cursor = database.rawQuery(raw,null);
+        if(cursor.moveToFirst()) {
+            do {
+                String id = cursor.getString(cursor.getColumnIndex(USER_DATA_USERS_ID));
+                Group group = getGroup(id);
+                if (group != null) {
+                    groupIds.add(group.getId());
+                    long time = cursor.getLong(cursor.getColumnIndex(USER_DATA_TIME));
+                    ChatData chatData = new ChatData(group,null,0,time);
+                    chatDataArrayList.add(chatData);
+                }
+            }while (cursor.moveToNext());
+        }
+
+        ArrayList<String> groups = getGroups();
+        for (String id:groups) {
+            if(!groupIds.contains(id)){
+                Group group = getGroup(id);
+                ChatData chatData = new ChatData(group,null,0,0);
+                chatDataArrayList.add(chatData);
+            }
+        }
+        cursor.close();
+        return chatDataArrayList;
+    }
+
     public ArrayList<User> getUsers()
     {
         ArrayList<User> users = new ArrayList<>();
