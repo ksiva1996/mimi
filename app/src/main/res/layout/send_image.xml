@@ -45,7 +45,7 @@
                 android:layout_height="wrap_content"
                 layout="@layout/message_sent_reply_layout"/>
 
-            <RelativeLayout
+        <RelativeLayout
             android:layout_width="300dp"
             android:layout_height="300dp">
 
@@ -55,6 +55,7 @@
                 android:layout_height="match_parent"
                 android:layout_alignParentEnd="false"
                 android:adjustViewBounds="false"
+                android:layout_marginTop="10dp"
                 android:alpha="1"
                 android:scaleType="centerCrop" />
 

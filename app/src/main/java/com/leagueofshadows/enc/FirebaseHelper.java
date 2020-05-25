@@ -35,7 +35,7 @@ public class FirebaseHelper {
     private DatabaseReference databaseReference;
     private DatabaseManager2 databaseManager;
 
-    static final String Messages = "Messages";
+    public static final String Messages = "Messages";
     public static final String Users = "Users";
     public static final String Groups = "Groups";
 
@@ -49,11 +49,11 @@ public class FirebaseHelper {
     private static final String filePath = "filePath";
     private static final String timeStamp = "timeStamp";
     private static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
-    static final String resend = "resend";
-    static final String Files = "Files";
+    public static final String resend = "resend";
+    public static final String Files = "Files";
 
 
-    FirebaseHelper(Context context)
+    public FirebaseHelper(Context context)
     {
         this.context = context;
         DatabaseManager2.initializeInstance(new SQLHelper(context));
@@ -62,7 +62,7 @@ public class FirebaseHelper {
         databaseReference = firebaseDatabase.getReference();
     }
 
-    void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback,String id) throws DeviceOfflineException {
+    public void sendTextOnlyMessage(final Message message, final EncryptedMessage encryptedMessage, final MessageSentCallback messageSentCallback, String id) throws DeviceOfflineException {
 
         if(!checkConnection()) {
             throw new DeviceOfflineException(DeviceOfflineException);
@@ -112,7 +112,7 @@ public class FirebaseHelper {
         });
     }
 
-    void getNewMessages(String userId, final CompleteCallback completeCallback) throws DeviceOfflineException {
+    public void getNewMessages(String userId, final CompleteCallback completeCallback) throws DeviceOfflineException {
 
         if(!checkConnection()) {
             throw new DeviceOfflineException(DeviceOfflineException);
@@ -151,7 +151,7 @@ public class FirebaseHelper {
         });
     }
 
-    void getUserPublic(String userId, final PublicKeyCallback publicKeyCallback)
+    public void getUserPublic(String userId, final PublicKeyCallback publicKeyCallback)
     {
         databaseReference.child(Users).child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override

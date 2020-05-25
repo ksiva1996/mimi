@@ -37,15 +37,12 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-           <include
-               android:layout_width="match_parent"
-               android:layout_height="wrap_content"
-               layout="@layout/message_sent_reply_layout"/>
+           <include layout="@layout/message_sent_reply_layout"/>
 
             <TextView
                 android:id="@+id/message"
                 style="@style/chat_text_message_style"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:autoLink="web"
                 android:paddingRight="6dp"
@@ -88,7 +85,7 @@
                     android:src="@drawable/message_got_receipt_from_target" />
                 <ImageView
                     android:id="@+id/seen"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom"
                     android:visibility="gone"

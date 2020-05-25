@@ -23,6 +23,7 @@ import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.background.FileUploadService;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -193,7 +194,7 @@ public class Test extends AppCompatActivity implements ScaleGestureDetector.OnSc
                     assert data != null;
                     Uri uri = data.getData();
 
-                    Intent intent = new Intent(this,FileUploadService.class);
+                    Intent intent = new Intent(this, FileUploadService.class);
                     intent.putExtra(Util.uri,uri.toString());
                     intent.putExtra(Util.userId,"siva");
                     String timeStamp = Calendar.getInstance().getTime().toString();

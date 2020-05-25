@@ -9,6 +9,7 @@ import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.MessageInfo;
 import com.leagueofshadows.enc.Items.User;
 
 import java.util.ArrayList;
@@ -39,11 +40,19 @@ import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_SENT;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TIMESTAMP;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TO;
 import static com.leagueofshadows.enc.storage.SQLHelper.MESSAGES_TYPE;
+import static com.leagueofshadows.enc.storage.SQLHelper.RECEIVED_STATUS_MESSAGE_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.RECEIVED_STATUS_TIMESTAMP;
+import static com.leagueofshadows.enc.storage.SQLHelper.RECEIVED_STATUS_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_MESSAGE_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_USER_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_MESSAGE_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_TIMESTAMP;
+import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_ENCRYPTED_MESSAGES;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUPS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUP_PARTICIPANTS;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_RECEIVED_STATUS;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_SEEN_STATUS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_RESEND_MESSAGE;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USERS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USER_DATA;
@@ -211,34 +220,88 @@ public class DatabaseManager2 {
         return messages;
     }
 
-    public void updateMessageSeenStatus(String timestamp, String message_id,String otherUserId)
+    public void updateMessageSeenStatus(String timestamp, String message_id,String otherUserId,String groupId)
     {
-        String tableName = getTableName(otherUserId);
-        checkTable(tableName);
         SQLiteDatabase database = openDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MESSAGES_SEEN,timestamp);
-        database.update(tableName,contentValues,MESSAGES_ID+" = ?", new String[]{message_id});
+        if(groupId==null) {
+            String tableName = getTableName(otherUserId);
+            checkTable(tableName);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MESSAGES_SEEN, timestamp);
+            database.update(tableName, contentValues, MESSAGES_ID + " = ?", new String[]{message_id});
+        }
+        else {
+            insertSeenStatus(otherUserId,message_id,groupId);
+
+            String raw = "SELECT * FROM "+TABLE_MESSAGES_SEEN_STATUS+" WHERE "+SEEN_STATUS_MESSAGE_ID+" = ?";
+            Cursor cursor = database.rawQuery(raw, new String[]{message_id});
+            int seenCount = cursor.getCount();
+
+            raw = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUPS_ID+" = ?";
+            cursor = database.rawQuery(raw, new String[]{groupId});
+
+            int participantCount = cursor.getCount();
+            cursor.close();
+            if(seenCount==participantCount)
+            {
+                String tableName = getTableName(groupId);
+                checkTable(tableName);
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MESSAGES_SEEN, timestamp);
+                database.update(tableName, contentValues, MESSAGES_ID + " = ?", new String[]{message_id});
+            }
+        }
     }
 
-    /*public void updateMessageSentStatus(String timestamp,String message_id,String otherUserId)
+    private void insertSeenStatus(String userId, String messageId, String timestamp)
     {
-        String tableName = getTableName(otherUserId);
-        checkTable(tableName);
-        SQLiteDatabase database = openDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(MESSAGES_SENT,timestamp);
-        database.update(tableName,contentValues,MESSAGES_ID+" = ?", new String[]{message_id});
-    }*/
+        contentValues.put(SEEN_STATUS_MESSAGE_ID,messageId);
+        contentValues.put(SEEN_STATUS_USER_ID,userId);
+        contentValues.put(SEEN_STATUS_TIMESTAMP,timestamp);
+        openDatabase().insert(TABLE_MESSAGES_SEEN_STATUS,null,contentValues);
+    }
 
-    public void updateMessageReceivedStatus(String timestamp, String message_id,String otherUserId)
+    public void updateMessageReceivedStatus(String timestamp, String message_id,String otherUserId,String groupId)
     {
-        String tableName = getTableName(otherUserId);
-        checkTable(tableName);
         SQLiteDatabase database = openDatabase();
+        if(groupId==null) {
+            String tableName = getTableName(otherUserId);
+            checkTable(tableName);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MESSAGES_RECEIVED, timestamp);
+            database.update(tableName, contentValues, MESSAGES_ID + " = ?", new String[]{message_id});
+        }
+        else {
+            insertReceivedStatus(otherUserId,message_id,groupId);
+
+            String raw = "SELECT * FROM "+TABLE_MESSAGES_RECEIVED_STATUS+" WHERE "+RECEIVED_STATUS_MESSAGE_ID+" = ?";
+            Cursor cursor = database.rawQuery(raw, new String[]{message_id});
+            int seenCount = cursor.getCount();
+
+            raw = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUPS_ID+" = ?";
+            cursor = database.rawQuery(raw, new String[]{groupId});
+
+            int participantCount = cursor.getCount();
+            cursor.close();
+            if(seenCount==participantCount)
+            {
+                String tableName = getTableName(groupId);
+                checkTable(tableName);
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MESSAGES_RECEIVED, timestamp);
+                database.update(tableName, contentValues, MESSAGES_ID + " = ?", new String[]{message_id});
+            }
+        }
+    }
+
+    private void insertReceivedStatus(String userId, String messageId, String timestamp)
+    {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(MESSAGES_RECEIVED,timestamp);
-        database.update(tableName,contentValues,MESSAGES_ID+" = ?", new String[]{message_id});
+        contentValues.put(RECEIVED_STATUS_MESSAGE_ID,messageId);
+        contentValues.put(RECEIVED_STATUS_USER_ID,userId);
+        contentValues.put(RECEIVED_STATUS_TIMESTAMP,timestamp);
+        openDatabase().insert(TABLE_MESSAGES_RECEIVED_STATUS,null,contentValues);
     }
 
     public Message getMessage(String messageId,String otherUserId)
@@ -715,7 +778,7 @@ public class DatabaseManager2 {
 
     //Groups
 
-    void addNewGroup(Group group)
+    public void addNewGroup(Group group)
     {
         SQLiteDatabase sqLiteDatabase = openDatabase();
         String rawQuery = "SELECT * FROM "+TABLE_GROUPS +" WHERE "+GROUPS_ID+" = ?";
@@ -802,5 +865,35 @@ public class DatabaseManager2 {
         }
         cursor.close();
         return ids;
+    }
+
+    public ArrayList<MessageInfo> getMessageInfo(String messageId,String groupId){
+        String raw = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUP_PARTICIPANTS_GROUP_ID+" = ?";
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{groupId});
+        ArrayList<String> userIds = new ArrayList<>();
+        if(cursor.moveToFirst()) {
+            do {
+                userIds.add(cursor.getString(cursor.getColumnIndex(GROUP_PARTICIPANTS_USER_ID)));
+            }while (cursor.moveToNext());
+        }
+        cursor.close();
+        String seenRaw = "SELECT * FROM "+TABLE_MESSAGES_SEEN_STATUS+" WHERE "+SEEN_STATUS_USER_ID+" = ? AND "+SEEN_STATUS_MESSAGE_ID+" = ?";
+        String receivedRaw = "SELECT * FROM "+TABLE_MESSAGES_RECEIVED_STATUS+" WHERE "+RECEIVED_STATUS_USER_ID+" = ? AND "+RECEIVED_STATUS_MESSAGE_ID+" = ?";
+
+        ArrayList<MessageInfo> messageInfos = new ArrayList<>();
+        for (String userId:userIds) {
+
+            String[] params = new String[]{userId,messageId};
+            Cursor cursor1 = sqLiteDatabase.rawQuery(seenRaw,params);
+            String seenTimestamp = cursor.getString(cursor.getColumnIndex(SEEN_STATUS_TIMESTAMP));
+            cursor1.close();
+            Cursor cursor2 = sqLiteDatabase.rawQuery(receivedRaw,params);
+            String receivedTimestamp = cursor.getString(cursor.getColumnIndex(RECEIVED_STATUS_TIMESTAMP));
+            cursor2.close();
+            MessageInfo messageInfo = new MessageInfo(userId,receivedTimestamp,seenTimestamp);
+            messageInfos.add(messageInfo);
+        }
+        return messageInfos;
     }
 }

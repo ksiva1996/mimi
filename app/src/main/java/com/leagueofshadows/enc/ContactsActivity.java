@@ -19,6 +19,7 @@ import android.widget.Toast;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.background.ContactsWorker;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -30,7 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import static com.leagueofshadows.enc.ContactsWorker.FLAG;
+import static com.leagueofshadows.enc.background.ContactsWorker.FLAG;
 
 public class ContactsActivity extends AppCompatActivity implements CompleteCallback, Select {
 
@@ -88,7 +89,7 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if(item.getItemId()==R.id.refresh)
         {
-            Intent intent1 = new Intent(ContactsActivity.this,ContactsWorker.class);
+            Intent intent1 = new Intent(ContactsActivity.this, ContactsWorker.class);
             intent1.putExtra(FLAG,0);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent1);

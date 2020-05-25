@@ -24,8 +24,9 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Interfaces.CheckUser;
 import com.leagueofshadows.enc.Interfaces.Select;
-import com.leagueofshadows.enc.Items.GroupFirebase;
+import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -54,6 +55,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
     ProgressDialog progressDialog;
     boolean allSuccess = true;
+    int count=0;
 
 
     @Override
@@ -96,6 +98,12 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                if(groupParticipants.size()<=2) {
+                    Toast.makeText(CreateGroupActivity.this,"dheeniki group endhuku ra... direct message cheyi",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 AlertDialog.Builder builder = new AlertDialog.Builder(CreateGroupActivity.this,R.style.AlertDialog);
                 View view1 = LayoutInflater.from(CreateGroupActivity.this).inflate(R.layout.create_group_name,null);
                 builder.setView(view1);
@@ -159,19 +167,20 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         }
     }
 
-    void createGroup(String name)
+    void createGroup(final String name)
     {
-        /*progressDialog.setMessage("Creating group...");
+        progressDialog.setMessage("Creating group...");
         progressDialog.show();
 
         final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
         final String groupId = databaseReference.child(FirebaseHelper.Groups).push().getKey();
 
         final ArrayList<String> userIds = new ArrayList<>();
-        for (User u:users) {
+        for (User u:groupParticipants) {
+            u.setName(u.getId());
             userIds.add(u.getId());
         }
-        final GroupFirebase group = new GroupFirebase(groupId,name,userIds);
+        final Group group = new Group(groupId,name,groupParticipants);
 
         databaseReference.child(FirebaseHelper.Groups).child(groupId).setValue(group).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
@@ -180,17 +189,17 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
                     databaseReference.child(FirebaseHelper.Users).child(id).child(FirebaseHelper.Groups).setValue(group).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            users.remove(userIds.indexOf(id));
-                            if(users.size()==0)
-                                finalMethod(groupId);
+                            count++;
+                            if(count==userIds.size())
+                                finalMethod(groupId,name);
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            users.remove(userIds.indexOf(id));
+                            count++;
                             allSuccess = false;
-                            if (users.size()==0)
-                                finalMethod(groupId);
+                            if (count==userIds.size())
+                                finalMethod(groupId,name);
                         }
                     });
                 }
@@ -200,12 +209,21 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
             public void onFailure(@NonNull Exception e) {
                 Toast.makeText(CreateGroupActivity.this,"Something went wrong, please try again",Toast.LENGTH_SHORT).show();
             }
-        });*/
+        });
     }
 
-    void finalMethod(String groupId)
+    void finalMethod(String groupId,String name)
     {
-
+        if(allSuccess) {
+            Group group = new Group(groupId,name,groupParticipants);
+            databaseManager.addNewGroup(group);
+            Native restHelper = new Native(this);
+            restHelper.sendNewGroupNotification(groupParticipants,currentUser,name);
+            finish();
+        }
+        else {
+            Toast.makeText(this,"Something went wrong,please try again",Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -233,12 +251,10 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         private ArrayList<User> users;
         private Select select;
         private CheckUser checkUser;
-        private  Context context;
 
         ContactListAdapter(ArrayList<User> msgList,Context context) {
             this.users = msgList;
             this.select = (Select) context;
-            this.context = context;
             this.checkUser = (CheckUser) context;
         }
 

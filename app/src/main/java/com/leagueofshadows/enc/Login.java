@@ -15,6 +15,10 @@ import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.REST.Native;
+import com.leagueofshadows.enc.background.DecryptMessageWorker;
+import com.leagueofshadows.enc.background.GroupsWorker;
+import com.leagueofshadows.enc.background.ResendMessageWorker;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -88,29 +92,27 @@ public class Login extends AppCompatActivity {
                         show();
                         setUp(p);
 
-                        Intent intent2 = new Intent(Login.this,ResendMessageWorker.class);
+                        Intent intent2 = new Intent(Login.this, ResendMessageWorker.class);
                         startService(intent2);
 
-                        Intent intent1 = new Intent(Login.this,DecryptMessageWorker.class);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(intent1);
-                        }
-                        else {
-                            startService(intent1);
-                        }
+                        Intent intent1 = new Intent(Login.this, DecryptMessageWorker.class);
+                        startService(intent1);
+
+                        Intent intent3 = new Intent(Login.this, GroupsWorker.class);
+                        startService(intent3);
 
                         Intent intent = getIntent();
                         if(intent.getAction()!=null)
                         {
                             if (intent.getAction().equals(Intent.ACTION_SEND))
                             {
-                                Intent intent3 = new Intent(Login.this,ShareActivity.class);
+                                Intent intent4 = new Intent(Login.this,ShareActivity.class);
                                 intent3.setAction(Intent.ACTION_SEND);
                                 intent3.setType(intent.getType());
                                 intent3.putExtra(Intent.EXTRA_STREAM,intent.getParcelableExtra(Intent.EXTRA_STREAM));
                                 intent3.putExtra(Intent.EXTRA_TEXT,intent.getStringExtra(Intent.EXTRA_TEXT));
                                 intent3.putExtra(Intent.EXTRA_SUBJECT,intent.getStringExtra(Intent.EXTRA_SUBJECT));
-                                startActivity(intent3);
+                                startActivity(intent4);
                                 finish();
                             }
                         }

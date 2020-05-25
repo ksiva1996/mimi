@@ -14,24 +14,24 @@ public class Util {
     public static final String TOKEN_SENT = "TOKEN_SENT";
 
     static final String originalPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/";
-    static final String imagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/";
+    public static final String imagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/";
     static final String sentImagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/sent/";
-    static final String documentsPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Documents/";
+    public static final String documentsPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Documents/";
     static final String sentDocumentsPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Documents/sent/";
-    static final String privatePath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/private/";
+    public static final String privatePath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/private/";
 
     public static final String preferences = "preferences";
     public static String type = "type";
     public static String path = "path";
     public static String messageId = "messageId";
     public static String content = "content";
-    static String cipherText = "cipherText";
+    public static String cipherText = "cipherText";
     static String camera = "camera";
 
-    static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
-    static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";
-    static String ServiceNotificationChannelTitle = "Service notifications channel";
-    static String NewMessageNotificationChannelTitle = "New Message notifications";
+    public static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
+    public static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";
+    public static String ServiceNotificationChannelTitle = "Service notifications channel";
+    public static String NewMessageNotificationChannelTitle = "New Message notifications";
 
 
     static String CheckMessageEncrypted = "CheckMessageEncrypted";
@@ -39,12 +39,12 @@ public class Util {
 
     //TODO:
     public static String key = "AAAA9mn4XrI:APA91bHmWqrRds17hK0IZCD-5MkA4kpLWV27WhRPhW2NTX0bHzj_onjpQNwzKmKhouKKy-gjI7p4XhtvdnOVvusRlN2x0Ee4DRy1grMHrpx8YVjV5_66cxr47iRwtO5M09ZUj4OYsney";
-    static String uri = "uri";
+    public static String uri = "uri";
     public static String timeStamp = "timeStamp";
-    static String fileName = "fileName";
+    public static String fileName = "fileName";
     public static String id = "id";
-    static String toUserId = "toUserId";
-    static String name = "name";
+    public static String toUserId = "toUserId";
+    public static String name = "name";
     static String number = "number";
     static String password = "password";
     public static final String CheckMessageIV = "CheckMessageIV";

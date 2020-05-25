@@ -47,6 +47,8 @@ import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
+import com.leagueofshadows.enc.background.Downloader;
+import com.leagueofshadows.enc.background.FileUploadService;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -309,7 +311,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          super.onActivityResult(requestCode, resultCode, data);
          if (resultCode==RESULT_OK)
          {
-             setAttachmentLayout();
              if (requestCode==FILE_ATTACHMENT_REQUEST) {
                  assert data != null;
                  final Uri uri = data.getData();
@@ -406,7 +407,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              {
                  String timeStamp = Calendar.getInstance().getTime().toString();
                  message.setSeen(timeStamp);
-                 databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId);
+                 databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId,null);
                  if(message.getContent()!=null)
                      restHelper.sendMessageSeenStatus(message);
              }
@@ -510,7 +511,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      FileInputStream fileInputStream1 = new FileInputStream(path);
                      aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
                      String cipherText = aesHelper.encryptMessage(messageString,otherUser.getBase64EncodedPublicKey(),app.getPrivateKey());
-                     Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
+                     Intent intent = new Intent(ChatActivity.this, FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
                      intent.putExtra(Util.fileName,fileName);
@@ -860,7 +861,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              String timeStamp = Calendar.getInstance().getTime().toString();
              message.setSeen(timeStamp);
              restHelper.sendMessageSeenStatus(message);
-             databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId);
+             databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId,null);
              runOnUiThread(new Runnable() {
                  @Override
                  public void run() {
@@ -976,7 +977,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  replyToMessage(message);
              }
          }
-
      }
 
      static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -1025,6 +1025,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             LinearLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
+            TextView lengthCorrector;
 
 
             TextReceived(View view) {
@@ -1040,6 +1041,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 replyLayout = view.findViewById(R.id.reply_receive_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
+                lengthCorrector = view.findViewById(R.id.messag);
             }
         }
 
@@ -1059,6 +1061,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              LinearLayout replyLayout;
              TextView replyName;
              TextView replyMessage;
+             TextView lengthCorrector;
 
              TextSent(View view) {
                  super(view);
@@ -1077,6 +1080,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  replyLayout = view.findViewById(R.id.reply_send_layout);
                  replyName = view.findViewById(R.id.name);
                  replyMessage = view.findViewById(R.id.reply_text);
+                 lengthCorrector = view.findViewById(R.id.messag);
              }
          }
 
@@ -1355,13 +1359,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  messageContent = message.getContent();
              }
 
-
              if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT)
              {
                  if (message.getFrom().equals(otherUserId)) {
 
                      final TextReceived h = (TextReceived) holder;
                      h.message.setText(messageContent);
+                     h.lengthCorrector.setText(messageContent);
                      if(messageReply!=null && messageReplyId!=null) {
                          h.replyLayout.setVisibility(View.VISIBLE);
                          h.replyMessage.setText(messageReply);
@@ -1420,6 +1424,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  {
                      final TextSent h = (TextSent) holder;
                      h.message.setText(messageContent);
+                     h.lengthCorrector.setText(messageContent);
                      if(messageReply!=null && messageReplyId!=null) {
                          h.replyLayout.setVisibility(View.VISIBLE);
                          h.replyMessage.setText(messageReply);

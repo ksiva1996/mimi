@@ -3,6 +3,7 @@ package com.leagueofshadows.enc;
 import android.app.Application;
 
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
+import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
@@ -17,17 +18,15 @@ public class App extends Application {
     private CompleteCallback completeCallback;
     private ResendMessageCallback resendMessageCallback;
     private SecretKey masterKey;
+    private GroupsUpdatedCallback groupsUpdatedCallback;
+
     public CompleteCallback getCompleteCallback() {
         return completeCallback;
     }
 
-    public void setCompleteCallback(CompleteCallback completeCallback) {
-        this.completeCallback = completeCallback;
-    }
+    public void setCompleteCallback(CompleteCallback completeCallback) { this.completeCallback = completeCallback; }
 
-    public void setMessageSentCallback(MessageSentCallback messageSentCallback) {
-        this.messageSentCallback = messageSentCallback;
-    }
+    public void setMessageSentCallback(MessageSentCallback messageSentCallback) { this.messageSentCallback = messageSentCallback; }
 
     public MessageSentCallback getMessageSentCallback() {
         return messageSentCallback;
@@ -38,15 +37,11 @@ public class App extends Application {
     }
 
 
-    public MessagesRetrievedCallback getMessagesRetrievedCallback() {
-        return messagesRetrievedCallback;
-    }
+    public MessagesRetrievedCallback getMessagesRetrievedCallback() { return messagesRetrievedCallback; }
 
-    public void setMessagesRetrievedCallback(MessagesRetrievedCallback messagesRetrievedCallback) {
-        this.messagesRetrievedCallback = messagesRetrievedCallback;
-    }
+    public void setMessagesRetrievedCallback(MessagesRetrievedCallback messagesRetrievedCallback) { this.messagesRetrievedCallback = messagesRetrievedCallback; }
 
-    boolean isnull() {
+    public boolean isnull() {
         return privateKey == null;
     }
 
@@ -58,9 +53,7 @@ public class App extends Application {
         return resendMessageCallback;
     }
 
-    public void setResendMessageCallback(ResendMessageCallback resendMessageCallback) {
-        this.resendMessageCallback = resendMessageCallback;
-    }
+    public void setResendMessageCallback(ResendMessageCallback resendMessageCallback) { this.resendMessageCallback = resendMessageCallback; }
 
     public SecretKey getMasterKey() {
         return masterKey;
@@ -69,4 +62,8 @@ public class App extends Application {
     public void setMasterKey(SecretKey masterKey) {
         this.masterKey = masterKey;
     }
+
+    public GroupsUpdatedCallback getGroupsUpdatedCallback() { return groupsUpdatedCallback; }
+
+    public void setGroupsUpdatedCallback(GroupsUpdatedCallback groupsUpdatedCallback) { this.groupsUpdatedCallback = groupsUpdatedCallback; }
 }

@@ -25,6 +25,7 @@ import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
 import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.background.ContactsWorker;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -38,7 +39,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import static com.leagueofshadows.enc.ContactsWorker.FLAG;
+import static com.leagueofshadows.enc.background.ContactsWorker.FLAG;
 
 public class OTP extends AppCompatActivity implements UserCallback {
 
@@ -219,7 +220,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     Intent intent = new Intent(OTP.this,Login.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
-                    Intent intent1 = new Intent(OTP.this,ContactsWorker.class);
+                    Intent intent1 = new Intent(OTP.this, ContactsWorker.class);
                     intent1.putExtra(FLAG,0);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         startForegroundService(intent1);

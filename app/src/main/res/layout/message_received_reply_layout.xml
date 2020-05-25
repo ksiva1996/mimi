@@ -19,6 +19,16 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/messag"
+        style="@style/chat_text_message_style"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:visibility="invisible"
+        android:autoLink="web"
+        android:paddingStart="6dp"
+        android:textColor="#CCFFFFFF" />
+
+    <TextView
         android:id="@+id/reply_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

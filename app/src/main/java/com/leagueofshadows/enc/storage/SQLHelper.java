@@ -4,9 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-
 public class SQLHelper extends SQLiteOpenHelper {
-
 
     private static final String DATABASE_NAME = "SAL-1";
 
@@ -56,6 +54,16 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String TABLE_GROUP_PARTICIPANTS = "Group_participants";
     static final String GROUP_PARTICIPANTS_GROUP_ID = "Group_id";
     static final String GROUP_PARTICIPANTS_USER_ID = "User_id";
+
+    static final String TABLE_MESSAGES_RECEIVED_STATUS = "Group_received_status";
+    static final String RECEIVED_STATUS_USER_ID = "User_id";
+    static final String RECEIVED_STATUS_MESSAGE_ID = "Message_id";
+    static final String RECEIVED_STATUS_TIMESTAMP = "Timestamp";
+
+    static final String TABLE_MESSAGES_SEEN_STATUS = "Group_seen_status";
+    static final String SEEN_STATUS_USER_ID = "User_id";
+    static final String SEEN_STATUS_MESSAGE_ID = "Message_id";
+    static final String SEEN_STATUS_TIMESTAMP = "Timestamp";
 
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
@@ -122,6 +130,21 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + GROUP_PARTICIPANTS_USER_ID+"  TEXT "
                 + ")";
 
+        String CREATE_GROUPS_RECEIVED_STATUS_TABLE = "CREATE TABLE "+TABLE_MESSAGES_RECEIVED_STATUS + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + RECEIVED_STATUS_USER_ID + " TEXT ,"
+                + RECEIVED_STATUS_MESSAGE_ID+"  TEXT ,"
+                + RECEIVED_STATUS_TIMESTAMP+" TEXT "
+                + ")";
+
+        String CREATE_GROUPS_SEEN_STATUS_TABLE = "CREATE TABLE "+TABLE_MESSAGES_SEEN_STATUS + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + SEEN_STATUS_USER_ID + " TEXT ,"
+                + SEEN_STATUS_MESSAGE_ID+"  TEXT ,"
+                + SEEN_STATUS_TIMESTAMP+" TEXT "
+                + ")";
+
+
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_ENCRYPTED_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_USERS_TABLE);
@@ -129,6 +152,8 @@ public class SQLHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL(CREATE_RESEND_MESSAGE_TABLE);
         sqLiteDatabase.execSQL(CREATE_GROUPS_TABLE);
         sqLiteDatabase.execSQL(CREATE_GROUPS_PARTICIPANTS_TABLE);
+        sqLiteDatabase.execSQL(CREATE_GROUPS_RECEIVED_STATUS_TABLE);
+        sqLiteDatabase.execSQL(CREATE_GROUPS_SEEN_STATUS_TABLE);
     }
 
 
@@ -141,6 +166,8 @@ public class SQLHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_ENCRYPTED_MESSAGES);
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_GROUP_PARTICIPANTS);
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_GROUPS);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGES_RECEIVED_STATUS);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGES_SEEN_STATUS);
         onCreate(sqLiteDatabase);
     }
 }

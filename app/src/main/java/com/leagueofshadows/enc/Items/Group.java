@@ -7,12 +7,14 @@ public class Group  {
     private String name;
     private ArrayList<User> users;
 
+
     public Group(String id, String name, ArrayList<User> users)
     {
         this.id = id;
         this.name = name;
         this.users = users;
     }
+    public Group(){}
 
     public String getId() {
         return id;

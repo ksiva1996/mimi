@@ -13,6 +13,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.OptionsCallback;
@@ -20,6 +21,7 @@ import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Items.ChatData;
+import com.leagueofshadows.enc.background.BackgroundService;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -38,7 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import static android.view.View.GONE;
 import static com.leagueofshadows.enc.Util.getMessageContent;
 
-public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback {
+public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback, GroupsUpdatedCallback {
 
     ArrayList<ChatData> chatDataArrayList;
     RecyclerAdapter recyclerAdapter;
@@ -99,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             }
         });
 
-        startService(new Intent(this,BackgroundService.class));
+        startService(new Intent(this, BackgroundService.class));
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.cancelAll();
     }
@@ -140,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         app.setMessagesRetrievedCallback(this);
         app.setResendMessageCallback(this);
         app.setMessageSentCallback(this);
+        app.setGroupsUpdatedCallback(this);
         loadUserData();
     }
 
@@ -217,6 +220,9 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             }).create().show();
         }
     }
+
+    @Override
+    public void onComplete() { loadUserData();}
 
     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyViewHolder> {
 

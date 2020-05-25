@@ -104,30 +104,39 @@
         </activity>
 
         <service
-            android:name=".Worker"
+            android:name=".background.Worker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".ResendMessageWorker"
+            android:name=".background.ResendMessageWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".DecryptMessageWorker"
+            android:name=".background.DecryptMessageWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".ContactsWorker"
+            android:name=".background.ContactsWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".FileUploadService"
+            android:name=".background.FileUploadService"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".Downloader"
+            android:name=".background.Downloader"
             android:enabled="true"
             android:exported="false" />
-        <service android:name=".BackgroundService"
+
+        <service android:name=".background.BackgroundService"
+            android:enabled="true"
+            android:exported="false"/>
+
+        <service android:name=".background.BackgroundWorker"
+            android:enabled="true"
+            android:exported="false"/>
+
+        <service android:name=".background.GroupsWorker"
             android:enabled="true"
             android:exported="false"/>
 
