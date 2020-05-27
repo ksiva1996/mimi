@@ -22,7 +22,6 @@ import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.R;
-import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.Util;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -52,7 +51,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final String otherUserId = intent.getStringExtra(Util.toUserId);
         final String currentUserId = intent.getStringExtra(Util.userId);
         final String timeStamp = intent.getStringExtra(Util.timeStamp);
-        String userName = intent.getStringExtra(Util.name);
+        final String userName = intent.getStringExtra(Util.name);
         final String fileName = intent.getStringExtra(Util.fileName);
         final String messageContent = intent.getStringExtra(Util.content);
         final String cipherText = intent.getStringExtra(Util.cipherText);
@@ -155,8 +154,6 @@ public class FileUploadService extends Service implements MessageSentCallback {
             message.setSent(timeStamp);
             DatabaseManager2.initializeInstance(new SQLHelper(this));
             DatabaseManager2.getInstance().insertNewMessage(message, message.getTo(),message.getFrom());
-            Native n = new Native(this);
-            n.sendNewMessageNotification(message.getTo());
             app.getMessageSentCallback().onComplete(message, true, null);
         }
         else {

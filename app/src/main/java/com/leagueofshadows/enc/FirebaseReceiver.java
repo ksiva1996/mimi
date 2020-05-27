@@ -26,6 +26,7 @@ import androidx.core.app.NotificationManagerCompat;
 import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
 import static com.leagueofshadows.enc.REST.Native.NEW_GROUP;
 import static com.leagueofshadows.enc.REST.RESTHelper.TEMP_USER_ID;
+import static com.leagueofshadows.enc.REST.RESTHelper.USER_ID;
 
 public class FirebaseReceiver extends FirebaseMessagingService {
 
@@ -66,6 +67,9 @@ public class FirebaseReceiver extends FirebaseMessagingService {
             App app = (App) getApplication();
             if(app.isnull()) {
                 Intent intent = new Intent(getApplicationContext(), Worker.class);
+                if(data.containsKey(USER_ID))
+                    intent.putExtra(Util.userId,data.get(USER_ID));
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(intent);
                 } else {

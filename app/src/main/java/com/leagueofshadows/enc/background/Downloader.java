@@ -17,7 +17,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
@@ -118,19 +118,20 @@ public class Downloader extends Service {
                     FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                     firebaseHelper.getUserPublic(message.getFrom(), new PublicKeyCallback() {
                         @Override
-                        public void onSuccess(String Base64PublicKey) {
+                        public void onSuccess(final String Base64PublicKey) {
                             AsyncTask.execute(new Runnable() {
                                 @Override
                                 public void run() {
                                     try {
                                         FileInputStream fileInputStream = new FileInputStream(privatePath);
                                         FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
-                                        AESHelper aesHelper = new AESHelper(Downloader.this);
+                                        AESHelper2 aesHelper = new AESHelper2(Downloader.this);
 
                                         App app = (App) getApplication();
-                                        String publicKey = databaseManager.getPublicKey(otherUserId);
+                                        databaseManager.insertPublicKey(Base64PublicKey,message.getFrom());
 
-                                        aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),publicKey,new File(finalPath));
+                                        String cipherText = databaseManager.getCipherText(messageId);
+                                        aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),databaseManager.getUser(message.getFrom()),new File(finalPath),cipherText);
                                         app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
                                         storageReference.delete();
                                         message.setFilePath(null);

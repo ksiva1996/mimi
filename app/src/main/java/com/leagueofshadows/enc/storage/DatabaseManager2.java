@@ -17,6 +17,8 @@ import java.util.Calendar;
 
 import androidx.annotation.NonNull;
 
+import static com.leagueofshadows.enc.storage.SQLHelper.CIPHER_TEXT_CIPHER;
+import static com.leagueofshadows.enc.storage.SQLHelper.CIPHER_TEXT_MESSAGE_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_CONTENT;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_FILEPATH;
 import static com.leagueofshadows.enc.storage.SQLHelper.ENCRYPTED_MESSAGES_FROM;
@@ -51,6 +53,7 @@ import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_ENCRYPTED_MESSAGES;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUPS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUP_PARTICIPANTS;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_CIPHER_TEXT;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_RECEIVED_STATUS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_SEEN_STATUS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_RESEND_MESSAGE;
@@ -821,7 +824,7 @@ public class DatabaseManager2 {
                 ,new String[]{groupId,userId});
     }
 
-    private Group getGroup(String groupId)
+    public Group getGroup(String groupId)
     {
         String rawQuery = "SELECT * FROM "+TABLE_GROUPS+" WHERE "+GROUPS_ID +" = ?";
         SQLiteDatabase sqLiteDatabase = openDatabase();
@@ -896,4 +899,39 @@ public class DatabaseManager2 {
         }
         return messageInfos;
     }
+
+    public void insertCipherText(String cipherText,String messageId) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(CIPHER_TEXT_CIPHER,cipherText);
+        contentValues.put(CIPHER_TEXT_MESSAGE_ID,messageId);
+
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        String raw = "SELECT * FROM "+TABLE_MESSAGES_CIPHER_TEXT+" WHERE "+CIPHER_TEXT_MESSAGE_ID+" = ?";
+        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{messageId});
+        if(cursor.getCount()==0) {
+            sqLiteDatabase.insert(TABLE_MESSAGES_CIPHER_TEXT,null,contentValues);
+        }
+        else{
+            sqLiteDatabase.update(TABLE_MESSAGES_CIPHER_TEXT,contentValues,CIPHER_TEXT_MESSAGE_ID+" = ?", new String[]{messageId});
+        }
+        cursor.close();
+    }
+
+    public String getCipherText(String messageId) {
+        SQLiteDatabase sqLiteDatabase = openDatabase();
+        String raw = "SELECT * FROM "+TABLE_MESSAGES_CIPHER_TEXT+" WHERE "+CIPHER_TEXT_MESSAGE_ID+" = ?";
+        Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{messageId});
+        try{
+            if(cursor.moveToFirst()) {
+                return cursor.getString(cursor.getColumnIndex(CIPHER_TEXT_CIPHER));
+            }
+            cursor.close();
+            return null;
+        }catch (Exception e) {
+            e.printStackTrace();
+            cursor.close();
+            return null;
+        }
+    }
+
 }

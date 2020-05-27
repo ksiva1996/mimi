@@ -20,7 +20,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
@@ -166,7 +166,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     String Base64PublicKeyString = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.PublicKeyString,null);
                     if(firebaseHelper.checkConnection())
                     {
-                        updateProgressDialog("setting up user details...");
+                        updateProgressDialog();
                         firebaseHelper.sendUserData(new User(number,name,number,Base64PublicKeyString), OTP.this);
 
                     }
@@ -186,11 +186,11 @@ public class OTP extends AppCompatActivity implements UserCallback {
         });
     }
 
-    private void updateProgressDialog(final String s) {
+    private void updateProgressDialog() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                progressDialog.setMessage(s);
+                progressDialog.setMessage("setting up user details...");
             }
         });
     }
@@ -202,7 +202,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
             public void run() {
 
                 try {
-                    AESHelper aesHelper = new AESHelper(OTP.this);
+                    AESHelper2 aesHelper = new AESHelper2(OTP.this);
 
                     SharedPreferences.Editor editor = getSharedPreferences(Util.preferences,MODE_PRIVATE).edit();
 

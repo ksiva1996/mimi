@@ -7,7 +7,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
@@ -16,6 +16,7 @@ import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -82,13 +83,13 @@ public class DecryptMessageWorker extends Service {
         encryptedMessages.addAll(es);
 
         try {
-            final AESHelper aesHelper = new AESHelper(getApplicationContext());
+            final AESHelper2 aesHelper = new AESHelper2(getApplicationContext());
 
             for (final EncryptedMessage e : encryptedMessages)
             {
-                final String Base64PulicKey = databaseManager.getPublicKey(e.getFrom());
-                if (Base64PulicKey != null) {
-                    decryptMessage(e,aesHelper,Base64PulicKey);
+                final User user = databaseManager.getUser(e.getFrom());
+                if (user.getBase64EncodedPublicKey() != null) {
+                    decryptMessage(e,aesHelper,user);
                 }
                 else {
                     FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
@@ -96,7 +97,8 @@ public class DecryptMessageWorker extends Service {
                         @Override
                         public void onSuccess(String Base64PublicKey) {
                             databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
-                            decryptMessage(e,aesHelper,Base64PublicKey);
+                            user.setBase64EncodedPublicKey(Base64PublicKey);
+                            decryptMessage(e,aesHelper,user);
                         }
 
                         @Override
@@ -122,16 +124,17 @@ public class DecryptMessageWorker extends Service {
         }
     }
 
-    void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PulicKey)  {
+    void decryptMessage(final EncryptedMessage e, final AESHelper2 aesHelper, final User otherUser)  {
 
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
+
                 final App app = (App) getApplication();
                 if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
                 {
                     try {
-                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PulicKey);
+                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(),otherUser);
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,null);
@@ -181,8 +184,9 @@ public class DecryptMessageWorker extends Service {
                 else {
                     String timeStamp = Calendar.getInstance().getTime().toString();
                     String messageString = e.getContent();
+                    databaseManager.insertCipherText(messageString,e.getId());
                     try {
-                        messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),Base64PulicKey);
+                        messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),otherUser);
                         Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
                                 ,e.getType(),e.getTimeStamp(),timeStamp,null);
                         databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());

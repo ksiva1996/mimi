@@ -38,6 +38,7 @@ import androidx.annotation.NonNull;
 
 import static com.leagueofshadows.enc.Util.CheckMessageIV;
 
+@Deprecated
 public class AESHelper {
 
     private Context context;
@@ -362,7 +363,7 @@ public class AESHelper {
         return iv;
     }
 
-    public String getBase64(byte[] bytes) {
+    private String getBase64(byte[] bytes) {
         String s = Base64.encodeToString(bytes,Base64.DEFAULT);
         return s.trim();
     }

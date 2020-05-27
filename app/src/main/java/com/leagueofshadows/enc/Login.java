@@ -3,15 +3,15 @@ package com.leagueofshadows.enc;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
+
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.REST.Native;
@@ -24,6 +24,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -81,7 +82,7 @@ public class Login extends AppCompatActivity {
             public void run() {
                 try {
                     SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
-                    AESHelper aesHelper = new AESHelper(Login.this);
+                    AESHelper2 aesHelper = new AESHelper2(Login.this);
 
                     String checkMessage = sp.getString(Util.CheckMessage,null);
                     String encryptedCheckMessage = sp.getString(Util.CheckMessageEncrypted,null);

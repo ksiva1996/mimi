@@ -56,7 +56,7 @@ public class RSAHelper {
         PublicKey publicKey = keyPair.getPublic();
         String publicKeyString = getBase64(publicKey.getEncoded());
         context.getSharedPreferences(com.leagueofshadows.enc.Util.preferences,Context.MODE_PRIVATE).edit().putString(Util.PublicKeyString,publicKeyString).apply();
-        AESHelper aesHelper = new AESHelper(context);
+        AESHelper2 aesHelper = new AESHelper2(context);
         aesHelper.encryptPrivateKey(keyPair.getPrivate().getEncoded(),Password);
 
     }
@@ -78,7 +78,7 @@ public class RSAHelper {
             throw new IllegalStateException(threadException);
         }
 
-        AESHelper aesHelper = new AESHelper(context);
+        AESHelper2 aesHelper = new AESHelper2(context);
         byte[] encodedBytes = aesHelper.decryptPrivateKey(Password);
         KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(encodedBytes);

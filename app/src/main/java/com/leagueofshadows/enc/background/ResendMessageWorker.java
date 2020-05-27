@@ -10,25 +10,21 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager2;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import androidx.annotation.NonNull;
@@ -40,7 +36,7 @@ public class ResendMessageWorker extends Service  {
 
     ArrayList<Message> messages;
     DatabaseManager2 databaseManager;
-    AESHelper aesHelper;
+    AESHelper2 aesHelper;
     FirebaseHelper firebaseHelper;
     DatabaseReference databaseReference;
     Native restHelper;
@@ -55,7 +51,7 @@ public class ResendMessageWorker extends Service  {
         restHelper = new Native(this);
         databaseReference = FirebaseDatabase.getInstance().getReference();
         try {
-            aesHelper = new AESHelper(this);
+            aesHelper = new AESHelper2(this);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
@@ -70,9 +66,7 @@ public class ResendMessageWorker extends Service  {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
             startProcess();
-
         return START_STICKY;
     }
 
@@ -93,17 +87,18 @@ public class ResendMessageWorker extends Service  {
                                 AsyncTask.execute(new Runnable() {
                                     @Override
                                     public void run() {
-
                                         String cipherText;
                                         try {
-                                            cipherText = aesHelper.encryptMessage(m.getContent(),Base64PublicKey,privateKey);
+                                            User[] user = new User[]{databaseManager.getUser(m.getTo())};
+                                            cipherText = aesHelper.encryptMessage(m.getContent(),user,privateKey);
                                             EncryptedMessage encryptedMessage = new EncryptedMessage(m.getMessage_id(),m.getTo(),m.getFrom(),cipherText,
                                                     null,m.getTimeStamp(),Message.MESSAGE_TYPE_ONLYTEXT,true);
                                             databaseReference.child(Messages).child(m.getTo()).child(m.getMessage_id()).setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {
                                                     databaseManager.deleteResendMessage(m.getMessage_id());
-                                                    restHelper.sendNewMessageNotification(m.getTo());
+                                                    //TODO:
+                                                    //restHelper.sendNewMessageNotification(m.getTo());
                                                     update(m);
                                                 }
                                             }).addOnFailureListener(new OnFailureListener() {
@@ -113,9 +108,7 @@ public class ResendMessageWorker extends Service  {
                                                 }
                                             });
 
-                                        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException |
-                                                BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException |
-                                                InvalidKeySpecException | RunningOnMainThreadException e) {
+                                        } catch ( RunningOnMainThreadException e) {
                                             update(m);
                                             e.printStackTrace();
                                         }
@@ -137,5 +130,4 @@ public class ResendMessageWorker extends Service  {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
 }

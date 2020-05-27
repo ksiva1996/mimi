@@ -407,7 +407,7 @@ public class AESHelper2 {
         return iv;
     }
 
-    private String getBase64(byte[] bytes) {
+    public String getBase64(byte[] bytes) {
         String s = Base64.encodeToString(bytes,Base64.DEFAULT);
         return s.trim();
     }

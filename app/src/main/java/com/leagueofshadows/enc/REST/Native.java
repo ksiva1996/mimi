@@ -50,7 +50,7 @@ public class Native {
         databaseReference = FirebaseDatabase.getInstance().getReference().child(Users);
     }
 
-    public void sendNewMessageNotification(final String userId)
+    public void sendNewMessageNotification(final String userId, final String groupId)
     {
         databaseReference.child(userId).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -59,7 +59,8 @@ public class Native {
                     String token = (String) dataSnapshot.getValue();
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(NEW_MESSAGE, NEW_MESSAGE);
-                    jsonObject.put(USER_ID,userId);
+                    if(groupId!=null)
+                        jsonObject.put(USER_ID,groupId);
                     update(jsonObject,token);
                 }
                 catch (Exception e) {

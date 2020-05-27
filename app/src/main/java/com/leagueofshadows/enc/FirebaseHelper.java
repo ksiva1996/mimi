@@ -18,6 +18,7 @@ import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
+import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
@@ -83,10 +84,20 @@ public class FirebaseHelper {
         reference.setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void aVoid) {
+
+                User user = databaseManager.getUser(message.getTo());
+
+                Native restHelper = new Native(context);
+                if(user!=null)
+                    restHelper.sendNewMessageNotification(user.getId(),null);
+                else{
+                    Group group = databaseManager.getGroup(message.getTo());
+                    for (User u:group.getUsers()) {
+                        restHelper.sendNewMessageNotification(u.getId(),message.getTo());
+                    }
+                }
                 message.setSent(timeStamp);
                 databaseManager.insertNewMessage(message,message.getTo(),message.getFrom());
-                Native n = new Native(context);
-                n.sendNewMessageNotification(message.getTo());
                 messageSentCallback.onComplete(message,true,null);
             }
         }).addOnFailureListener(new OnFailureListener() {
@@ -112,7 +123,7 @@ public class FirebaseHelper {
         });
     }
 
-    public void getNewMessages(String userId, final CompleteCallback completeCallback) throws DeviceOfflineException {
+    public void getNewMessages(String userId, final CompleteCallback completeCallback, final boolean deleteMessageFlag) throws DeviceOfflineException {
 
         if(!checkConnection()) {
             throw new DeviceOfflineException(DeviceOfflineException);
@@ -126,7 +137,9 @@ public class FirebaseHelper {
 
                 for (DataSnapshot d:dataSnapshot.getChildren())
                 {
+                    if(deleteMessageFlag)
                     d.getRef().removeValue();
+
                     EncryptedMessage encryptedMessage = new EncryptedMessage();
                     encryptedMessage.setId((String) d.child(id).getValue());
                     encryptedMessage.setTo((String) d.child(to).getValue());

@@ -65,6 +65,10 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String SEEN_STATUS_MESSAGE_ID = "Message_id";
     static final String SEEN_STATUS_TIMESTAMP = "Timestamp";
 
+    static final String TABLE_MESSAGES_CIPHER_TEXT = "Cipher_text";
+    static final String CIPHER_TEXT_MESSAGE_ID = "Message_id";
+    static final String CIPHER_TEXT_CIPHER = "Cipher";
+
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
     }
@@ -144,6 +148,13 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + SEEN_STATUS_TIMESTAMP+" TEXT "
                 + ")";
 
+        String CREATE_CIPHER_TEXT_TABLE = "CREATE TABLE "+TABLE_MESSAGES_CIPHER_TEXT + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + CIPHER_TEXT_MESSAGE_ID + " TEXT ,"
+                + CIPHER_TEXT_CIPHER+"  TEXT "
+                + ")";
+
+
 
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_ENCRYPTED_MESSAGES_TABLE);
@@ -154,6 +165,7 @@ public class SQLHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL(CREATE_GROUPS_PARTICIPANTS_TABLE);
         sqLiteDatabase.execSQL(CREATE_GROUPS_RECEIVED_STATUS_TABLE);
         sqLiteDatabase.execSQL(CREATE_GROUPS_SEEN_STATUS_TABLE);
+        sqLiteDatabase.execSQL(CREATE_CIPHER_TEXT_TABLE);
     }
 
 

@@ -21,16 +21,17 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".ShareActivity"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
+        <activity android:name=".GroupInfo"></activity>
+        <activity
+            android:name=".ShareActivity"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity android:name=".GroupChatActivity" />
-
-        <activity android:name=".CreateGroupActivity"
-            android:parentActivityName=".MainActivity"/>
+        <activity
+            android:name=".CreateGroupActivity"
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".Images"
-            android:parentActivityName=".Test" />
+            android:parentActivityName=".ChatActivity" />
         <activity
             android:name=".ImagePreview"
             android:parentActivityName=".ChatActivity" />
@@ -84,7 +85,9 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
@@ -92,13 +95,11 @@
             android:name=".Register"
             android:theme="@style/UserTheme" />
         <activity
-            android:name=".Test"
-            android:windowSoftInputMode="adjustPan" />
-        <activity
             android:name=".SplashActivity"
             android:theme="@style/UserTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -127,19 +128,14 @@
             android:name=".background.Downloader"
             android:enabled="true"
             android:exported="false" />
-
-        <service android:name=".background.BackgroundService"
+        <service
+            android:name=".background.BackgroundService"
             android:enabled="true"
-            android:exported="false"/>
-
-        <service android:name=".background.BackgroundWorker"
+            android:exported="false" />
+        <service
+            android:name=".background.GroupsWorker"
             android:enabled="true"
-            android:exported="false"/>
-
-        <service android:name=".background.GroupsWorker"
-            android:enabled="true"
-            android:exported="false"/>
-
+            android:exported="false" />
         <service
             android:name=".FirebaseReceiver"
             android:enabled="true"

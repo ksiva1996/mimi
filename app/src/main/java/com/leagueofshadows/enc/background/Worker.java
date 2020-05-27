@@ -59,15 +59,21 @@ public class Worker extends Service implements CompleteCallback{
         databaseManager = DatabaseManager2.getInstance();
 
         firebaseHelper = new FirebaseHelper(getApplicationContext());
-        final String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        String userId = intent.getStringExtra(Util.userId);
+
+        String currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
         try {
-            firebaseHelper.getNewMessages(userId,this);
+            assert currentUserId != null;
+            if(userId==null)
+                userId = currentUserId;
+
+            boolean flag = currentUserId.equals(userId);
+            firebaseHelper.getNewMessages(userId,this,flag);
         }
         catch (DeviceOfflineException e) {
             e.printStackTrace();
         }
-
         return START_NOT_STICKY;
     }
 

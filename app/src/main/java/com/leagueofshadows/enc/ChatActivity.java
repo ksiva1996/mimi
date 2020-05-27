@@ -34,7 +34,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.Crypt.AESHelper2;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
@@ -99,6 +99,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     User otherUser;
     String otherUserId;
     String currentUserId;
+    User[] otherUserArray;
     DatabaseManager2 databaseManager;
     SharedPreferences sp;
     FirebaseHelper firebaseHelper;
@@ -111,7 +112,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     ImageButton closeReplyLayout;
 
     ImageButton send;
-    AESHelper aesHelper;
+    AESHelper2 aesHelper;
     Native restHelper;
 
     private Message replyMessage;
@@ -163,6 +164,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         databaseReference = FirebaseDatabase.getInstance().getReference().child(Messages).child(otherUserId);
 
         otherUser = databaseManager.getUser(otherUserId);
+        otherUserArray = new User[]{otherUser};
 
         setTitle(otherUser.getName());
         sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
@@ -173,7 +175,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         messageIds = new ArrayList<>();
         firebaseHelper = new FirebaseHelper(this);
          try {
-             aesHelper = new AESHelper(this);
+             aesHelper = new AESHelper2(this);
          } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
              e.printStackTrace();
          }
@@ -439,7 +441,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  {
                      App app = (App) getApplication();
                      try {
-                         String cipherText = aesHelper.encryptMessage(messageString,otherUser.getBase64EncodedPublicKey(),app.getPrivateKey());
+                         String cipherText = aesHelper.encryptMessage(messageString,otherUserArray,app.getPrivateKey());
                          String timeStamp = Calendar.getInstance().getTime().toString();
 
                          String id = databaseReference.push().getKey();
@@ -451,7 +453,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          EncryptedMessage e = new EncryptedMessage(id,otherUserId,currentUserId,cipherText,null,timeStamp,EncryptedMessage.MESSAGE_TYPE_ONLYTEXT);
                          firebaseHelper.sendTextOnlyMessage(message,e,ChatActivity.this,id);
                          updateNewMessage(message);
-                     } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | InvalidKeySpecException | RunningOnMainThreadException | DeviceOfflineException e) {
+                     } catch (RunningOnMainThreadException | DeviceOfflineException e) {
                          e.printStackTrace();
                      }
                  }
@@ -504,13 +506,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              null,null,null);
 
                      updateNewMessage(message);
-                     AESHelper aesHelper = new AESHelper(ChatActivity.this);
                      FileInputStream fileInputStream = new FileInputStream(path);
                      fileOutputStream = new FileOutputStream(Util.privatePath+fileName);
                      App app = (App) getApplication();
                      FileInputStream fileInputStream1 = new FileInputStream(path);
-                     aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
-                     String cipherText = aesHelper.encryptMessage(messageString,otherUser.getBase64EncodedPublicKey(),app.getPrivateKey());
+                     String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUserArray,messageString);
+
                      Intent intent = new Intent(ChatActivity.this, FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
@@ -581,7 +582,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      path = path+fileName;
                      FileInputStream fileInputStream = (FileInputStream) getContentResolver().openInputStream(uri);
 
-                     AESHelper aesHelper = new AESHelper(ChatActivity.this);
                      assert fileInputStream != null;
                      App app = (App) getApplication();
 
@@ -596,8 +596,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      FileInputStream fileInputStream1 = new FileInputStream(path);
                      final FileOutputStream fileOutputStream  = new FileOutputStream(Util.privatePath+fileName);
 
-                     aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUser.getBase64EncodedPublicKey());
-                     String cipherText = aesHelper.encryptMessage(messageString,otherUser.getBase64EncodedPublicKey(),app.getPrivateKey());
+                     String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUserArray,messageString);
+
                      Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
