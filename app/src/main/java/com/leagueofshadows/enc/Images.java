@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -60,7 +63,6 @@ public class Images extends AppCompatActivity {
 
         DatabaseManager.initializeInstance(new SQLHelper(this));
         databaseManager2 = DatabaseManager.getInstance();
-
         currentMessage = databaseManager2.getMessage(messageId,otherUserId);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
@@ -122,7 +124,7 @@ public class Images extends AppCompatActivity {
         final Message message = images.get(position);
 
         String path;
-        if(message.getFrom().equals(userId))
+        if(!message.getFrom().equals(userId))
             path = Util.imagesPath+getMessageContent(message.getContent());
         else
             path = Util.sentImagesPath+getMessageContent(message.getContent());
@@ -142,10 +144,22 @@ public class Images extends AppCompatActivity {
             }
             case R.id.details:{
                 AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
-                builder.setView(getLayoutInflater().inflate(R.layout.image_info,null));
-                builder.setCancelable(false);
+                View view = getLayoutInflater().inflate(R.layout.image_info,null);
+                builder.setView(view);
+                builder.setCancelable(true);
+
+                TextView name = view.findViewById(R.id.name);
+                TextView size = view.findViewById(R.id.size);
+                TextView resolution = view.findViewById(R.id.resolution);
+                TextView location = view.findViewById(R.id.location);
+
+                name.setText("Name - "+file.getName());
+                size.setText("Size - "+getImageSize(file.length()));
+                Bitmap bitmap = BitmapFactory.decodeFile(path);
+                resolution.setText("Resolution - "+bitmap.getHeight()+"x"+bitmap.getWidth());
+                location.setText(path);
+
                 builder.create().show();
-                //TODO add the details
                 break;
             }
             case R.id.delete:{
@@ -166,7 +180,7 @@ public class Images extends AppCompatActivity {
                 break;
             }
             case R.id.send:{
-                Intent intent = new Intent(this,ContactsActivity.class);
+                Intent intent = new Intent(this,ShareActivity.class);
                 intent.setAction(Intent.ACTION_SEND);
                 intent.setType(mimeType);
                 intent.putExtra(Intent.EXTRA_STREAM,FileProvider.getUriForFile(this,this.getPackageName()+".fileProvider",file));
@@ -187,6 +201,18 @@ public class Images extends AppCompatActivity {
             }
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    String getImageSize(long bytes){
+        if(bytes<1024){
+            return bytes+" bytes";
+        }else if(bytes < 1048576){
+            return (float)(bytes/1024) + "KB";
+        }else if(bytes < 1073741824){
+            return (float)(bytes/1048576)+ "MB";
+        }else{
+            return "intha pedha file vachindhi ani santoshinchu malli ekkuva details adagaku";
+        }
     }
 
     static class CustomImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>

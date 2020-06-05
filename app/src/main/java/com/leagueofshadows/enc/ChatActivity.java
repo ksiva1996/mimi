@@ -40,7 +40,7 @@ import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
-import com.leagueofshadows.enc.Interfaces.OptionsCallback;
+import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
@@ -92,7 +92,7 @@ import static com.leagueofshadows.enc.Util.getMessageContent;
 
 @SuppressLint("InflateParams")
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, OptionsCallback
+        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback
  {
 
     ArrayList<Message> messages;
@@ -480,7 +480,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
                          EncryptedMessage e = new EncryptedMessage(id,otherUserId,currentUserId,cipherText,null,timeStamp,Message.MESSAGE_TYPE_ONLYTEXT,Message.MESSAGE_TYPE_SINGLE_USER);
                          firebaseHelper.sendTextOnlyMessage(message,e,ChatActivity.this,id);
-                         updateNewMessage(message);
+                         updateNewSentMessage(message);
                      } catch (RunningOnMainThreadException | DeviceOfflineException e) {
                          e.printStackTrace();
                      }
@@ -533,7 +533,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      message = new Message(0,id,otherUserId,currentUserId,messageString,path,timeStamp,Message.MESSAGE_TYPE_IMAGE,
                              null,null,null,Message.MESSAGE_TYPE_SINGLE_USER);
 
-                     updateNewMessage(message);
+                     updateNewSentMessage(message);
                      FileInputStream fileInputStream = new FileInputStream(path);
                      fileOutputStream = new FileOutputStream(Util.privatePath+fileName);
                      App app = (App) getApplication();
@@ -600,7 +600,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          closeReplyLayout();
          final Message message = new Message(0,id,otherUserId,currentUserId,messageString,uri.toString(),timeStamp,
                  Message.MESSAGE_TYPE_FILE,null,null,null,Message.MESSAGE_TYPE_SINGLE_USER);
-         updateNewMessage(message);
+         updateNewSentMessage(message);
 
          AsyncTask.execute(new Runnable() {
              @Override
@@ -714,10 +714,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      @SuppressWarnings("ResultOfMethodCallIgnored")
     void deleteMessage(final Message message, final int position)
     {
-        Log.e("position",""+position);
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         View view = getLayoutInflater().inflate(R.layout.delete_check_box,null);
         final CheckBox checkBox = view.findViewById(R.id.delete);
+        final TextView text = view.findViewById(R.id.text);
         if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT) {
             checkBox.setChecked(false);
             checkBox.setVisibility(GONE);
@@ -732,7 +732,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             m = "Delete message?";
         else
             m = "Delete message from "+otherUser.getName()+"?";
-        builder.setMessage(m);
+        text.setText(m);
         builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -867,17 +867,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         }
      }
 
-     public void updateNewMessage(final Message message) {
+     public void updateNewSentMessage(final Message message) {
          runOnUiThread(new Runnable() {
              @Override
              public void run() {
                  messageField.setText("");
-                 Message m  = databaseManager.getMessage(message.getMessage_id(),message.getTo());
-                 if(m==null){
-                     m = message;
-                 }
-                 messages.add(m);
-                 messageIds.add(m.getMessage_id());
+                 messages.add(message);
+                 messageIds.add(message.getMessage_id());
                  recyclerAdapter.notifyDataSetChanged();
                  smoothScroller.setTargetPosition(messages.size()-1);
                  layoutManager.startSmoothScroll(smoothScroller);
@@ -996,24 +992,27 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
      @Override
      public void onOptionsSelected(int option, int position) {
-         Message message = messages.get(position);
-         switch (option)
-         {
-             case MESSAGE_COPY: {
-                 messageCopy(message);
-                 return;
+         try {
+             Message message = messages.get(position);
+             switch (option) {
+                 case MESSAGE_COPY: {
+                     messageCopy(message);
+                     return;
+                 }
+                 case MESSAGE_DELETE: {
+                     deleteMessage(message, position);
+                     return;
+                 }
+                 case MESSAGE_INFO: {
+                     messageInfo(message);
+                     return;
+                 }
+                 case MESSAGE_REPLY: {
+                     replyToMessage(message);
+                 }
              }
-             case MESSAGE_DELETE:{
-                 deleteMessage(message,position);
-                 return;
-             }
-             case MESSAGE_INFO:{
-                 messageInfo(message);
-                 return;
-             }
-             case MESSAGE_REPLY:{
-                 replyToMessage(message);
-             }
+         }catch (Exception e){
+             e.printStackTrace();
          }
      }
 
@@ -1024,18 +1023,18 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         private ScrollEndCallback scrollEndCallback;
         private String otherUserId;
         private String currentUserId;
-        private OptionsCallback optionsCallback;
+        private MessageOptionsCallback messageOptionsCallback;
         private Context context;
 
          RecyclerAdapter(ArrayList<Message> messages, ScrollEndCallback scrollEndCallback,
-                         String currentUserId, String otherUserId, OptionsCallback optionsCallback, Context context,String name) {
+                         String currentUserId, String otherUserId, MessageOptionsCallback messageOptionsCallback, Context context, String name) {
 
              this.messages = messages;
              this.scrollEndCallback = scrollEndCallback;
              this.currentUserId = currentUserId;
              this.otherUserId = otherUserId;
              this.context = context;
-             this.optionsCallback = optionsCallback;
+             this.messageOptionsCallback = messageOptionsCallback;
              this.name = name;
          }
 
@@ -1407,7 +1406,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
                      final TextReceived h = (TextReceived) holder;
                      h.message.setText(messageContent);
-                     if(messageContent.length()<12){
+                     if(messageContent.length()<15){
                          h.lengthCorrector.setText(messageContent);
                      }
                      else{
@@ -1433,7 +1432,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                  h.container.close(true);
                              }
                          }
@@ -1442,7 +1441,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                  h.container.close(true);
                              }
                          }
@@ -1451,7 +1450,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                  h.container.close(true);
                              }
                          }
@@ -1460,7 +1459,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                  h.container.close(true);
                              }
                          }
@@ -1470,7 +1469,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  {
                      final TextSent h = (TextSent) holder;
                      h.message.setText(messageContent);
-                     if(messageContent.length()<12){
+                     if(messageContent.length()<15){
                          h.lengthCorrector.setText(messageContent);
                      }
                      else{
@@ -1524,7 +1523,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                  h.container.close(true);
                              }
                          }
@@ -1533,7 +1532,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                  h.container.close(true);
                              }
                          }
@@ -1542,7 +1541,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                  h.container.close(true);
                              }
                          }
@@ -1551,7 +1550,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          @Override
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
-                                 optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                  h.container.close(true);
                              }
                          }
@@ -1584,7 +1583,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                h.container.close(true);
                            }
                        }
@@ -1593,7 +1592,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                h.container.close(true);
                            }
                        }
@@ -1602,7 +1601,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                h.container.close(true);
                            }
                        }
@@ -1611,7 +1610,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                h.container.close(true);
                            }
                        }
@@ -1688,7 +1687,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                h.container.close(true);
                            }
                        }
@@ -1697,7 +1696,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                h.container.close(true);
                            }
                        }
@@ -1706,7 +1705,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                h.container.close(true);
                            }
                        }
@@ -1715,7 +1714,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        @Override
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
-                               optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                h.container.close(true);
                            }
                        }
@@ -1798,7 +1797,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1807,7 +1806,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1816,7 +1815,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1825,7 +1824,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1904,7 +1903,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1913,7 +1912,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1922,7 +1921,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1931,7 +1930,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }

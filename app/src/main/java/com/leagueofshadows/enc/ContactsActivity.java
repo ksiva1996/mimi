@@ -75,6 +75,10 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
         DatabaseManager databaseManager = DatabaseManager.getInstance();
         users.clear();
         users.addAll(databaseManager.getUsers());
+        String currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        assert currentUserId != null;
+        User currentUser = new User(currentUserId,currentUserId,currentUserId,null);
+        users.remove(currentUser);
         contactListAdapter.notifyDataSetChanged();
     }
 

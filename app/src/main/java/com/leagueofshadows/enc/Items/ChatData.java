@@ -1,5 +1,7 @@
 package com.leagueofshadows.enc.Items;
 
+import androidx.annotation.Nullable;
+
 public class ChatData {
 
     public static final int CHAT_TYPE_SINGLE_USER = 1;
@@ -71,6 +73,27 @@ public class ChatData {
 
     public Group getGroup() {
         return group;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+
+        if(obj==null)
+            return false;
+
+        if(obj.getClass().equals(this.getClass())){
+            ChatData chatData = (ChatData) obj;
+            if(chatData.getType()==this.getType()){
+                if(chatData.getType()==CHAT_TYPE_SINGLE_USER){
+                    return chatData.getUser().getId().equals(this.user.getId());
+                }else {
+                    return chatData.getGroup().getId().equals(this.group.getId());
+                }
+            }else
+                return false;
+        }else {
+            return false;
+        }
     }
 }
 

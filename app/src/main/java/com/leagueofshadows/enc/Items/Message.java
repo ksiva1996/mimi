@@ -1,10 +1,5 @@
 package com.leagueofshadows.enc.Items;
 
-import com.leagueofshadows.enc.storage.DatabaseManager;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 

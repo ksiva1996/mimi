@@ -6,8 +6,6 @@ import com.leagueofshadows.enc.storage.DatabaseManager;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.leagueofshadows.enc.Items.Message.MESSAGE_TYPE_ONLYTEXT;
 import static com.leagueofshadows.enc.Items.Message.MESSAGE_TYPE_SINGLE_USER;

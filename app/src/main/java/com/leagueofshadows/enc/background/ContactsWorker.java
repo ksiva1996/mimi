@@ -19,6 +19,7 @@ import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.SplashActivity;
+import com.leagueofshadows.enc.Util;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -34,6 +35,7 @@ public class ContactsWorker extends Service {
     public static final String FLAG = "FLAG";
     public static final int UPDATE_EXISTING = 1;
     ArrayList<User> users;
+    private String currentUserId;
 
     @Nullable
     @Override
@@ -61,7 +63,7 @@ public class ContactsWorker extends Service {
         int flag = intent.getIntExtra(FLAG,0);
 
         startForeground(id, notification);
-
+        currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
         if(flag==UPDATE_EXISTING) {
             AsyncTask.execute(new Runnable() {
@@ -147,6 +149,9 @@ public class ContactsWorker extends Service {
                                     String number = pc.getString(pc.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
                                     number = formatNumber(number);
                                     if(number.contains(".")||number.contains("#")||number.contains("$")||number.contains("[")||number.contains("]")) {
+                                        continue;
+                                    }
+                                    if(number.equals(currentUserId)) {
                                         continue;
                                     }
                                     final User user = new User(number,name,number,null);

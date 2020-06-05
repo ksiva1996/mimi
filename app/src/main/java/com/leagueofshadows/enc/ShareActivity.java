@@ -1,5 +1,6 @@
 package com.leagueofshadows.enc;
 
+import android.app.admin.SecurityLog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -42,6 +43,7 @@ public class ShareActivity extends AppCompatActivity implements Select {
     private static ChatListAdapter chatListAdapterUsers;
     private static ChatListAdapter chatListAdapterGroups;
     private TabLayout tabLayout;
+    private User currentUser;
 
 
     @Override
@@ -86,7 +88,13 @@ public class ShareActivity extends AppCompatActivity implements Select {
                 chatDataArrayListUsers.clear();
                 chatDataArrayListGroups.clear();
 
+                String currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+                assert currentUserId != null;
+                User user = new User(currentUserId,currentUserId,currentUserId,null);
+                ChatData ch1 = new ChatData(user,null,0,0);
+
                 chatDataArrayListUsers.addAll(databaseManager.getUsersForShare());
+                chatDataArrayListUsers.remove(ch1);
                 chatDataArrayListGroups.addAll(databaseManager.getGroupsForShare());
                 sort(chatDataArrayListUsers);
                 sort(chatDataArrayListGroups);
@@ -234,10 +242,8 @@ public class ShareActivity extends AppCompatActivity implements Select {
                         intent.putExtra(Util.userId, obj.getUser().getId());
                         if (receivedIntent.getAction()!=null)
                         {
-                            Log.e("Intent action",receivedIntent.getAction());
                             if(receivedIntent.getAction().equals(Intent.ACTION_SEND))
                             {
-                                Log.e("share activity","log");
                                 intent.setAction(Intent.ACTION_SEND);
                                 intent.setType(receivedIntent.getType());
                                 intent.putExtra(Intent.EXTRA_TEXT,receivedIntent.getStringExtra(Intent.EXTRA_TEXT));

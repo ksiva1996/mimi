@@ -43,7 +43,7 @@ import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
-import com.leagueofshadows.enc.Interfaces.OptionsCallback;
+import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
@@ -98,7 +98,7 @@ import static com.leagueofshadows.enc.Util.getMessageContent;
 
 @SuppressLint("InflateParams,SimpleDateFormat,ResultOfMethodCallIgnored")
 public class GroupChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, ResendMessageCallback, OptionsCallback, GroupsUpdatedCallback
+        ScrollEndCallback, ResendMessageCallback, MessageOptionsCallback, GroupsUpdatedCallback
 {
 
     ArrayList<Message> messages;
@@ -492,6 +492,14 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
     }
 
+    Message getMessage(Message message){
+        Message m = databaseManager.getMessage(message.getMessage_id(),groupId);
+        if(m==null)
+            return message;
+        else
+            return m;
+    }
+
     void getMessages() {
 
         ArrayList<Message> m = databaseManager.getMessages(group.getId(),messages.size(),100);
@@ -779,10 +787,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     @SuppressWarnings("ResultOfMethodCallIgnored")
     void deleteMessage(final Message message, final int position)
     {
-
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         View view = getLayoutInflater().inflate(R.layout.delete_check_box,null);
         final CheckBox checkBox = view.findViewById(R.id.delete);
+        final TextView text = view.findViewById(R.id.text);
         if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT) {
             checkBox.setChecked(false);
             checkBox.setVisibility(GONE);
@@ -793,14 +801,13 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
         builder.setView(view);
         String m;
-
         if(message.getFrom().equals(currentUserId))
             m = "Delete message?";
         else {
             User otherUser = databaseManager.getUser(message.getFrom());
             m = "Delete message from " + otherUser.getName() + "?";
         }
-        builder.setMessage(m);
+        text.setText(m);
         builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -904,13 +911,14 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     //MessageSentCallback override methods
 
     @Override
-    public void onComplete(final Message message, boolean success, String error) {
+    public void onComplete(Message message, boolean success, String error) {
         if(success) {
 
             final String messageId = message.getMessage_id();
             if(messageIds.contains(messageId))
             {
                 int position = messageIds.indexOf(messageId);
+                message = getMessage(message);
                 messages.set(position,message);
                 updateRecyclerAdapter(position);
             }
@@ -1025,6 +1033,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         if(messageIds.contains(message.getMessage_id()))
         {
             int position = messageIds.indexOf(message.getMessage_id());
+            message = getMessage(message);
             messages.set(position,message);
             updateRecyclerAdapter(position);
         }
@@ -1034,24 +1043,27 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
     @Override
     public void onOptionsSelected(int option, int position) {
-        Message message = messages.get(position);
-        switch (option)
-        {
-            case MESSAGE_COPY: {
-                messageCopy(message);
-                return;
+        try {
+            Message message = messages.get(position);
+            switch (option) {
+                case MESSAGE_COPY: {
+                    messageCopy(message);
+                    return;
+                }
+                case MESSAGE_DELETE: {
+                    deleteMessage(message, position);
+                    return;
+                }
+                case MESSAGE_INFO: {
+                    messageInfo(message);
+                    return;
+                }
+                case MESSAGE_REPLY: {
+                    replyToMessage(message);
+                }
             }
-            case MESSAGE_DELETE:{
-                deleteMessage(message,position);
-                return;
-            }
-            case MESSAGE_INFO:{
-                messageInfo(message);
-                return;
-            }
-            case MESSAGE_REPLY:{
-                replyToMessage(message);
-            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -1067,19 +1079,19 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         private ScrollEndCallback scrollEndCallback;
         private String groupId;
         private String currentUserId;
-        private OptionsCallback optionsCallback;
+        private MessageOptionsCallback messageOptionsCallback;
         private Context context;
         private User[] users;
 
         RecyclerAdapter(ArrayList<Message> messages, ScrollEndCallback scrollEndCallback,
-                        String currentUserId, String groupId, OptionsCallback optionsCallback, Context context,User[] users) {
+                        String currentUserId, String groupId, MessageOptionsCallback messageOptionsCallback, Context context, User[] users) {
 
             this.messages = messages;
             this.scrollEndCallback = scrollEndCallback;
             this.currentUserId = currentUserId;
             this.groupId = groupId;
             this.context = context;
-            this.optionsCallback = optionsCallback;
+            this.messageOptionsCallback = messageOptionsCallback;
             this.users = users;
         }
 
@@ -1518,7 +1530,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1527,7 +1539,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1536,7 +1548,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1545,7 +1557,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1610,7 +1622,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1619,7 +1631,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1628,7 +1640,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1637,7 +1649,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1682,7 +1694,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1691,7 +1703,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1700,7 +1712,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1709,7 +1721,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1787,7 +1799,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1796,7 +1808,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1805,7 +1817,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1814,7 +1826,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1909,7 +1921,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -1918,7 +1930,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1927,7 +1939,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -1936,7 +1948,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -2016,7 +2028,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_INFO, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
                                 h.container.close(true);
                             }
                         }
@@ -2025,7 +2037,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_DELETE, position);
                                 h.container.close(true);
                             }
                         }
@@ -2034,7 +2046,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_REPLY, position);
                                 h.container.close(true);
                             }
                         }
@@ -2043,7 +2055,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         @Override
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
-                                optionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
                                 h.container.close(true);
                             }
                         }
@@ -2128,7 +2140,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         public int getItemCount() { return messages.size(); }
 
         @Override
-        public long getItemId(int position) { return messages.get(position).hashCode(); }
+        public long getItemId(int position) { return messages.get(position).getId(); }
 
         void openPrivateChat(final String userId, String name){
 

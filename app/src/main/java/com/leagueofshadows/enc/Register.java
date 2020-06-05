@@ -17,7 +17,6 @@ public class Register extends AppCompatActivity {
     EditText nameEditText;
     EditText numberEditText;
     EditText passwordEditText;
-    EditText confirmPasswordEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +26,6 @@ public class Register extends AppCompatActivity {
         nameEditText = findViewById(R.id.name);
         numberEditText = findViewById(R.id.number);
         passwordEditText = findViewById(R.id.password);
-        confirmPasswordEditText = findViewById(R.id.password_confirm);
 
         findViewById(R.id.sign_in_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -35,20 +33,13 @@ public class Register extends AppCompatActivity {
                 String name = nameEditText.getText().toString();
                 String number = numberEditText.getText().toString();
                 String password = passwordEditText.getText().toString();
-                String cpassword = confirmPasswordEditText.getText().toString();
                 if(!name.equals(""))
                 {
                     if (isValidPhoneNumber(number))
                     {
                         if(!(password.length()<8))
                         {
-                            if(password.equals(cpassword))
-                            {
-                                signUp(name,number,password);
-                            }
-                            else {
-                                confirmPasswordEditText.setError("password doesn't match");
-                            }
+                            signUp(name,number,password);
                         }
                         else {
                             passwordEditText.setError("password too small minimum 8 chars");

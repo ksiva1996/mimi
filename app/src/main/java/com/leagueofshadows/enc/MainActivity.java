@@ -16,7 +16,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
-import com.leagueofshadows.enc.Interfaces.OptionsCallback;
+import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.Message;
@@ -40,7 +40,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import static android.view.View.GONE;
 import static com.leagueofshadows.enc.Util.getMessageContent;
 
-public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, OptionsCallback, GroupsUpdatedCallback {
+public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, MessageOptionsCallback, GroupsUpdatedCallback {
 
     ArrayList<ChatData> chatDataArrayList;
     RecyclerAdapter recyclerAdapter;
@@ -240,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
 
         private ArrayList<ChatData> chatDataArrayList;
         Context context;
-        private OptionsCallback optionsCallback;
+        private MessageOptionsCallback messageOptionsCallback;
         DatabaseManager databaseManager;
 
        /* void set(ArrayList<UserData> userDataArrayList) {
@@ -272,10 +272,10 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
             }
         }
 
-        RecyclerAdapter(ArrayList<ChatData> chatDataArrayList, Context context, OptionsCallback optionsCallback, DatabaseManager databaseManager) {
+        RecyclerAdapter(ArrayList<ChatData> chatDataArrayList, Context context, MessageOptionsCallback messageOptionsCallback, DatabaseManager databaseManager) {
             this.context = context;
             this.chatDataArrayList = chatDataArrayList;
-            this.optionsCallback = optionsCallback;
+            this.messageOptionsCallback = messageOptionsCallback;
             this.databaseManager = databaseManager;
         }
 
@@ -353,7 +353,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 @Override
                 public void onClick(View view) {
                     if (holder.swipe.isOpen()) {
-                        optionsCallback.onOptionsSelected(DELETE_CONSERVATION, position);
+                        messageOptionsCallback.onOptionsSelected(DELETE_CONSERVATION, position);
                     }
                 }
             });

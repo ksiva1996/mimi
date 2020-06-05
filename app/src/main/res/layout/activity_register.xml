@@ -106,61 +106,39 @@
         android:textColor="@android:color/white"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/password"
+        app:layout_constraintBottom_toTopOf="@id/passwordContainer"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@id/number" />
 
-
-    <EditText
-        android:id="@+id/password"
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="25dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="25dp"
-        android:inputType="textPassword"
-        android:background="@drawable/edit_text_bg"
-        android:textColor="@android:color/white"
-        android:padding="12dp"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toTopOf="@id/password_label_confirm"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/password_label" />
-
-    <TextView
-        android:id="@+id/password_label_confirm"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="32dp"
-        android:text="@string/confirm_password"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/password_confirm"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/password" />
-
-
-    <EditText
-        android:id="@+id/password_confirm"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="25dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="25dp"
-        android:inputType="textPassword"
-        android:background="@drawable/edit_text_bg"
-        android:textColor="@android:color/white"
-        android:padding="12dp"
-        android:textSize="16sp"
+        android:hint="@string/password"
+        android:id="@+id/passwordContainer"
+        android:textColorHint="@android:color/white"
+        app:passwordToggleEnabled="true"
+        app:passwordToggleTint="@android:color/white"
         app:layout_constraintBottom_toTopOf="@id/sign_in_button"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/password_label_confirm" />
+        app:layout_constraintTop_toBottomOf="@id/password_label">
 
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="25dp"
+            android:inputType="textPassword"
+            android:background="@drawable/edit_text_bg"
+            android:textColor="@android:color/white"
+            android:padding="12dp"
+            android:textSize="16sp"
+            />
+
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <Button
         android:id="@+id/sign_in_button"
@@ -177,7 +155,7 @@
         android:textStyle="bold"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/password_confirm" />
+        app:layout_constraintTop_toBottomOf="@id/passwordContainer" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
