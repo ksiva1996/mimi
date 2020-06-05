@@ -10,7 +10,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
@@ -18,7 +18,7 @@ import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.security.NoSuchAlgorithmException;
@@ -35,8 +35,8 @@ import static com.leagueofshadows.enc.FirebaseHelper.Messages;
 public class ResendMessageWorker extends Service  {
 
     ArrayList<Message> messages;
-    DatabaseManager2 databaseManager;
-    AESHelper2 aesHelper;
+    DatabaseManager databaseManager;
+    AESHelper aesHelper;
     FirebaseHelper firebaseHelper;
     DatabaseReference databaseReference;
     Native restHelper;
@@ -45,13 +45,13 @@ public class ResendMessageWorker extends Service  {
     public void onCreate() {
         super.onCreate();
         messages = new ArrayList<>();
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager.getInstance();
         firebaseHelper = new FirebaseHelper(this);
         restHelper = new Native(this);
         databaseReference = FirebaseDatabase.getInstance().getReference();
         try {
-            aesHelper = new AESHelper2(this);
+            aesHelper = new AESHelper(this);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
@@ -92,7 +92,7 @@ public class ResendMessageWorker extends Service  {
                                             User[] user = new User[]{databaseManager.getUser(m.getTo())};
                                             cipherText = aesHelper.encryptMessage(m.getContent(),user,privateKey);
                                             EncryptedMessage encryptedMessage = new EncryptedMessage(m.getMessage_id(),m.getTo(),m.getFrom(),cipherText,
-                                                    null,m.getTimeStamp(),Message.MESSAGE_TYPE_ONLYTEXT,true);
+                                                    null,m.getTimeStamp(),Message.MESSAGE_TYPE_ONLYTEXT,true,m.getIsGroupMessage());
                                             databaseReference.child(Messages).child(m.getTo()).child(m.getMessage_id()).setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
                                                 @Override
                                                 public void onSuccess(Void aVoid) {

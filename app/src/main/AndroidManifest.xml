@@ -21,20 +21,23 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".GroupInfo"></activity>
+        <activity android:name=".Test"></activity>
+        <activity android:name=".GroupInfo" />
         <activity
             android:name=".ShareActivity"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
-        <activity android:name=".GroupChatActivity" />
+            android:theme="@style/AppTheme.NoActionBar"/>
+
+        <activity android:name=".GroupChatActivity"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar"/>
         <activity
             android:name=".CreateGroupActivity"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".Images"
-            android:parentActivityName=".ChatActivity" />
+            android:name=".Images" />
         <activity
-            android:name=".ImagePreview"
-            android:parentActivityName=".ChatActivity" />
+            android:name=".ImagePreview" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -55,7 +58,6 @@
             android:parentActivityName=".MainActivity" />
         <activity
             android:name=".ChatActivity"
-            android:launchMode="singleTop"
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
@@ -146,5 +148,4 @@
             </intent-filter>
         </service>
     </application>
-
 </manifest>

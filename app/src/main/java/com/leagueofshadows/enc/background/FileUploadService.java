@@ -23,7 +23,7 @@ import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.Util;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.io.File;
@@ -40,6 +40,7 @@ import static com.leagueofshadows.enc.FirebaseHelper.Files;
 public class FileUploadService extends Service implements MessageSentCallback {
 
     Message message;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -58,7 +59,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final String id = intent.getStringExtra(Util.id);
         final Uri uri = Uri.parse(intent.getStringExtra(Util.uri));
         final int type = intent.getIntExtra(Util.type,Message.MESSAGE_TYPE_FILE);
-
+        final int messageType = intent.getIntExtra(Util.messageType,Message.MESSAGE_TYPE_SINGLE_USER);
         final String path;
 
         path = Util.privatePath+fileName;
@@ -95,9 +96,9 @@ public class FileUploadService extends Service implements MessageSentCallback {
                 builder.setProgress(0,0,false);
                 notificationManagerCompat.cancelAll();
                 message = new Message(0,id,otherUserId,currentUserId,messageContent,uri.toString(),timeStamp,
-                        type,null,null,null);
+                        type,null,null,null,messageType);
 
-                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),cipherText,timeStamp,timeStamp,type);
+                EncryptedMessage encryptedMessage = new EncryptedMessage(id,message.getTo(),message.getFrom(),cipherText,timeStamp,timeStamp,type,messageType);
                 FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                 try {
                     firebaseHelper.sendTextOnlyMessage(message,encryptedMessage,FileUploadService.this,id);
@@ -152,8 +153,10 @@ public class FileUploadService extends Service implements MessageSentCallback {
         if(success) {
             String timeStamp = Calendar.getInstance().getTime().toString();
             message.setSent(timeStamp);
-            DatabaseManager2.initializeInstance(new SQLHelper(this));
-            DatabaseManager2.getInstance().insertNewMessage(message, message.getTo(),message.getFrom());
+            DatabaseManager.initializeInstance(new SQLHelper(this));
+            DatabaseManager databaseManager = DatabaseManager.getInstance();
+
+            databaseManager.insertNewMessage(message,message.getTo(),message.getFrom());
             app.getMessageSentCallback().onComplete(message, true, null);
         }
         else {

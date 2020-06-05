@@ -18,7 +18,7 @@ import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.SplashActivity;
 import com.leagueofshadows.enc.Util;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public class Worker extends Service implements CompleteCallback{
 
 
     public static final int id = 1547;
-    private DatabaseManager2 databaseManager;
+    private DatabaseManager databaseManager;
     FirebaseHelper firebaseHelper;
     ArrayList<EncryptedMessage> encryptedMessages;
 
@@ -55,8 +55,8 @@ public class Worker extends Service implements CompleteCallback{
         startForeground(id,notification);
 
 
-        DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
+        databaseManager = DatabaseManager.getInstance();
 
         firebaseHelper = new FirebaseHelper(getApplicationContext());
         String userId = intent.getStringExtra(Util.userId);
@@ -68,8 +68,7 @@ public class Worker extends Service implements CompleteCallback{
             if(userId==null)
                 userId = currentUserId;
 
-            boolean flag = currentUserId.equals(userId);
-            firebaseHelper.getNewMessages(userId,this,flag);
+            firebaseHelper.getNewMessages(userId,this);
         }
         catch (DeviceOfflineException e) {
             e.printStackTrace();
@@ -130,17 +129,17 @@ public class Worker extends Service implements CompleteCallback{
         }
     }
 
-    /*void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PulicKey)  {
+    /*void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PublicKey)  {
 
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-                if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
+                if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLY_TEXT)
                 {
                     final App app = (App) getApplication();
 
                     try {
-                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PulicKey);
+                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
                         String timeStamp = Calendar.getInstance().getTime().toString();
                         Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
                                 e.getTimeStamp(), timeStamp,null);

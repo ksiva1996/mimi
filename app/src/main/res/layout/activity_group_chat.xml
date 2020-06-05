@@ -8,8 +8,23 @@
     android:background="@color/mainBackground"
     tools:context=".GroupChatActivity">
 
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/AppTheme.AppBarOverlay">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
     <RelativeLayout
         android:id="@+id/chat_layout"
+        android:paddingTop="?attr/actionBarSize"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true">
@@ -52,8 +67,6 @@
                 android:rotation="135"
                 android:src="@drawable/baseline_attachment_white_24"
                 android:tint="#FFFFFF" />
-
-
 
             <LinearLayout
                 android:layout_width="0dp"

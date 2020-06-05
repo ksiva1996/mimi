@@ -23,11 +23,12 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Interfaces.CheckUser;
+import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -37,6 +38,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import static com.leagueofshadows.enc.FirebaseHelper.Groups;
+import static com.leagueofshadows.enc.FirebaseHelper.Users;
 
 public class CreateGroupActivity extends AppCompatActivity implements Select, CheckUser {
 
@@ -49,13 +53,15 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
     ContactListAdapter contactListAdapter;
     ParticipantsListViewAdapter participantsListViewAdapter;
 
-    DatabaseManager2 databaseManager;
+    DatabaseManager databaseManager;
+    Group existingGroup;
 
-    static String[] colors = new String[]{"#0f4c75","#FFF44336","#FFFFC107","#FF009688","#FF9C27B0","#FFE91E63"};
+    public static String[] userColors = new String[]{"#0f4c75","#FFF44336","#FFFFC107","#FF009688","#FF9C27B0","#FFE91E63"};
 
     ProgressDialog progressDialog;
     boolean allSuccess = true;
     int count=0;
+    boolean editMode = false;
 
 
     @Override
@@ -70,6 +76,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         String id = sp.getString(Util.userId,null);
         String name = sp.getString(Util.name,null);
         String number = sp.getString(Util.number,null);
+        String publicKey = sp.getString(Util.PublicKeyString,null);
 
         contacts = findViewById(R.id.contacts);
         participantsListView = findViewById(R.id.icons);
@@ -89,11 +96,11 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         assert name != null;
         assert number != null;
 
-        currentUser = new User(id,name,number,null);
+        currentUser = new User(id,name,number,publicKey);
         addParticipant(currentUser);
 
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager.getInstance();
 
         findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -101,6 +108,11 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
                 if(groupParticipants.size()<=2) {
                     Toast.makeText(CreateGroupActivity.this,"dheeniki group endhuku ra... direct message cheyi",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if(editMode) {
+                    askConfirmation(null);
                     return;
                 }
 
@@ -131,13 +143,25 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
         progressDialog = new ProgressDialog(this);
         loadContacts();
-
+        String groupId = getIntent().getStringExtra(Util.id);
+        if(groupId!=null){
+            editMode = true;
+            existingGroup = databaseManager.getGroup(groupId);
+            for (User u: existingGroup.getUsers()) {
+                addParticipant(u);
+            }
+        }
     }
 
     private void askConfirmation(final String name) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
-        builder.setMessage("Create Group with name - \""+name+"\" and with "+groupParticipants.size()+" participants");
+        String message;
+        if(editMode)
+            message = "make the changes to group - \""+ existingGroup.getName()+"\"";
+        else
+            message = "Create Group with name - \""+name+"\" and with "+groupParticipants.size()+" participants";
+        builder.setMessage(message);
         builder.setCancelable(true);
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             @Override
@@ -173,20 +197,36 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         progressDialog.show();
 
         final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
-        final String groupId = databaseReference.child(FirebaseHelper.Groups).push().getKey();
+        final String groupId;
+        final String finalName;
+        final String admins;
+        if(editMode){
+            groupId = existingGroup.getId();
+            finalName = existingGroup.getName();
+            admins = existingGroup.getAdmins();
+        }
+        else{
+            groupId = databaseReference.child(Groups).push().getKey();
+            finalName = name;
+            admins = currentUser.getId();
+        }
+
 
         final ArrayList<String> userIds = new ArrayList<>();
         for (User u:groupParticipants) {
             u.setName(u.getId());
             userIds.add(u.getId());
         }
-        final Group group = new Group(groupId,name,groupParticipants);
+        existingGroup = new Group(groupId,finalName,groupParticipants,admins,Group.GROUP_ACTIVE);
 
-        databaseReference.child(FirebaseHelper.Groups).child(groupId).setValue(group).addOnSuccessListener(new OnSuccessListener<Void>() {
+        databaseReference.child(Groups).child(groupId).setValue(existingGroup).addOnSuccessListener(new OnSuccessListener<Void>() {
+
             @Override
             public void onSuccess(Void aVoid) {
-                for (final String id:userIds ){
-                    databaseReference.child(FirebaseHelper.Users).child(id).child(FirebaseHelper.Groups).setValue(group).addOnSuccessListener(new OnSuccessListener<Void>() {
+
+                for(String id:userIds){
+                    DatabaseReference dr = FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(id).child(Groups).child(groupId);
+                    dr.setValue(groupId).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
                             count++;
@@ -207,7 +247,8 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
-                Toast.makeText(CreateGroupActivity.this,"Something went wrong, please try again",Toast.LENGTH_SHORT).show();
+                allSuccess = false;
+                finalMethod(null,null);
             }
         });
     }
@@ -215,11 +256,29 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
     void finalMethod(String groupId,String name)
     {
         if(allSuccess) {
-            Group group = new Group(groupId,name,groupParticipants);
-            databaseManager.addNewGroup(group);
             Native restHelper = new Native(this);
-            restHelper.sendNewGroupNotification(groupParticipants,currentUser,name);
-            finish();
+            if(editMode){
+
+                databaseManager.updateGroupUsers(existingGroup);
+                restHelper.sendGroupUpdatedNotification(existingGroup, currentUser);
+                finish();
+            }
+            else {
+                groupParticipants.remove(currentUser);
+                Group group = new Group(groupId, name, groupParticipants, currentUser.getId(), Group.GROUP_ACTIVE);
+                databaseManager.addNewGroup(group);
+                restHelper.sendNewGroupNotification(groupParticipants, currentUser, name);
+                App app = (App) getApplication();
+                if(!app.isnull()){
+                    ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
+                    if(groupsUpdatedCallbacks!=null){
+                        for (GroupsUpdatedCallback gr:groupsUpdatedCallbacks) {
+                            gr.onComplete();
+                        }
+                    }
+                }
+                finish();
+            }
         }
         else {
             Toast.makeText(this,"Something went wrong,please try again",Toast.LENGTH_SHORT).show();
@@ -365,7 +424,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
             else {
                 final User user = participants.get(position);
-                h.textView.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
+                h.textView.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(userColors[position]))));
                 h.textView.setText(user.getName().substring(0, 1));
                 h.textView.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -382,7 +441,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
                         ImageButton delete = view1.findViewById(R.id.delete);
 
                         thumbnail.setText(user.getName().substring(0, 1));
-                        thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(colors[position]))));
+                        thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(userColors[position]))));
                         name.setText(user.getName());
                         number.setText(user.getNumber());
 

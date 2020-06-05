@@ -20,6 +20,7 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String MESSAGES_SENT = "Messages_sent";
     static final String MESSAGES_RECEIVED = "Messages_received";
     static final String MESSAGES_SEEN = "Messages_seen";
+    static final String MESSAGES_IS_GROUP_MESSAGE = "Messages_is_group";
 
     static final String TABLE_ENCRYPTED_MESSAGES = "Encrypted_Messages";
     static final String ENCRYPTED_MESSAGES_ID = "Encrypted_Messages_id";
@@ -30,6 +31,7 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String ENCRYPTED_MESSAGES_FILEPATH = "Encrypted_Messages_filepath";
     static final String ENCRYPTED_MESSAGES_TIMESTAMP = "Encrypted_Messages_timestamp";
     static final String ENCRYPTED_MESSAGES_RESEND = "Encrypted_Messages_resend";
+    static final String ENCRYPTED_MESSAGES_IS_GROUP_MESSAGE = "Encrypted_Messages_Is_Group";
 
     static final String TABLE_USERS = "Users";
     static final String USERS_ID = "Users_id";
@@ -50,6 +52,8 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String TABLE_GROUPS = "Groups";
     static final String GROUPS_ID = "Groups_id";
     static final String GROUPS_NAME = "Groups_name";
+    static final String GROUPS_ADMINS = "Groups_admins";
+    static final String GROUPS_ACTIVE = "Groups_active";
 
     static final String TABLE_GROUP_PARTICIPANTS = "Group_participants";
     static final String GROUP_PARTICIPANTS_GROUP_ID = "Group_id";
@@ -86,7 +90,8 @@ public class SQLHelper extends SQLiteOpenHelper {
                 +MESSAGES_TIMESTAMP+" TEXT ,"
                 +MESSAGES_SENT+" TEXT ,"
                 +MESSAGES_RECEIVED+" TEXT, "
-                +MESSAGES_SEEN+" TEXT "
+                +MESSAGES_SEEN+" TEXT ,"
+                +MESSAGES_IS_GROUP_MESSAGE+" INTEGER "
                 + ")";
 
         String CREATE_ENCRYPTED_MESSAGES_TABLE = "CREATE TABLE " + TABLE_ENCRYPTED_MESSAGES + "("
@@ -98,7 +103,8 @@ public class SQLHelper extends SQLiteOpenHelper {
                 +ENCRYPTED_MESSAGES_TYPE+" INTEGER ,"
                 +ENCRYPTED_MESSAGES_FILEPATH+" TEXT ,"
                 +ENCRYPTED_MESSAGES_TIMESTAMP+" TEXT ,"
-                +ENCRYPTED_MESSAGES_RESEND+" BOOLEAN "
+                +ENCRYPTED_MESSAGES_RESEND+" BOOLEAN ,"
+                +ENCRYPTED_MESSAGES_IS_GROUP_MESSAGE+" INTEGER "
                 + ")";
 
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
@@ -125,7 +131,9 @@ public class SQLHelper extends SQLiteOpenHelper {
         String CREATE_GROUPS_TABLE = "CREATE TABLE "+TABLE_GROUPS + "("
                 + ID + " INTEGER PRIMARY KEY  ,"
                 + GROUPS_ID + " TEXT ,"
-                + GROUPS_NAME+"  TEXT "
+                + GROUPS_NAME+"  TEXT ,"
+                + GROUPS_ADMINS+"  TEXT ,"
+                + GROUPS_ACTIVE+"  INTEGER "
                 + ")";
 
         String CREATE_GROUPS_PARTICIPANTS_TABLE = "CREATE TABLE "+TABLE_GROUP_PARTICIPANTS + "("

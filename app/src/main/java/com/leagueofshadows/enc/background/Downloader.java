@@ -17,7 +17,7 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.MalFormedFileException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
@@ -25,7 +25,7 @@ import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.Util;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import org.json.JSONException;
@@ -55,13 +55,13 @@ import static com.leagueofshadows.enc.FirebaseHelper.Files;
 
 public class Downloader extends Service {
 
-    DatabaseManager2 databaseManager;
+    DatabaseManager databaseManager;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
+        databaseManager = DatabaseManager.getInstance();
     }
 
     @Override
@@ -70,8 +70,15 @@ public class Downloader extends Service {
         final String messageId = intent.getStringExtra(Util.id);
         final String otherUserId = intent.getStringExtra(Util.toUserId);
         final String userId = intent.getStringExtra(Util.userId);
-        final Message message = databaseManager.getMessage(messageId,otherUserId);
+        final int messageType = intent.getIntExtra(Util.messageType,Message.MESSAGE_TYPE_SINGLE_USER);
 
+        final Message message;
+        if (messageType==Message.MESSAGE_TYPE_SINGLE_USER)
+            message = databaseManager.getMessage(messageId,otherUserId);
+        else
+            message = databaseManager.getMessage(messageId,userId);
+
+        final String id = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
         final int notificationId = new Random().nextInt();
 
 
@@ -125,15 +132,19 @@ public class Downloader extends Service {
                                     try {
                                         FileInputStream fileInputStream = new FileInputStream(privatePath);
                                         FileOutputStream fileOutputStream = new FileOutputStream(finalPath);
-                                        AESHelper2 aesHelper = new AESHelper2(Downloader.this);
+                                        AESHelper aesHelper = new AESHelper(Downloader.this);
 
                                         App app = (App) getApplication();
                                         databaseManager.insertPublicKey(Base64PublicKey,message.getFrom());
 
                                         String cipherText = databaseManager.getCipherText(messageId);
-                                        aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),databaseManager.getUser(message.getFrom()),new File(finalPath),cipherText);
+                                        aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),databaseManager.getUser(message.getFrom()),new File(finalPath),cipherText,id);
                                         app.getMessagesRetrievedCallback().onUpdateMessageStatus(messageId,otherUserId);
-                                        storageReference.delete();
+
+
+                                        if (message.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER)
+                                            storageReference.delete();
+
                                         message.setFilePath(null);
                                         databaseManager.updateMessage(message,message.getFrom());
                                         file.delete();

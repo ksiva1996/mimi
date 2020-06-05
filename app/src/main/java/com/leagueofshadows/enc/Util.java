@@ -2,7 +2,6 @@ package com.leagueofshadows.enc;
 
 import android.os.Environment;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import static com.leagueofshadows.enc.ChatActivity.MESSAGE_CONTENT;
@@ -11,7 +10,7 @@ import static com.leagueofshadows.enc.ChatActivity.MESSAGE_CONTENT;
 public class Util {
 
 
-    public static final String TOKEN_SENT = "TOKEN_SENT";
+    static final String TOKEN_SENT = "TOKEN_SENT";
 
     static final String originalPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/";
     public static final String imagesPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/Images/";
@@ -26,6 +25,9 @@ public class Util {
     public static String messageId = "messageId";
     public static String content = "content";
     public static String cipherText = "cipherText";
+    public static String messageType = "messageType";
+    public static String admins = "admins";
+    public static String groupActive = "groupActive";
     static String camera = "camera";
 
     public static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
@@ -35,9 +37,7 @@ public class Util {
 
 
     static String CheckMessageEncrypted = "CheckMessageEncrypted";
-    public static String accessToken = "accessToken";
 
-    //TODO:
     public static String key = "AAAA9mn4XrI:APA91bHmWqrRds17hK0IZCD-5MkA4kpLWV27WhRPhW2NTX0bHzj_onjpQNwzKmKhouKKy-gjI7p4XhtvdnOVvusRlN2x0Ee4DRy1grMHrpx8YVjV5_66cxr47iRwtO5M09ZUj4OYsney";
     public static String uri = "uri";
     public static String timeStamp = "timeStamp";
@@ -45,7 +45,7 @@ public class Util {
     public static String id = "id";
     public static String toUserId = "toUserId";
     public static String name = "name";
-    static String number = "number";
+    public static String number = "number";
     static String password = "password";
     public static final String CheckMessageIV = "CheckMessageIV";
     public static String userId = "userId";
@@ -53,13 +53,14 @@ public class Util {
     static final String PublicKeyString = "PublicKeyString";
 
     static final String  CheckMessage = "CheckMessage";
+    public static final String base64EncodedPublicKey = "base64EncodedPublicKey";
 
     static String getMessageContent(String messageContent)
     {
         try {
             JSONObject jsonObject = new JSONObject(messageContent);
             return jsonObject.getString(MESSAGE_CONTENT);
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return "";
         }

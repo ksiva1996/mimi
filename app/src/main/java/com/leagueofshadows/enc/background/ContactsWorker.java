@@ -19,7 +19,7 @@ import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.SplashActivity;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -85,8 +85,8 @@ public class ContactsWorker extends Service {
 
     private void updateContacts()
     {
-        DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
-        final DatabaseManager2 databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
+        final DatabaseManager databaseManager = DatabaseManager.getInstance();
         ArrayList<User> users = databaseManager.getUsers();
         if(users.isEmpty())
         {
@@ -156,8 +156,8 @@ public class ContactsWorker extends Service {
                                         @Override
                                         public void onSuccess(String Base64PublicKey) {
                                             user.setBase64EncodedPublicKey(Base64PublicKey);
-                                            DatabaseManager2.initializeInstance(new SQLHelper(getApplicationContext()));
-                                            DatabaseManager2 databaseManager = DatabaseManager2.getInstance();
+                                            DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
+                                            DatabaseManager databaseManager = DatabaseManager.getInstance();
                                             databaseManager.insertUser(user);
                                             update(user);
                                         }

@@ -1,5 +1,10 @@
 package com.leagueofshadows.enc.Items;
 
+import com.leagueofshadows.enc.storage.DatabaseManager;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -16,16 +21,19 @@ public class Message {
     private String sent;
     private String received;
     private String seen;
+    private int isGroupMessage;
 
     public static final int MESSAGE_TYPE_ONLYTEXT = 1;
     public static final int MESSAGE_TYPE_IMAGE = 2;
     public static final int MESSAGE_TYPE_FILE = 3;
 
+    public static final int MESSAGE_TYPE_GROUP_MESSAGE = 5;
+    public static final int MESSAGE_TYPE_SINGLE_USER = 6;
+
 
     public Message() {}
 
-    public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, String content,
-                   String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen)
+    public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, String content, String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen,int isGroupMessage)
     {
         this.message_id = message_id;
         this.id = id;
@@ -38,9 +46,10 @@ public class Message {
         this.sent = sent;
         this.received = received;
         this.seen = seen;
+        this.isGroupMessage = isGroupMessage;
     }
     public Message(int id, @NonNull String message_id, @NonNull String to, @NonNull String from, String content,
-                   String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen,boolean resend)
+                   String filePath, @NonNull String timeStamp, int type, String sent, String received, String seen,boolean resend,int isGroupMessage)
     {
         this.message_id = message_id;
         this.id = id;
@@ -53,10 +62,8 @@ public class Message {
         this.sent = sent;
         this.received = received;
         this.seen = seen;
+        this.isGroupMessage = isGroupMessage;
     }
-
-
-
 
     public int getId() {
         return id;
@@ -162,5 +169,13 @@ public class Message {
         }
         else
             return false;
+    }
+
+    public int getIsGroupMessage() {
+        return isGroupMessage;
+    }
+
+    public void setIsGroupMessage(int isGroupMessage) {
+        this.isGroupMessage = isGroupMessage;
     }
 }

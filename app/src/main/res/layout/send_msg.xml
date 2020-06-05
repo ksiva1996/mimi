@@ -20,7 +20,7 @@
             android:id="@+id/triangle"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
             android:rotation="180"
             android:src="@drawable/ic_right_angled_triangle"
             android:tint="#2A6791"
@@ -30,7 +30,7 @@
             android:id="@+id/outgoing_layout_bubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
             android:layout_marginLeft="60dp"
             android:layout_marginRight="15dp"
             android:background="@drawable/from_msg_background"
@@ -45,8 +45,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:autoLink="web"
-                android:paddingRight="6dp"
-                android:text="."
                 android:textColor="#ccffffff" />
 
             <LinearLayout
@@ -55,8 +53,6 @@
                 android:layout_gravity="bottom|end"
                 android:orientation="horizontal"
                 android:paddingEnd="5dp">
-
-
 
                 <TextView
                     android:id="@+id/time"

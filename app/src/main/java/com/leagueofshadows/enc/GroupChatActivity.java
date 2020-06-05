@@ -1,5 +1,6 @@
 package com.leagueofshadows.enc;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.ClipData;
@@ -11,6 +12,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -19,6 +21,7 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
@@ -34,9 +37,10 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
+import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.OptionsCallback;
@@ -50,7 +54,7 @@ import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.background.Downloader;
 import com.leagueofshadows.enc.background.FileUploadService;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import org.json.JSONException;
@@ -78,19 +82,23 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import static android.view.View.GONE;
+import static com.leagueofshadows.enc.CreateGroupActivity.userColors;
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
 import static com.leagueofshadows.enc.Util.getMessageContent;
 
+@SuppressLint("InflateParams,SimpleDateFormat,ResultOfMethodCallIgnored")
 public class GroupChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, OptionsCallback
+        ScrollEndCallback, ResendMessageCallback, OptionsCallback, GroupsUpdatedCallback
 {
 
     ArrayList<Message> messages;
@@ -101,7 +109,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     User[] users;
     String groupId;
     String currentUserId;
-    DatabaseManager2 databaseManager;
+    DatabaseManager databaseManager;
     SharedPreferences sp;
     FirebaseHelper firebaseHelper;
     DatabaseReference databaseReference;
@@ -113,8 +121,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     ImageButton closeReplyLayout;
 
     ImageButton send;
-    AESHelper2 aesHelper;
+    AESHelper aesHelper;
     Native restHelper;
+    LinearLayout bottomLayout;
 
     private Message replyMessage;
 
@@ -158,33 +167,45 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         Intent receivedIntent = getIntent();
         groupId = receivedIntent.getStringExtra(Util.userId);
 
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager.getInstance();
         databaseManager.setNewMessageCounter(groupId);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference().child(Messages).child(groupId);
+        databaseReference = FirebaseDatabase.getInstance().getReference().child(Messages);
         group = databaseManager.getGroup(groupId);
 
-        users = new User[group.getSize()-1];
-        int count=0;
-        for (User u:group.getUsers()) {
-            if(!u.getId().equals(currentUserId)) {
-                users[count] = u;
-                count++;
-            }
-        }
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         setTitle(group.getName());
+        toolbar.setSubtitle("Click for more info");
+        toolbar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(GroupChatActivity.this,GroupInfo.class);
+                intent.putExtra(Util.id,groupId);
+                startActivity(intent);
+            }
+        });
+
+        bottomLayout = findViewById(R.id.bottomlayout);
+        if(group.getGroupActive()==Group.GROUP_ACTIVE){
+            bottomLayout.setVisibility(GONE);
+            Toast.makeText(this,"You cannot reply to this group",Toast.LENGTH_SHORT).show();
+        }
 
         sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
         currentUserId = sp.getString(Util.userId,null);
         assert currentUserId!=null;
 
+        updateUsers();
+
         messages = new ArrayList<>();
         messageIds = new ArrayList<>();
         firebaseHelper = new FirebaseHelper(this);
         try {
-            aesHelper = new AESHelper2(this);
+            aesHelper = new AESHelper(this);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
@@ -193,7 +214,20 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         listView = findViewById(R.id.listView);
         layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
+
+        recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,groupId,this,this,users);
+        recyclerAdapter.setHasStableIds(true);
+        listView.setItemViewCacheSize(20);
+        listView.setHasFixedSize(false);
+
+        listView.setAdapter(recyclerAdapter);
         listView.setLayoutManager(layoutManager);
+
+        try {
+            ((SimpleItemAnimator) listView.getItemAnimator()).setSupportsChangeAnimations(false);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
         addFile = findViewById(R.id.file);
         addImage = findViewById(R.id.image);
@@ -235,8 +269,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
         });
 
-        recyclerAdapter = new RecyclerAdapter(messages,this,currentUserId,groupId,this,this,group.getName());
-        listView.setAdapter(recyclerAdapter);
+
         smoothScroller = new LinearSmoothScroller(this){
             @Override
             protected int getVerticalSnapPreference() {
@@ -269,10 +302,8 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
         });
 
-        String path = Util.imagesPath;
-        checkPath(path,IMAGE_ATTACHMENT_REQUEST);
-        path = Util.documentsPath;
-        checkPath(path,FILE_ATTACHMENT_REQUEST);
+        checkPath(IMAGE_ATTACHMENT_REQUEST);
+        checkPath(FILE_ATTACHMENT_REQUEST);
 
         if(receivedIntent.getAction()!=null&&receivedIntent.getAction().equals(Intent.ACTION_SEND))
         {
@@ -297,6 +328,36 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 }
             }catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+
+        updatePublicKeys();
+    }
+
+    private void updateUsers() {
+
+        users = new User[group.getSize()];
+        int count=0;
+        for (User u:group.getUsers()) {
+            Log.e("id",u.getId());
+            if(!u.getId().equals(currentUserId)) {
+                users[count] = u;
+                count++;
+            }
+        }
+    }
+
+    private void updatePublicKeys() {
+        for (final User u:users) {
+            if (!u.getId().equals(currentUserId)){
+                firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
+                    @Override
+                    public void onSuccess(String Base64PublicKey) {
+                        databaseManager.insertPublicKey(Base64PublicKey,u.getId());
+                    }
+                    @Override
+                    public void onCancelled(String error) { }
+                });
             }
         }
     }
@@ -325,7 +386,20 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             if (requestCode==FILE_ATTACHMENT_REQUEST) {
                 assert data != null;
                 final Uri uri = data.getData();
-                showMessageDialog(uri);
+                try {
+                    String fileName = getFileName(uri);
+                    MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+                    String mimeType = mimeTypeMap.getMimeTypeFromExtension(fileName);
+                    assert mimeType != null;
+
+                    if (mimeType.startsWith("image/"))
+                        sendImage(uri);
+                    else
+                        showMessageDialog(uri);
+                }catch (Exception e) {
+                    showMessageDialog(uri);
+                    e.printStackTrace();
+                }
             }
             if (requestCode==IMAGE_ATTACHMENT_REQUEST) {
                 try{
@@ -384,6 +458,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
     }
 
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if(item.getItemId()==android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void setAttachmentLayout() {
         if(!isAttachmentLayoutOpen)
         {
@@ -418,9 +501,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             {
                 String timeStamp = Calendar.getInstance().getTime().toString();
                 message.setSeen(timeStamp);
-                databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),message.getFrom(),null);
+                databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),message.getFrom(),groupId,currentUserId);
                 if(message.getContent()!=null)
-                    restHelper.sendMessageSeenStatus(message);
+                    restHelper.sendGroupMessageSeenStatus(message,groupId,currentUserId);
             }
             messages.add(0,message);
             messageIds.add(0,message.getMessage_id());
@@ -444,10 +527,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             public void run() {
                 String messageString = messageField.getText().toString();
                 messageString = messageString.trim().replaceAll("\n","");
-                messageString = prepareMessage(messageString);
-                closeReplyLayout();
                 if(!messageString.equals(""))
                 {
+                    closeReplyLayout();
+                    messageString = prepareMessage(messageString);
                     App app = (App) getApplication();
                     try {
 
@@ -458,9 +541,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         assert id != null;
 
                         Message message = new Message(0,id,groupId,currentUserId,messageString,null,
-                                timeStamp,Message.MESSAGE_TYPE_ONLYTEXT,null,null,null);
+                                timeStamp,Message.MESSAGE_TYPE_ONLYTEXT,null,null,null,Message.MESSAGE_TYPE_GROUP_MESSAGE);
 
-                        EncryptedMessage e = new EncryptedMessage(id,groupId,currentUserId,cipherText,null,timeStamp,EncryptedMessage.MESSAGE_TYPE_ONLYTEXT);
+                        EncryptedMessage e = new EncryptedMessage(id,groupId,currentUserId,cipherText,null,timeStamp,Message.MESSAGE_TYPE_ONLYTEXT,message.getIsGroupMessage());
                         firebaseHelper.sendTextOnlyMessage(message,e,GroupChatActivity.this,id);
                         updateNewMessage(message);
                     } catch (  RunningOnMainThreadException | DeviceOfflineException e) {
@@ -498,7 +581,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
                     int compressionFactor = getCompressionFactor(bitmap.getByteCount());
                     String path = Util.sentImagesPath;
-                    checkPath(path,IMAGE_ATTACHMENT_REQUEST);
+                    checkPath(IMAGE_ATTACHMENT_REQUEST);
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("YYYYMMDD-HHmmss");
                     String fileName = "IMG-"+simpleDateFormat.format(new Date())+".jpg";
                     String timeStamp = Calendar.getInstance().getTime().toString();
@@ -513,7 +596,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     String messageString = prepareMessage(fileName);
                     closeReplyLayout();
                     message = new Message(0,id,groupId,currentUserId,messageString,path,timeStamp,Message.MESSAGE_TYPE_IMAGE,
-                            null,null,null);
+                            null,null,null,Message.MESSAGE_TYPE_GROUP_MESSAGE);
 
                     updateNewMessage(message);
                     FileInputStream fileInputStream = new FileInputStream(path);
@@ -533,6 +616,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     intent.putExtra(Util.uri,uri.toString());
                     intent.putExtra(Util.id,id);
                     intent.putExtra(Util.type, Message.MESSAGE_TYPE_IMAGE);
+                    intent.putExtra(Util.messageType, Message.MESSAGE_TYPE_GROUP_MESSAGE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                         startForegroundService(intent);
                     else
@@ -580,7 +664,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         final String messageString = prepareMessage(fileName);
         closeReplyLayout();
         final Message message = new Message(0,id,groupId,currentUserId,messageString,uri.toString(),timeStamp,
-                Message.MESSAGE_TYPE_FILE,null,null,null);
+                Message.MESSAGE_TYPE_FILE,null,null,null,Message.MESSAGE_TYPE_GROUP_MESSAGE);
         updateNewMessage(message);
 
         AsyncTask.execute(new Runnable() {
@@ -588,7 +672,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             public void run() {
                 try {
                     String path = Util.sentDocumentsPath;
-                    checkPath(path,FILE_ATTACHMENT_REQUEST);
+                    checkPath(FILE_ATTACHMENT_REQUEST);
                     path = path+fileName;
                     FileInputStream fileInputStream = (FileInputStream) getContentResolver().openInputStream(uri);
 
@@ -618,6 +702,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     intent.putExtra(Util.name,group.getName());
                     intent.putExtra(Util.uri,uri.toString());
                     intent.putExtra(Util.id,id);
+                    intent.putExtra(Util.messageType, Message.MESSAGE_TYPE_GROUP_MESSAGE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                         startForegroundService(intent);
                     else
@@ -653,7 +738,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void checkPath(String path, int x) {
+    private void checkPath(int x) {
         File file = new File(Util.originalPath);
         if(!file.exists())
             file.mkdir();
@@ -691,10 +776,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
 
     //options for messages
-
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     void deleteMessage(final Message message, final int position)
     {
-        Log.e("position",""+position);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         View view = getLayoutInflater().inflate(R.layout.delete_check_box,null);
         final CheckBox checkBox = view.findViewById(R.id.delete);
@@ -760,7 +845,6 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
     void messageInfo(final Message message)
     {
-        //TODO:
         Intent intent = new Intent(this,GroupMessageInfo.class);
         intent.putExtra(Util.messageId,message.getMessage_id());
         intent.putExtra(Util.id,groupId);
@@ -796,8 +880,6 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         replyName.setText(name);
         replyMessage = message;
     }
-
-
 
     void updateRecyclerAdapter(final int position)
     {
@@ -863,13 +945,13 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     @Override
     public void onNewMessage(final Message message) {
 
-        if(message.getTo().equals(groupId))
+        if(message.getTo().equals(groupId) && !message.getFrom().equals(currentUserId))
         {
             databaseManager.setNewMessageCounter(groupId);
             String timeStamp = Calendar.getInstance().getTime().toString();
             message.setSeen(timeStamp);
             restHelper.sendGroupMessageSeenStatus(message,groupId,currentUserId);
-            databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),groupId,null);
+            databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),message.getFrom(),groupId,currentUserId);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -912,10 +994,11 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
     @Override
     public void onUpdateMessageStatus(final String messageId, final String userId) {
-
             if(messageIds.contains(messageId)) {
+                Log.e("update message status "+messageId,userId);
+
                 int position = messageIds.indexOf(messageId);
-                Message message = databaseManager.getMessage(messageId, userId);
+                Message message = databaseManager.getMessage(messageId, groupId);
                 messages.set(position, message);
                 updateRecyclerAdapter(position);
             }
@@ -934,16 +1017,6 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
     @Override
     public void scrollEndReached() { getMessages(); }
-
-    //PublicKeyCallback override methods
-
-    @Override
-    public void onSuccess(String Base64PublicKey) {
-        //TODO :
-    }
-
-    @Override
-    public void onCancelled(String error) {}
 
     //MessageResendCallback override methods
 
@@ -982,36 +1055,44 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
     }
 
+    @Override
+    public void onComplete() {
+        group = databaseManager.getGroup(groupId);
+        updateUsers();
+    }
+
     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-        private final String name;
         private ArrayList<Message> messages;
         private ScrollEndCallback scrollEndCallback;
-        private String otherUserId;
+        private String groupId;
         private String currentUserId;
         private OptionsCallback optionsCallback;
         private Context context;
+        private User[] users;
 
         RecyclerAdapter(ArrayList<Message> messages, ScrollEndCallback scrollEndCallback,
-                        String currentUserId, String otherUserId, OptionsCallback optionsCallback, Context context,String name) {
+                        String currentUserId, String groupId, OptionsCallback optionsCallback, Context context,User[] users) {
 
             this.messages = messages;
             this.scrollEndCallback = scrollEndCallback;
             this.currentUserId = currentUserId;
-            this.otherUserId = otherUserId;
+            this.groupId = groupId;
             this.context = context;
             this.optionsCallback = optionsCallback;
-            this.name = name;
+            this.users = users;
         }
 
         static class TextReceivedError extends RecyclerView.ViewHolder{
 
             TextView time;
             ImageView corner;
+            TextView name;
             TextReceivedError(View view) {
                 super(view);
                 time = view.findViewById(R.id.time);
                 corner = view.findViewById(R.id.corner);
+                name = view.findViewById(R.id.userName);
             }
         }
 
@@ -1029,6 +1110,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             TextView replyName;
             TextView replyMessage;
             TextView lengthCorrector;
+            TextView name;
 
 
             TextReceived(View view) {
@@ -1045,6 +1127,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 lengthCorrector = view.findViewById(R.id.messag);
+                name = view.findViewById(R.id.userName);
             }
         }
 
@@ -1141,6 +1224,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             LinearLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
+            TextView name;
 
             ImageReceived(View view) {
                 super(view);
@@ -1158,6 +1242,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyLayout = view.findViewById(R.id.reply_receive_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
+                name = view.findViewById(R.id.userName);
             }
         }
 
@@ -1215,6 +1300,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             LinearLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
+            TextView name;
 
             FileReceived(View view){
                 super(view);
@@ -1232,6 +1318,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyLayout = view.findViewById(R.id.reply_receive_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
+                name = view.findViewById(R.id.userName);
             }
         }
 
@@ -1244,7 +1331,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 case RECEIVE_TEXT:
                 {
                     View itemView = LayoutInflater.from(parent.getContext())
-                            .inflate(R.layout.receive_msg, parent, false);
+                            .inflate(R.layout.group_receive_message, parent, false);
                     return new TextReceived(itemView);
                 }
                 case RECEIVE_ERROR:
@@ -1268,7 +1355,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 case RECEIVE_FILE:
                 {
                     View itemView = LayoutInflater.from(parent.getContext())
-                            .inflate(R.layout.receive_file, parent, false);
+                            .inflate(R.layout.group_receive_file, parent, false);
                     return new FileReceived(itemView);
                 }
                 case SEND_IMAGE:
@@ -1280,7 +1367,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 default:
                 {
                     View itemView = LayoutInflater.from(parent.getContext())
-                            .inflate(R.layout.receive_image, parent, false);
+                            .inflate(R.layout.group_receive_image, parent, false);
                     return new ImageReceived(itemView);
                 }
             }
@@ -1292,20 +1379,20 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             if(message.getContent()==null)
                 return RECEIVE_ERROR;
             if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT) {
-                if (message.getFrom().equals(otherUserId)) {
+                if (!message.getFrom().equals(currentUserId)) {
                     return RECEIVE_TEXT;
                 } else
                     return SEND_TEXT;
             }
             else if(message.getType()==Message.MESSAGE_TYPE_IMAGE) {
-                if(message.getFrom().equals(otherUserId))
+                if(!message.getFrom().equals(currentUserId))
                     return RECEIVE_IMAGE;
                 else
                     return SEND_IMAGE;
             }
             else if(message.getType()==Message.MESSAGE_TYPE_FILE)
             {
-                if(message.getFrom().equals(otherUserId))
+                if(!message.getFrom().equals(currentUserId))
                     return RECEIVE_FILE;
                 else
                     return SEND_FILE;
@@ -1329,6 +1416,14 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 flag = check(message, prev);
             }
 
+            int userPosition=0;
+            for(int i =0;i<users.length;i++)
+            {
+                if(users[i].getId().equals(message.getFrom())){
+                    userPosition = i;
+                }
+            }
+
             if(message.getContent()==null)
             {
                 TextReceivedError h = (TextReceivedError) holder;
@@ -1336,6 +1431,16 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     h.corner.setVisibility(View.INVISIBLE);
                 else
                     h.corner.setVisibility(View.INVISIBLE);
+                h.name.setVisibility(View.VISIBLE);
+                h.name.setText(users[userPosition].getName());
+                h.name.setTextColor(Color.parseColor(userColors[userPosition]));
+                final int finalUserPosition = userPosition;
+                h.name.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        openPrivateChat(users[finalUserPosition].getId(),users[finalUserPosition].getName());
+                    }
+                });
                 h.time.setText(formatTime(message.getTimeStamp()));
                 return;
             }
@@ -1354,8 +1459,14 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     messageReplyId = jsonObject.getString(MESSAGE_REPLIED_ID);
                     if (messageReplyId.equals(currentUserId))
                         messageReplyId = "You";
-                    else
-                        messageReplyId = name;
+                    else {
+                        for (User u:users) {
+                            if(u.getId().equals(messageReplyId)) {
+                                messageReplyId = u.getName();
+                                break;
+                            }
+                        }
+                    }
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
@@ -1364,11 +1475,16 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
             if(message.getType()==Message.MESSAGE_TYPE_ONLYTEXT)
             {
-                if (message.getFrom().equals(otherUserId)) {
+                if (!message.getFrom().equals(currentUserId)) {
 
                     final TextReceived h = (TextReceived) holder;
                     h.message.setText(messageContent);
-                    h.lengthCorrector.setText(messageContent);
+                    if(messageContent.length()<12){
+                        h.lengthCorrector.setText(messageContent);
+                    }
+                    else{
+                        h.lengthCorrector.setText(formatTime(message.getTimeStamp()));
+                    }
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
                         h.replyMessage.setText(messageReply);
@@ -1380,10 +1496,23 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     h.time.setText(formatTime(message
                             .getTimeStamp()));
                     h.container.close(false);
-                    if (flag)
+                    if (flag) {
                         h.corner.setVisibility(View.INVISIBLE);
-                    else
+                        h.name.setVisibility(GONE);
+                    }
+                    else {
                         h.corner.setVisibility(View.VISIBLE);
+                        h.name.setVisibility(View.VISIBLE);
+                        h.name.setText(users[userPosition].getName());
+                        h.name.setTextColor(Color.parseColor(userColors[userPosition]));
+                        final int finalUserPosition = userPosition;
+                        h.name.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                openPrivateChat(users[finalUserPosition].getId(),users[finalUserPosition].getName());
+                            }
+                        });
+                    }
 
                     h.infoButton.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -1427,7 +1556,12 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 {
                     final TextSent h = (TextSent) holder;
                     h.message.setText(messageContent);
-                    h.lengthCorrector.setText(messageContent);
+                    if(messageContent.length()<12){
+                        h.lengthCorrector.setText(messageContent);
+                    }
+                    else{
+                        h.lengthCorrector.setText(formatTime(message.getTimeStamp()));
+                    }
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
                         h.replyMessage.setText(messageReply);
@@ -1512,9 +1646,8 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
             else if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
             {
-                if(message.getFrom().equals(otherUserId))
+                if(!message.getFrom().equals(currentUserId))
                 {
-
                     final ImageReceived h = (ImageReceived) holder;
                     h.container.close(false);
 
@@ -1527,10 +1660,23 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         h.replyLayout.setVisibility(GONE);
                     }
                     h.time.setText(formatTime(message.getTimeStamp()));
-                    if (flag)
+                    if (flag) {
                         h.corner.setVisibility(View.INVISIBLE);
-                    else
+                        h.name.setVisibility(GONE);
+                    }
+                    else {
                         h.corner.setVisibility(View.VISIBLE);
+                        h.name.setVisibility(View.VISIBLE);
+                        h.name.setText(users[userPosition].getName());
+                        h.name.setTextColor(Color.parseColor(userColors[userPosition]));
+                        final int finalUserPosition = userPosition;
+                        h.name.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                openPrivateChat(users[finalUserPosition].getId(),users[finalUserPosition].getName());
+                            }
+                        });
+                    }
 
                     h.infoButton.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -1578,7 +1724,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                             @Override
                             public void onClick(View view) {
                                 Intent intent = new Intent(context,Images.class);
-                                intent.putExtra(Util.userId,otherUserId);
+                                intent.putExtra(Util.userId,groupId);
                                 intent.putExtra(Util.messageId,message.getMessage_id());
                                 context.startActivity(intent);
                             }
@@ -1599,8 +1745,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                                     h.downloadProgressBar.setVisibility(View.VISIBLE);
                                     Intent intent = new Intent(context, Downloader.class);
                                     intent.putExtra(Util.id, message.getMessage_id());
-                                    intent.putExtra(Util.toUserId, otherUserId);
-                                    intent.putExtra(Util.userId, currentUserId);
+                                    intent.putExtra(Util.userId, groupId);
+                                    intent.putExtra(Util.messageType, Message.MESSAGE_TYPE_GROUP_MESSAGE);
+                                    intent.putExtra(Util.toUserId,message.getFrom());
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                         context.startForegroundService(intent);
                                     } else
@@ -1680,7 +1827,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                             @Override
                             public void onClick(View view) {
                                 Intent intent = new Intent(context, Images.class);
-                                intent.putExtra(Util.userId, otherUserId);
+                                intent.putExtra(Util.userId, groupId);
                                 intent.putExtra(Util.messageId, message.getMessage_id());
                                 context.startActivity(intent);
                             }
@@ -1726,10 +1873,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
             else
             {
-                if(message.getFrom().equals(otherUserId))
+                if(!message.getFrom().equals(currentUserId))
                 {
                     final FileReceived h = (FileReceived) holder;
-
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
                         h.replyMessage.setText(messageReply);
@@ -1741,10 +1887,23 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
                     h.container.close(false);
                     h.time.setText(formatTime(message.getTimeStamp()));
-                    if (flag)
+                    if (flag) {
                         h.corner.setVisibility(View.INVISIBLE);
-                    else
+                        h.name.setVisibility(GONE);
+                    }
+                    else {
+                        h.name.setVisibility(View.VISIBLE);
                         h.corner.setVisibility(View.VISIBLE);
+                        h.name.setText(users[userPosition].getName());
+                        h.name.setTextColor(Color.parseColor(userColors[userPosition]));
+                        final int finalUserPosition = userPosition;
+                        h.name.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                openPrivateChat(users[finalUserPosition].getId(),users[finalUserPosition].getName());
+                            }
+                        });
+                    }
 
                     h.infoButton.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -1827,7 +1986,8 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                                     h.downloadProgressBar.setVisibility(View.VISIBLE);
                                     Intent intent = new Intent(context, Downloader.class);
                                     intent.putExtra(Util.id, message.getMessage_id());
-                                    intent.putExtra(Util.toUserId, otherUserId);
+                                    intent.putExtra(Util.messageType, Message.MESSAGE_TYPE_GROUP_MESSAGE);
+                                    intent.putExtra(Util.toUserId, message.getFrom());
                                     intent.putExtra(Util.userId, currentUserId);
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                         context.startForegroundService(intent);
@@ -1957,9 +2117,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
         }
 
-        private boolean check(@NonNull Message message, @NonNull Message prev) {
-            return message.getFrom().equals(prev.getFrom());
-        }
+        private boolean check(@NonNull Message message, @NonNull Message prev) { return message.getFrom().equals(prev.getFrom()); }
 
         private String formatTime(@NonNull String received) {
             received =received.substring(4,16);
@@ -1967,8 +2125,28 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
 
         @Override
-        public int getItemCount() {
-            return messages.size();
+        public int getItemCount() { return messages.size(); }
+
+        @Override
+        public long getItemId(int position) { return messages.get(position).hashCode(); }
+
+        void openPrivateChat(final String userId, String name){
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(context,R.style.AlertDialog);
+            View view = LayoutInflater.from(context).inflate(R.layout.open_private_chat_dialog,null);
+
+            TextView n = view.findViewById(R.id.name);
+            n.setText("Send message to - "+name);
+            n.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(context.getApplicationContext(), ChatActivity.class);
+                    intent.putExtra(Util.userId,userId);
+                    context.startActivity(intent);
+                }
+            });
+            builder.setView(view);
+            builder.create().show();
         }
     }
 }

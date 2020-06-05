@@ -103,7 +103,6 @@
             android:layout_alignParentRight="true"
             android:layout_marginRight="5dip"
             android:gravity="right"
-            android:text="5:02 pm"
             android:textColor="@color/main_screen_normal"
             android:textSize="15dip"
             android:textStyle="bold" />

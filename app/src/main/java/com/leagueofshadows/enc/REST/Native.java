@@ -13,6 +13,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
+import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Util;
@@ -33,12 +34,15 @@ import static com.leagueofshadows.enc.FirebaseReceiver.SEEN_STATUS;
 
 public class Native {
 
-    private static final String USER_ID = "USER_ID";
+    public static final String USER_ID = "USER_ID";
     private static final String RESEND_MESSAGE = "RESEND_MESSAGE";
-    private static final String TEMP_USER_ID = "TEMP_USER_ID";
+    public static final String TEMP_USER_ID = "TEMP_USER_ID";
     private static final String MESSAGE_ID = "MESSAGE_ID";
     private static final String NEW_MESSAGE = "NEW_MESSAGE";
     public static final String NEW_GROUP = "NEW_GROUP";
+    public static final String GROUP_DELETE = "GROUP_DELETE";
+    public static final String NOTIFICATION_TEXT = "N_T";
+    public static final String GROUP_UPDATE = "GROUP_UPDATE";
 
     private Context context;
     private DatabaseReference databaseReference;
@@ -149,7 +153,8 @@ public class Native {
 
     public void sendGroupMessageSeenStatus(final Message message, final String groupId, final String userId)
     {
-        databaseReference.child(userId).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
+        Log.e("send group seen",message.getContent());
+        databaseReference.child(message.getFrom()).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 try {
@@ -169,9 +174,10 @@ public class Native {
         });
     }
 
-    public void sendGroupMessageReceivedStatus(final Message message, final String groupId, final String userId)
+    public void sendGroupMessageReceivedStatus(final String messageId,String fromUserId, final String groupId, final String userId,String log)
     {
-        databaseReference.child(userId).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
+        Log.e("send group received",messageId+" "+log);
+        databaseReference.child(fromUserId).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 try {
@@ -180,7 +186,7 @@ public class Native {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(RECEIVED_STATUS,timeStamp);
                     jsonObject.put(TEMP_USER_ID,userId);
-                    jsonObject.put(MESSAGE_ID,message.getMessage_id());
+                    jsonObject.put(MESSAGE_ID,messageId);
                     jsonObject.put(GROUP_ID,groupId);
                     update(jsonObject,token);
                 }
@@ -240,23 +246,74 @@ public class Native {
     {
         final String text = currentUser.getName()+" has added you to group - \""+groupName+"\"";
         for (User u:users) {
-            if(!u.getId().equals(currentUser.getId()))
-            databaseReference.child(u.getId()).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    String token = (String) dataSnapshot.getValue();
+            if (!u.getId().equals(currentUser.getId())) {
+                DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
+                dr.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        String token = (String) dataSnapshot.getValue();
 
-                    try {
-                        JSONObject jsonObject = new JSONObject();
-                        jsonObject.put(NEW_GROUP,text);
-                        update(jsonObject,token);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                        try {
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put(NEW_GROUP, text);
+                            update(jsonObject, token);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
                     }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                    }
+                });
+            }
+        }
+    }
+
+    public void sendGroupDeleteNotification(String groupId,ArrayList<User> users,String text,String currentUserId){
+        try{
+            final JSONObject jsonObject = new JSONObject();
+            jsonObject.put(NOTIFICATION_TEXT,text);
+            jsonObject.put(GROUP_DELETE,groupId);
+            for (User u:users) {
+                if(!u.getId().equals(currentUserId)){
+                    DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
+                    dr.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            update(jsonObject,(String) dataSnapshot.getValue());
+                        }
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {}
+                    });
                 }
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {}
-            });
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void sendGroupUpdatedNotification(Group group, User currentUser) {
+
+        try {
+            final JSONObject jsonObject = new JSONObject();
+            jsonObject.put(GROUP_UPDATE, group.getId());
+            for (User u : group.getUsers()) {
+                if(!currentUser.getId().equals(u.getId())) {
+                    DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
+                    dr.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            update(jsonObject, (String) dataSnapshot.getValue());
+                        }
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                        }
+                    });
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 }

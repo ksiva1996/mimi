@@ -1,5 +1,6 @@
 package com.leagueofshadows.enc;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -18,7 +19,7 @@ import com.bumptech.glide.Glide;
 import com.jsibbold.zoomage.ZoomageView;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.io.File;
@@ -41,8 +42,9 @@ public class Images extends AppCompatActivity {
     ViewPager2 viewPager2;
     String otherUserId;
     User otherUser;
-    DatabaseManager2 databaseManager2;
+    DatabaseManager databaseManager2;
     private CustomImageAdapter customImageAdapter;
+    String userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,17 +56,17 @@ public class Images extends AppCompatActivity {
         Intent intent = getIntent();
         otherUserId = intent.getStringExtra(Util.userId);
         messageId = intent.getStringExtra(Util.messageId);
+        userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        databaseManager2 = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager2 = DatabaseManager.getInstance();
 
-        otherUser = databaseManager2.getUser(otherUserId);
         currentMessage = databaseManager2.getMessage(messageId,otherUserId);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        customImageAdapter = new CustomImageAdapter(images,this,otherUserId);
+        customImageAdapter = new CustomImageAdapter(images,this,otherUserId,userId);
         viewPager2.setAdapter(customImageAdapter);
 
         viewPager2.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -72,8 +74,11 @@ public class Images extends AppCompatActivity {
             public void onPageSelected(int position) {
                 Message message = images.get(position);
                 String title;
-                if(otherUserId.equals(message.getFrom()))
+                if(!userId.equals(message.getFrom())) {
+                    //TODO : optimize
+                    otherUser = databaseManager2.getUser(message.getFrom());
                     title = otherUser.getName();
+                }
                 else
                     title = "You";
                 getSupportActionBar().setTitle(title);
@@ -89,10 +94,11 @@ public class Images extends AppCompatActivity {
         ArrayList<Message> messages = databaseManager2.getImages(otherUserId);
         for (Message message:messages) {
             String path;
-            if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+getMessageContent(message.getContent());
+
+            if(message.getFrom().equals(userId))
+                path = Util.sentImagesPath + getMessageContent(message.getContent());
             else
-                path = Util.sentImagesPath+getMessageContent(message.getContent());
+                path = Util.imagesPath + getMessageContent(message.getContent());
 
             File file = new File(path);
             if(file.exists())
@@ -108,6 +114,7 @@ public class Images extends AppCompatActivity {
         return true;
     }
 
+    @SuppressLint("InflateParams")
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
@@ -115,13 +122,12 @@ public class Images extends AppCompatActivity {
         final Message message = images.get(position);
 
         String path;
-        if(message.getFrom().equals(otherUserId))
+        if(message.getFrom().equals(userId))
             path = Util.imagesPath+getMessageContent(message.getContent());
         else
             path = Util.sentImagesPath+getMessageContent(message.getContent());
 
         final File file = new File(path);
-        String name = file.getName();
         String mimeType = "image/*";
 
         switch (id)
@@ -189,11 +195,13 @@ public class Images extends AppCompatActivity {
         ArrayList<Message> files;
         Context context;
         String otherUserId;
+        String userId;
 
-        CustomImageAdapter(ArrayList<Message> files,Context context,String otherUserId) {
+        CustomImageAdapter(ArrayList<Message> files,Context context,String otherUserId,String userId) {
             this.context = context;
             this.files = files;
             this.otherUserId = otherUserId;
+            this.userId = userId;
         }
 
         static class Image extends RecyclerView.ViewHolder {
@@ -217,10 +225,10 @@ public class Images extends AppCompatActivity {
             Message message= files.get(position);
             Image image = (Image) holder;
             String path;
-            if(message.getFrom().equals(otherUserId))
-                path = Util.imagesPath+getMessageContent(message.getContent());
-            else
+            if(message.getFrom().equals(userId))
                 path = Util.sentImagesPath+getMessageContent(message.getContent());
+            else
+                path = Util.imagesPath+getMessageContent(message.getContent());
             Glide.with(context).load(path).into(image.zoomageView);
         }
 

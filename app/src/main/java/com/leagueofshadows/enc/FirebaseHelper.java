@@ -18,11 +18,11 @@ import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
-import com.leagueofshadows.enc.Items.Group;
+import com.leagueofshadows.enc.Items.FirebaseMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ public class FirebaseHelper {
     static final String MESSAGE_ID = "MESSAGE_ID";
     private Context context;
     private DatabaseReference databaseReference;
-    private DatabaseManager2 databaseManager;
+    private DatabaseManager databaseManager;
 
     public static final String Messages = "Messages";
     public static final String Users = "Users";
@@ -52,13 +52,13 @@ public class FirebaseHelper {
     private static final String Base64EncodedPublicKey = "base64EncodedPublicKey";
     public static final String resend = "resend";
     public static final String Files = "Files";
-
+    private static final String flag = "isGroupMessage";
 
     public FirebaseHelper(Context context)
     {
         this.context = context;
-        DatabaseManager2.initializeInstance(new SQLHelper(context));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(context));
+        databaseManager = DatabaseManager.getInstance();
         FirebaseDatabase firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference();
     }
@@ -70,42 +70,56 @@ public class FirebaseHelper {
         }
         DatabaseReference reference;
         if(id==null) {
-
-            reference = databaseReference.child(Messages).child(message.getTo()).push();
+            reference = databaseReference.child(Messages).push();
             final String key = reference.getKey();
             encryptedMessage.setId(key);
             message.setMessage_id(key);
         }
-        else
-        {
-            reference = databaseReference.child(Messages).child(message.getTo()).child(id);
-        }
+        final ArrayList<FirebaseMessage> firebaseMessages = encryptedMessage.getFirebaseMessageList(databaseManager);
 
-        reference.setValue(encryptedMessage).addOnSuccessListener(new OnSuccessListener<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-
-                User user = databaseManager.getUser(message.getTo());
-
-                Native restHelper = new Native(context);
-                if(user!=null)
-                    restHelper.sendNewMessageNotification(user.getId(),null);
-                else{
-                    Group group = databaseManager.getGroup(message.getTo());
-                    for (User u:group.getUsers()) {
-                        restHelper.sendNewMessageNotification(u.getId(),message.getTo());
+        final int[] count = {0};
+        final boolean[] allSuccess = {true};
+        for (FirebaseMessage fm:firebaseMessages) {
+            DatabaseReference dr = databaseReference.child(Messages).child(fm.getOtherUserId()).child(id);
+            dr.setValue(fm.getEncryptedMessage()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                @Override
+                public void onSuccess(Void aVoid) {
+                    count[0]++;
+                    if(firebaseMessages.size()== count[0]){
+                        sendMessageComplete(firebaseMessages,allSuccess[0],messageSentCallback,message);
                     }
                 }
-                message.setSent(timeStamp);
-                databaseManager.insertNewMessage(message,message.getTo(),message.getFrom());
-                messageSentCallback.onComplete(message,true,null);
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    count[0]++;
+                    allSuccess[0] = false;
+                    if (firebaseMessages.size()==count[0]){
+                        sendMessageComplete(null,false,messageSentCallback,message);
+                    }
+                }
+            });
+        }
+    }
+
+    private void sendMessageComplete(ArrayList<FirebaseMessage> firebaseMessages, boolean success, MessageSentCallback messageSentCallback, Message message){
+        if(success){
+            Native restHelper = new Native(context);
+            if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER) {
+                restHelper.sendNewMessageNotification(message.getTo(), null);
             }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                messageSentCallback.onComplete(message,false,e.getLocalizedMessage());
+            else{
+                for (FirebaseMessage fm:firebaseMessages) {
+                    restHelper.sendNewMessageNotification(fm.getOtherUserId(),message.getTo());
+                }
             }
-        });
+            message.setSent(timeStamp);
+            databaseManager.insertNewMessage(message,message.getTo(),message.getFrom());
+            messageSentCallback.onComplete(message,true,null);
+        }
+        else{
+            messageSentCallback.onComplete(message,false,"something shitty happened");
+        }
     }
 
     void sendUserData(final User user, final UserCallback callback)
@@ -123,7 +137,7 @@ public class FirebaseHelper {
         });
     }
 
-    public void getNewMessages(String userId, final CompleteCallback completeCallback, final boolean deleteMessageFlag) throws DeviceOfflineException {
+    public void getNewMessages(final String userId, final CompleteCallback completeCallback) throws DeviceOfflineException {
 
         if(!checkConnection()) {
             throw new DeviceOfflineException(DeviceOfflineException);
@@ -137,11 +151,12 @@ public class FirebaseHelper {
 
                 for (DataSnapshot d:dataSnapshot.getChildren())
                 {
-                    if(deleteMessageFlag)
-                    d.getRef().removeValue();
-
                     EncryptedMessage encryptedMessage = new EncryptedMessage();
                     encryptedMessage.setId((String) d.child(id).getValue());
+
+                    if(encryptedMessage.getId().equals(userId))
+                        return;
+
                     encryptedMessage.setTo((String) d.child(to).getValue());
                     encryptedMessage.setFrom((String) d.child(from).getValue());
                     encryptedMessage.setContent((String) d.child(content).getValue());
@@ -150,7 +165,9 @@ public class FirebaseHelper {
                     encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
                     if (d.hasChild(resend))
                         encryptedMessage.setResend((boolean)d.child(resend).getValue());
+                    encryptedMessage.setIsGroupMessage(Integer.parseInt(Long.toString((Long) d.child(flag).getValue())));
                     encryptedMessages.add(encryptedMessage);
+                    d.getRef().removeValue();
                 }
                 syncLocalDatabase(encryptedMessages);
                 completeCallback.onComplete(encryptedMessages.size());
@@ -164,7 +181,7 @@ public class FirebaseHelper {
         });
     }
 
-    public void getUserPublic(String userId, final PublicKeyCallback publicKeyCallback)
+    public void getUserPublic(final String userId, final PublicKeyCallback publicKeyCallback)
     {
         databaseReference.child(Users).child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -183,11 +200,15 @@ public class FirebaseHelper {
 
     private void syncLocalDatabase(ArrayList<EncryptedMessage> encryptedMessages) {
 
-        DatabaseManager2.initializeInstance(new SQLHelper(context));
-        DatabaseManager2.getInstance().insertEncryptedMessages(encryptedMessages);
+        String userId = context.getSharedPreferences(Util.preferences,Context.MODE_PRIVATE).getString(Util.userId,null);
+        DatabaseManager.initializeInstance(new SQLHelper(context));
+        DatabaseManager.getInstance().insertEncryptedMessages(encryptedMessages);
         Native restHelper = new Native(context);
         for (EncryptedMessage e:encryptedMessages) {
+            if (e.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER)
             restHelper.sendMessageReceivedStatus(e);
+            else
+                restHelper.sendGroupMessageReceivedStatus(e.getId(),e.getFrom(),e.getTo(),userId,"firebase helper");
         }
     }
 

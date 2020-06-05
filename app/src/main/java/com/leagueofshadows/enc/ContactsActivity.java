@@ -20,7 +20,7 @@ import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.background.ContactsWorker;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -71,8 +71,8 @@ public class ContactsActivity extends AppCompatActivity implements CompleteCallb
     }
 
     private void load() {
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        DatabaseManager2 databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        DatabaseManager databaseManager = DatabaseManager.getInstance();
         users.clear();
         users.addAll(databaseManager.getUsers());
         contactListAdapter.notifyDataSetChanged();

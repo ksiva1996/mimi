@@ -25,6 +25,19 @@
         android:orientation="vertical"
         android:padding="10dp">
 
+        <TextView
+            android:id="@+id/userName"
+            style="@style/chat_timings"
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="2dp"
+            android:layout_marginBottom="2dp"
+            android:paddingBottom="3dp"
+            android:textSize="16sp"/>
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -46,7 +59,7 @@
                 android:layout_height="wrap_content"
                 android:autoLink="web"
                 android:paddingLeft="6dp"
-                android:text="You might not be receiving this message. Please check with someone else."
+                android:text="@string/if_this_is_a_text_message_you_will_be_receiving_this_shortly_if_it_contains_media_please_ask_the_user_to_send_it_again"
                 android:textColor="#CC676767" />
         </LinearLayout>
 

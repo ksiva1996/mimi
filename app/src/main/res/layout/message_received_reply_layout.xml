@@ -6,7 +6,7 @@
     android:background="@drawable/reply_receive_background"
     android:orientation="vertical"
     android:padding="10dp"
-    android:visibility="gone"
+    android:visibility="visible"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <TextView
@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="2dp"
         android:maxLines="1"
+        android:text="you"
         android:textColor="#000833"
         android:textStyle="bold" />
 
@@ -32,7 +33,7 @@
         android:id="@+id/reply_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxWidth="180dp"
         android:maxLines="1"
+        android:text="message text"
         android:textColor="#A3A3A3" />
 </LinearLayout>

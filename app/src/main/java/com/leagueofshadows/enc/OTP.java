@@ -20,7 +20,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
-import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
@@ -202,7 +202,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
             public void run() {
 
                 try {
-                    AESHelper2 aesHelper = new AESHelper2(OTP.this);
+                    AESHelper aesHelper = new AESHelper(OTP.this);
 
                     SharedPreferences.Editor editor = getSharedPreferences(Util.preferences,MODE_PRIVATE).edit();
 

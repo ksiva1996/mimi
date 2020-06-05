@@ -1,5 +1,17 @@
 package com.leagueofshadows.enc.Items;
 
+import com.leagueofshadows.enc.Crypt.AESHelper;
+import com.leagueofshadows.enc.storage.DatabaseManager;
+
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.leagueofshadows.enc.Items.Message.MESSAGE_TYPE_ONLYTEXT;
+import static com.leagueofshadows.enc.Items.Message.MESSAGE_TYPE_SINGLE_USER;
+
 public class EncryptedMessage {
 
     private String id;
@@ -10,12 +22,9 @@ public class EncryptedMessage {
     private String filePath;
     private int type;
     private boolean resend;
+    private int isGroupMessage;
 
-    public static final int MESSAGE_TYPE_ONLYTEXT = 1;
-    public static final int MESSAGE_TYPE_IMAGE = 2;
-    public static final int MESSAGE_TYPE_FILE = 3;
-
-    public EncryptedMessage(String id, String to, String from, String content, String filePath, String timeStamp, int type)
+    public EncryptedMessage(String id, String to, String from, String content, String filePath, String timeStamp, int type,int isGroupMessage)
     {
         this.id = id;
         this.to = to;
@@ -25,10 +34,12 @@ public class EncryptedMessage {
         this.type = type;
         this.filePath = filePath;
         this.resend = false;
+        this.isGroupMessage = isGroupMessage;
     }
 
-    public EncryptedMessage(String id, String to, String from, String content, String filePath, String timeStamp, int type,boolean resend)
+    public EncryptedMessage(String id, String to, String from, String content, String filePath, String timeStamp, int type,boolean resend,int isGroupMessage)
     {
+        this.isGroupMessage = isGroupMessage;
         this.id = id;
         this.to = to;
         this.from = from;
@@ -105,5 +116,51 @@ public class EncryptedMessage {
 
     public void setResend(boolean resend) {
         this.resend = resend;
+    }
+
+    public int getIsGroupMessage() { return isGroupMessage; }
+
+    public void setIsGroupMessage(int isGroupMessage) { this.isGroupMessage = isGroupMessage; }
+
+    public ArrayList<FirebaseMessage> getFirebaseMessageList(DatabaseManager databaseManager){
+        ArrayList<FirebaseMessage> firebaseMessages = new ArrayList<>();
+
+        if(this.isGroupMessage==MESSAGE_TYPE_SINGLE_USER){
+            firebaseMessages.add(new FirebaseMessage(this,this.to));
+        }
+        try {
+            JSONObject jsonObject = new JSONObject(this.content);
+
+            String iv = jsonObject.getString(AESHelper.MESSAGE_IV);
+            String messageHash = jsonObject.getString(AESHelper.MESSAGE_HASH_BYTES);
+            JSONObject keys = jsonObject.getJSONObject(AESHelper.MESSAGE_KEYS);
+            String content = jsonObject.getString(AESHelper.MESSAGE_CONTENT);
+            String fileHash = null;
+            if(type!=MESSAGE_TYPE_ONLYTEXT)
+                fileHash = jsonObject.getString(AESHelper.MESSAGE_FILE_HASH_BYTES);
+
+            ArrayList<String> userIds = databaseManager.getGroupParticipants(to);
+            for (String id : userIds) {
+
+                if(keys.has(id)) {
+
+                    JSONObject j = new JSONObject();
+                    j.put(AESHelper.MESSAGE_IV, iv);
+                    j.put(AESHelper.MESSAGE_CONTENT, content);
+                    j.put(AESHelper.MESSAGE_HASH_BYTES, messageHash);
+                    if (fileHash != null)
+                        j.put(AESHelper.MESSAGE_FILE_HASH_BYTES, fileHash);
+
+                    JSONObject keysObject = new JSONObject();
+                    keysObject.put(id, keys.getString(id));
+
+                    j.put(AESHelper.MESSAGE_KEYS, keysObject);
+                    firebaseMessages.add(new FirebaseMessage(new EncryptedMessage(this.id, this.to, this.from, j.toString(), this.filePath, this.timeStamp, this.type, this.resend, this.isGroupMessage),id));
+                }
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        return firebaseMessages;
     }
 }

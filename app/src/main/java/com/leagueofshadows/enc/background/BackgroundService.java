@@ -17,7 +17,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.App;
-import com.leagueofshadows.enc.Crypt.AESHelper2;
+import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DataCorruptedException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.FirebaseHelper;
@@ -31,7 +31,7 @@ import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.SplashActivity;
 import com.leagueofshadows.enc.Util;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.security.InvalidAlgorithmParameterException;
@@ -50,18 +50,19 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import static com.leagueofshadows.enc.FirebaseHelper.Messages;
 import static com.leagueofshadows.enc.FirebaseHelper.resend;
 
-public class BackgroundService extends Service {
+public class BackgroundService extends Service implements ChildEventListener {
 
-    ArrayList<String> ids;
-    DatabaseManager2 databaseManager;
+    DatabaseManager databaseManager;
     DatabaseReference databaseReference;
-    String userId;
+    String currentUserId;
     FirebaseHelper firebaseHelper;
     Native restHelper;
-    AESHelper2 aesHelper;
+    AESHelper aesHelper;
     boolean notificationChannelCreated;
+    ArrayList<String> ids;
 
     static final String id = "id";
     static final String to = "to";
@@ -70,98 +71,48 @@ public class BackgroundService extends Service {
     static final String type = "type";
     static final String filePath = "filePath";
     static final String timeStamp = "timeStamp";
+    static final String flag = "isGroupMessage";
 
     @Override
     public void onCreate() {
         super.onCreate();
-        ids = new ArrayList<>();
         notificationChannelCreated = false;
-        DatabaseManager2.initializeInstance(new SQLHelper(this));
-        databaseManager = DatabaseManager2.getInstance();
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager.getInstance();
         firebaseHelper = new FirebaseHelper(this);
         restHelper = new Native(this);
+        ids = new ArrayList<>();
 
         try {
-            aesHelper = new AESHelper2(this);
+            aesHelper = new AESHelper(this);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
 
-        userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
-        ids.add(userId);
-        ids.addAll(databaseManager.getGroups());
+        currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        ids.add(currentUserId);
         databaseReference = FirebaseDatabase.getInstance().getReference();
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    private void bindListeners() {
+        for (String id:ids) {
+            Log.e("id",id);
+            DatabaseReference dr = databaseReference.child(Messages).child(id);
+            dr.addChildEventListener(this);
+        }
+    }
 
-        if(userId==null)
+    @Override
+    public int onStartCommand(Intent intent, final int flags, int startId) {
+
+        if(currentUserId ==null)
             stopSelf();
 
         App app = (App) getApplication();
         if(app.isnull())
             stopSelf();
 
-        for (final String node:ids) {
-            databaseReference = databaseReference.child(FirebaseHelper.Messages).child(node);
-            databaseReference.addChildEventListener(new ChildEventListener() {
-                @Override
-                public void onChildAdded(@NonNull DataSnapshot d, @Nullable String s) {
-
-                    if(node.equals(userId))
-                        d.getRef().removeValue();
-
-                    try {
-                        final EncryptedMessage encryptedMessage = new EncryptedMessage();
-                        encryptedMessage.setId((String) d.child(id).getValue());
-                        encryptedMessage.setTo((String) d.child(to).getValue());
-                        encryptedMessage.setFrom((String) d.child(from).getValue());
-                        encryptedMessage.setContent((String) d.child(content).getValue());
-                        encryptedMessage.setFilePath((String) d.child(filePath).getValue());
-                        encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
-                        encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
-
-                        if (d.hasChild(resend))
-                            encryptedMessage.setResend((boolean) d.child(resend).getValue());
-
-                        String userId = encryptedMessage.getFrom();
-                        final User otherUser = databaseManager.getUser(userId);
-                        if (otherUser.getBase64EncodedPublicKey() == null) {
-                            firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
-                                @Override
-                                public void onSuccess(String Base64PublicKey) {
-                                    databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
-                                    otherUser.setBase64EncodedPublicKey(Base64PublicKey);
-                                    decryptMessage(encryptedMessage, otherUser);
-                                }
-                                @Override
-                                public void onCancelled(String error) {
-                                    Log.e("error", error);
-                                }
-                            });
-                        } else {
-                            decryptMessage(encryptedMessage,otherUser);
-                        }
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-
-                @Override
-                public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
-
-                @Override
-                public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
-
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) { Log.e(id+" - database error",databaseError.toString()); }
-            });
-        }
+        bindListeners();
 
         return START_STICKY;
     }
@@ -174,19 +125,24 @@ public class BackgroundService extends Service {
 
                 if (databaseManager.check(e.getId(),e.getFrom())||e.isResend()) {
                     final App app = (App) getApplication();
-                    if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLYTEXT)
+                    if(e.getFrom().equals(currentUserId))
+                        return;
+                    if (e.getType() == Message.MESSAGE_TYPE_ONLYTEXT)
                     {
                         try {
 
-                            String m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(),otherUser);
+                            String m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(),otherUser, currentUserId);
                             String timeStamp = Calendar.getInstance().getTime().toString();
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                    e.getTimeStamp(), timeStamp, null);
+                                    e.getTimeStamp(), timeStamp, null,e.getIsGroupMessage());
 
-                            restHelper.sendMessageReceivedStatus(e);
+                            if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER)
+                                restHelper.sendMessageReceivedStatus(e);
+                            else
+                                restHelper.sendGroupMessageReceivedStatus(message.getMessage_id(),message.getFrom(),message.getTo(), currentUserId,"backgrund service");
 
                             if (!e.isResend()) {
-                                databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
+                                databaseManager.insertNewMessage(message, message.getFrom(), currentUserId);
                                 if (app.getMessagesRetrievedCallback() != null) {
                                     MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                     messagesRetrievedCallback.onNewMessage(message);
@@ -216,9 +172,9 @@ public class BackgroundService extends Service {
 
                             String timeStamp = Calendar.getInstance().getTime().toString();
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null,
-                                    e.getFilePath(), e.getTimeStamp(), e.getType(), e.getTimeStamp(), timeStamp, null);
+                                    e.getFilePath(), e.getTimeStamp(), e.getType(), e.getTimeStamp(), timeStamp, null,e.getIsGroupMessage());
 
-                            databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
+                            databaseManager.insertNewMessage(message, message.getFrom(), currentUserId);
                             if (app.getMessagesRetrievedCallback() != null) {
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);
@@ -226,7 +182,6 @@ public class BackgroundService extends Service {
                                 showNotification(message);
                             }
                             ex.printStackTrace();
-
                         }
                     }
                     else {
@@ -234,11 +189,17 @@ public class BackgroundService extends Service {
                         String messageString = e.getContent();
                         databaseManager.insertCipherText(messageString,e.getId());
                         try {
-                            messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),otherUser);
+                            messageString = aesHelper.DecryptMessage(messageString,app.getPrivateKey(),otherUser, currentUserId);
                             Message message = new Message(0,e.getId(),e.getTo(),e.getFrom(),messageString,e.getFilePath(),e.getTimeStamp()
-                                    ,e.getType(),e.getTimeStamp(),timeStamp,null);
-                            databaseManager.insertNewMessage(message,message.getFrom(),message.getTo());
-                            restHelper.sendMessageReceivedStatus(e);
+                                    ,e.getType(),e.getTimeStamp(),timeStamp,null,e.getIsGroupMessage());
+
+                            databaseManager.insertNewMessage(message,message.getFrom(), currentUserId);
+
+                            if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER)
+                                restHelper.sendMessageReceivedStatus(e);
+                            else
+                                restHelper.sendGroupMessageReceivedStatus(message.getMessage_id(),message.getFrom(),message.getTo(), currentUserId,"background service");
+
                             if(app.getMessagesRetrievedCallback()!=null) {
                                 app.getMessagesRetrievedCallback().onNewMessage(message);
                             }
@@ -259,8 +220,9 @@ public class BackgroundService extends Service {
                             });
 
                             Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), null, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                    e.getTimeStamp(), timeStamp, null);
-                            databaseManager.insertNewMessage(message, message.getFrom(),message.getTo());
+                                    e.getTimeStamp(), timeStamp, null,e.getIsGroupMessage());
+
+                            databaseManager.insertNewMessage(message, message.getFrom(), currentUserId);
                             if (app.getMessagesRetrievedCallback() != null) {
                                 MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
                                 messagesRetrievedCallback.onNewMessage(message);
@@ -305,4 +267,63 @@ public class BackgroundService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
+
+    @Override
+    public void onChildAdded(@NonNull DataSnapshot d, @Nullable String s) {
+        try {
+
+            d.getRef().removeValue();
+
+            final EncryptedMessage encryptedMessage = new EncryptedMessage();
+            encryptedMessage.setId((String) d.child(id).getValue());
+            encryptedMessage.setTo((String) d.child(to).getValue());
+            encryptedMessage.setFrom((String) d.child(from).getValue());
+            encryptedMessage.setContent((String) d.child(content).getValue());
+            encryptedMessage.setFilePath((String) d.child(filePath).getValue());
+            encryptedMessage.setType(Integer.parseInt(Long.toString((Long) d.child(type).getValue())));
+            encryptedMessage.setTimeStamp((String) d.child(timeStamp).getValue());
+            encryptedMessage.setIsGroupMessage(Integer.parseInt(Long.toString((Long) d.child(flag).getValue())));
+
+            if (d.hasChild(resend))
+                encryptedMessage.setResend((boolean) d.child(resend).getValue());
+
+
+            final String userId = encryptedMessage.getFrom();
+            if (databaseManager.getPublicKey(userId) == null)
+            {
+                firebaseHelper.getUserPublic(userId, new PublicKeyCallback() {
+                    @Override
+                    public void onSuccess(String Base64PublicKey) {
+                        databaseManager.insertPublicKey(Base64PublicKey, encryptedMessage.getFrom());
+                        final User otherUser = databaseManager.getUser(userId);
+                        decryptMessage(encryptedMessage, otherUser);
+                    }
+                    @Override
+                    public void onCancelled(String error) {
+                        Log.e("error", error);
+                    }
+                });
+            }
+            else {
+                final User otherUser = databaseManager.getUser(userId);
+                decryptMessage(encryptedMessage,otherUser);
+            }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+
+    @Override
+    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
+
+    @Override
+    public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {}
+
+    @Override
+    public void onCancelled(@NonNull DatabaseError databaseError) { Log.e(id+" - database error",databaseError.toString()); }
 }

@@ -41,4 +41,7 @@
     <string name="title_activity_create_group">CreateGroup</string>
     <string name="add_group_name">Add group name</string>
     <string name="share">Share</string>
+    <string name="if_this_is_a_text_message_you_will_be_receiving_this_shortly_if_it_contains_media_please_ask_the_user_to_send_it_again">If this is a text message you will be receiving this shortly, if it contains media please ask the user to send it again.</string>
+    <string name="delivered">Delivered</string>
+    <string name="read">Read</string>
 </resources>

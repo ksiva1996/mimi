@@ -8,6 +8,8 @@ import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import java.security.PrivateKey;
+import java.util.ArrayList;
+
 import javax.crypto.SecretKey;
 
 public class App extends Application {
@@ -18,7 +20,7 @@ public class App extends Application {
     private CompleteCallback completeCallback;
     private ResendMessageCallback resendMessageCallback;
     private SecretKey masterKey;
-    private GroupsUpdatedCallback groupsUpdatedCallback;
+    private ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks;
 
     public CompleteCallback getCompleteCallback() {
         return completeCallback;
@@ -63,7 +65,12 @@ public class App extends Application {
         this.masterKey = masterKey;
     }
 
-    public GroupsUpdatedCallback getGroupsUpdatedCallback() { return groupsUpdatedCallback; }
+    public ArrayList<GroupsUpdatedCallback> getGroupsUpdatedCallback() { return groupsUpdatedCallbacks; }
 
-    public void setGroupsUpdatedCallback(GroupsUpdatedCallback groupsUpdatedCallback) { this.groupsUpdatedCallback = groupsUpdatedCallback; }
+    public void addGroupsUpdatedCallback(GroupsUpdatedCallback groupsUpdatedCallback) {
+
+        if(this.groupsUpdatedCallbacks==null)
+            this.groupsUpdatedCallbacks = new ArrayList<>();
+        this.groupsUpdatedCallbacks.add(groupsUpdatedCallback);
+    }
 }

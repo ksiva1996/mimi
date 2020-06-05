@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +16,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.storage.DatabaseManager2;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
@@ -80,8 +81,8 @@ public class ShareActivity extends AppCompatActivity implements Select {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                DatabaseManager2.initializeInstance(new SQLHelper(ShareActivity.this));
-                DatabaseManager2 databaseManager = new DatabaseManager2();
+                DatabaseManager.initializeInstance(new SQLHelper(ShareActivity.this));
+                DatabaseManager databaseManager = new DatabaseManager();
                 chatDataArrayListUsers.clear();
                 chatDataArrayListGroups.clear();
 
@@ -233,8 +234,10 @@ public class ShareActivity extends AppCompatActivity implements Select {
                         intent.putExtra(Util.userId, obj.getUser().getId());
                         if (receivedIntent.getAction()!=null)
                         {
+                            Log.e("Intent action",receivedIntent.getAction());
                             if(receivedIntent.getAction().equals(Intent.ACTION_SEND))
                             {
+                                Log.e("share activity","log");
                                 intent.setAction(Intent.ACTION_SEND);
                                 intent.setType(receivedIntent.getType());
                                 intent.putExtra(Intent.EXTRA_TEXT,receivedIntent.getStringExtra(Intent.EXTRA_TEXT));
