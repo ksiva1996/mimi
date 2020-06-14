@@ -50,7 +50,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import static com.leagueofshadows.enc.ChatActivity.MESSAGE_CONTENT;
+import static com.leagueofshadows.enc.Crypt.AESHelper.MESSAGE_CONTENT;
 import static com.leagueofshadows.enc.FirebaseHelper.Files;
 
 public class Downloader extends Service {

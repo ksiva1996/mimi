@@ -3,13 +3,10 @@ package com.leagueofshadows.enc;
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -18,7 +15,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -31,6 +27,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,9 +38,9 @@ import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
+import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
-import com.leagueofshadows.enc.Interfaces.MessageOptionsCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
@@ -62,6 +59,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -94,7 +92,31 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 import static android.view.View.GONE;
 import static com.leagueofshadows.enc.CreateGroupActivity.userColors;
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
+import static com.leagueofshadows.enc.Util.FILE_ATTACHMENT_REQUEST;
+import static com.leagueofshadows.enc.Util.IMAGE_ATTACHMENT_REQUEST;
+import static com.leagueofshadows.enc.Util.IMAGE_SELECTED;
+import static com.leagueofshadows.enc.Util.LOAD_THUMBNAIL_SIZE;
+import static com.leagueofshadows.enc.Util.MESSAGE_CONTENT;
+import static com.leagueofshadows.enc.Util.MESSAGE_COPY;
+import static com.leagueofshadows.enc.Util.MESSAGE_DELETE;
+import static com.leagueofshadows.enc.Util.MESSAGE_INFO;
+import static com.leagueofshadows.enc.Util.MESSAGE_REPLIED;
+import static com.leagueofshadows.enc.Util.MESSAGE_REPLIED_ID;
+import static com.leagueofshadows.enc.Util.MESSAGE_REPLY;
+import static com.leagueofshadows.enc.Util.OPEN_CAMERA_REQUEST;
+import static com.leagueofshadows.enc.Util.RECEIVE_ERROR;
+import static com.leagueofshadows.enc.Util.RECEIVE_FILE;
+import static com.leagueofshadows.enc.Util.RECEIVE_IMAGE;
+import static com.leagueofshadows.enc.Util.RECEIVE_TEXT;
+import static com.leagueofshadows.enc.Util.SEND_FILE;
+import static com.leagueofshadows.enc.Util.SEND_IMAGE;
+import static com.leagueofshadows.enc.Util.SEND_TEXT;
+import static com.leagueofshadows.enc.Util.checkPath;
+import static com.leagueofshadows.enc.Util.getCompressionFactor;
+import static com.leagueofshadows.enc.Util.getFileName;
 import static com.leagueofshadows.enc.Util.getMessageContent;
+import static com.leagueofshadows.enc.Util.messageCopy;
+import static com.leagueofshadows.enc.Util.prepareMessage;
 
 @SuppressLint("InflateParams,SimpleDateFormat,ResultOfMethodCallIgnored")
 public class GroupChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
@@ -115,7 +137,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     DatabaseReference databaseReference;
 
     EditText messageField;
-    LinearLayout chatReplyLayout;
+    RelativeLayout chatReplyLayout;
     TextView replyName;
     TextView replyMessageText;
     ImageButton closeReplyLayout;
@@ -133,31 +155,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     ImageButton attachment;
     boolean isAttachmentLayoutOpen = false;
 
-    public static  final int RECEIVE_TEXT = 0;
-    public static  final int RECEIVE_IMAGE = 1;
-    public static  final int RECEIVE_FILE = 2;
-    public static  final int SEND_TEXT = 3;
-    public static  final int SEND_IMAGE = 4;
-    public static  final int SEND_FILE = 5;
-    public static final int RECEIVE_ERROR = 6;
-
-    public static final int MESSAGE_INFO = 1;
-    public static final int MESSAGE_DELETE = 2;
-    public static final int MESSAGE_COPY = 3;
-    public static final int MESSAGE_REPLY = 4;
-
-    public static final int FILE_ATTACHMENT_REQUEST = 1;
-    public static final int IMAGE_ATTACHMENT_REQUEST = 2;
-    public static final int OPEN_CAMERA_REQUEST = 3;
-    public static final int IMAGE_SELECTED = 4;
-
-    public static final String MESSAGE_CONTENT = "M_C";
-    public static final String MESSAGE_REPLIED = "M_R";
-    public static final String MESSAGE_REPLIED_ID = "M_I";
-
     RecyclerView.SmoothScroller smoothScroller;
     private LinearLayoutManager layoutManager;
     private NotificationChannel serviceChannel;
+    private ImageView imageThumbnail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -281,18 +282,16 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
         chatReplyLayout = findViewById(R.id.chat_reply);
         chatReplyLayout.setVisibility(GONE);
-
         replyName = findViewById(R.id.reply_name);
         replyMessageText = findViewById(R.id.reply_message);
         closeReplyLayout = findViewById(R.id.close_reply);
-
         closeReplyLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                chatReplyLayout.setVisibility(GONE);
-                replyMessage = null;
+                closeReplyLayout();
             }
         });
+        imageThumbnail = findViewById(R.id.thumbnail);
 
         send = findViewById(R.id.send);
         send.setOnClickListener(new View.OnClickListener() {
@@ -387,7 +386,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 assert data != null;
                 final Uri uri = data.getData();
                 try {
-                    String fileName = getFileName(uri);
+                    String fileName = getFileName(uri,this);
                     MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
                     String mimeType = mimeTypeMap.getMimeTypeFromExtension(fileName);
                     assert mimeType != null;
@@ -538,7 +537,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 if(!messageString.equals(""))
                 {
                     closeReplyLayout();
-                    messageString = prepareMessage(messageString);
+                    messageString = prepareMessage(messageString,replyMessage,currentUserId);
                     App app = (App) getApplication();
                     try {
 
@@ -565,7 +564,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     void showMessageDialog(final Uri uri)
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
-        builder.setMessage("Send file - "+getFileName(uri)+" to "+group.getName());
+        builder.setMessage("Send file - "+getFileName(uri,this)+" to "+group.getName());
         builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -601,7 +600,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     String id = databaseReference.push().getKey();
 
                     assert id != null;
-                    String messageString = prepareMessage(fileName);
+                    String messageString = prepareMessage(fileName,replyMessage,currentUserId);
                     closeReplyLayout();
                     message = new Message(0,id,groupId,currentUserId,messageString,path,timeStamp,Message.MESSAGE_TYPE_IMAGE,
                             null,null,null,Message.MESSAGE_TYPE_GROUP_MESSAGE);
@@ -645,31 +644,14 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         });
     }
 
-    private int getCompressionFactor(int byteCount) {
-
-        final int byteUpperLimit = 3145728;
-        final int byteLowerLimit = 307200;
-        final int upperCompression = 10;
-        final int lowerCompression = 80;
-        if(byteCount>byteUpperLimit)
-            return upperCompression;
-        else if(byteCount<byteLowerLimit)
-            return lowerCompression;
-        else
-        {
-            int factor = (byteUpperLimit - byteLowerLimit)/(lowerCompression-upperCompression);
-            return 80 - (byteCount-byteLowerLimit)/factor;
-        }
-    }
-
     private void sendFile(final Uri uri)  {
 
-        final String fileName = getFileName(uri);
+        final String fileName = getFileName(uri,this);
         final String timeStamp = Calendar.getInstance().getTime().toString();
         final String id = databaseReference.push().getKey();
 
         assert id != null;
-        final String messageString = prepareMessage(fileName);
+        final String messageString = prepareMessage(fileName,replyMessage,currentUserId);
         closeReplyLayout();
         final Message message = new Message(0,id,groupId,currentUserId,messageString,uri.toString(),timeStamp,
                 Message.MESSAGE_TYPE_FILE,null,null,null,Message.MESSAGE_TYPE_GROUP_MESSAGE);
@@ -728,60 +710,6 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
         });
     }
-
-    String prepareMessage(String messageContent)
-    {
-
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put(MESSAGE_CONTENT,messageContent);
-            if(replyMessage!=null) {
-                jsonObject.put(MESSAGE_REPLIED, getMessageContent(replyMessage.getContent()));
-                jsonObject.put(MESSAGE_REPLIED_ID, replyMessage.getFrom());
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return jsonObject.toString();
-    }
-
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void checkPath(int x) {
-        File file = new File(Util.originalPath);
-        if(!file.exists())
-            file.mkdir();
-
-        file = new File(Util.privatePath);
-        if(!file.exists())
-            file.mkdir();
-
-        if(x == IMAGE_ATTACHMENT_REQUEST) {
-            file = new File(Util.imagesPath);
-            if(!file.exists())
-                file.mkdir();
-            file = new File(Util.sentImagesPath);
-            if(!file.exists())
-                file.mkdir();
-        }
-        if(x==FILE_ATTACHMENT_REQUEST) {
-            file = new File(Util.documentsPath);
-            if(!file.exists())
-                file.mkdir();
-            file = new File(Util.sentDocumentsPath);
-            if(!file.exists())
-                file.mkdir();
-        }
-    }
-
-    private String getFileName(Uri uri) {
-        Cursor cursor = getContentResolver().query(uri,null,null,null,null);
-        int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-        cursor.moveToFirst();
-        String name = cursor.getString(index);
-        cursor.close();
-        return name;
-    }
-
 
     //options for messages
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -858,24 +786,9 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         startActivity(intent);
     }
 
-    void messageCopy(Message message)
-    {
-        try {
-            ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clipData = ClipData.newPlainText("message text",getMessageContent(message.getContent()));
-            assert clipboardManager != null;
-            clipboardManager.setPrimaryClip(clipData);
-            Toast.makeText(this,"text copied to clipboard",Toast.LENGTH_SHORT).show();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     void replyToMessage(Message message)
     {
         chatReplyLayout.setVisibility(View.VISIBLE);
-        replyMessageText.setText(getMessageContent(message.getContent()));
 
         String name;
         if(message.getFrom().equals(currentUserId))
@@ -886,6 +799,19 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         }
         replyName.setText(name);
         replyMessage = message;
+        if(message.getType()==Message.MESSAGE_TYPE_IMAGE){
+            imageThumbnail.setVisibility(View.VISIBLE);
+            replyMessageText.setText("Photo");
+            try {
+                Glide.with(this).load(Util.getThumbnailString(message,currentUserId)).override(LOAD_THUMBNAIL_SIZE).into(imageThumbnail);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            imageThumbnail.setVisibility(GONE);
+            replyMessageText.setText(getMessageContent(message.getContent()));
+        }
     }
 
     void updateRecyclerAdapter(final int position)
@@ -1047,7 +973,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             Message message = messages.get(position);
             switch (option) {
                 case MESSAGE_COPY: {
-                    messageCopy(message);
+                    messageCopy(message,this);
                     return;
                 }
                 case MESSAGE_DELETE: {
@@ -1118,12 +1044,12 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             ImageButton replyButton;
             ImageButton deleteButton;
             ImageButton infoButton;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
             TextView lengthCorrector;
             TextView name;
-
+            ImageView replyThumbnail;
 
             TextReceived(View view) {
                 super(view);
@@ -1140,6 +1066,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyMessage = view.findViewById(R.id.reply_text);
                 lengthCorrector = view.findViewById(R.id.messag);
                 name = view.findViewById(R.id.userName);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1156,10 +1083,11 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             ImageButton replyButton;
             ImageButton deleteButton;
             ImageButton infoButton;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
             TextView lengthCorrector;
+            ImageView replyThumbnail;
 
             TextSent(View view) {
                 super(view);
@@ -1179,6 +1107,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 lengthCorrector = view.findViewById(R.id.messag);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1196,9 +1125,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             ImageButton infoButton;
             ImageView main;
             TextView time;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
+            ImageView replyThumbnail;
 
             ImageSent(View view) {
                 super(view);
@@ -1217,6 +1147,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyLayout = view.findViewById(R.id.reply_send_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1233,10 +1164,11 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             LinearLayout imageDownloadContainer;
             ImageView download;
             ProgressBar downloadProgressBar;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
             TextView name;
+            ImageView replyThumbnail;
 
             ImageReceived(View view) {
                 super(view);
@@ -1255,6 +1187,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 name = view.findViewById(R.id.userName);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1272,9 +1205,10 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             ImageButton infoButton;
             TextView time;
             TextView fileName;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
+            ImageView replyThumbnail;
 
             FileSent(View view){
                 super(view);
@@ -1293,6 +1227,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyLayout = view.findViewById(R.id.reply_send_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1309,10 +1244,11 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             ImageButton download;
             ProgressBar downloadProgressBar;
             TextView fileType;
-            LinearLayout replyLayout;
+            RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
             TextView name;
+            ImageView replyThumbnail;
 
             FileReceived(View view){
                 super(view);
@@ -1331,6 +1267,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 name = view.findViewById(R.id.userName);
+                replyThumbnail = view.findViewById(R.id.thumbnail);
             }
         }
 
@@ -1414,6 +1351,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             }
         }
 
+        @SuppressLint("SetTextI18n")
         @Override
         public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
 
@@ -1460,6 +1398,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             String messageContent;
             String messageReply = null;
             String messageReplyId = null;
+            boolean containsImageThumbnail = false;
 
             try {
                 JSONObject jsonObject = new JSONObject(message.getContent());
@@ -1480,6 +1419,8 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                         }
                     }
                 }
+                if(jsonObject.has(Util.MESSAGE_CONTAINS_IMAGE_THUMBNAIL))
+                    containsImageThumbnail = true;
             } catch (JSONException e) {
                 e.printStackTrace();
                 messageContent = message.getContent();
@@ -1499,7 +1440,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     }
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     else {
@@ -1576,7 +1525,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     }
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     else {
@@ -1665,7 +1622,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     else {
@@ -1782,7 +1747,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     else {
@@ -1890,7 +1863,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     final FileReceived h = (FileReceived) holder;
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     else {
@@ -2014,7 +1995,15 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     final FileSent h = (FileSent) holder;
                     if(messageReply!=null && messageReplyId!=null) {
                         h.replyLayout.setVisibility(View.VISIBLE);
-                        h.replyMessage.setText(messageReply);
+                        if(!containsImageThumbnail) {
+                            h.replyMessage.setText(messageReply);
+                            h.replyThumbnail.setVisibility(GONE);
+                        }
+                        else{
+                            h.replyMessage.setText("Photo");
+                            h.replyThumbnail.setVisibility(View.VISIBLE);
+                            Glide.with(context).load(Util.getBytes(messageReply)).override(LOAD_THUMBNAIL_SIZE).into(h.replyThumbnail);
+                        }
                         h.replyName.setText(messageReplyId);
                     }
                     h.container.close(false);
@@ -2142,6 +2131,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         @Override
         public long getItemId(int position) { return messages.get(position).getId(); }
 
+        @SuppressLint("SetTextI18n")
         void openPrivateChat(final String userId, String name){
 
             AlertDialog.Builder builder = new AlertDialog.Builder(context,R.style.AlertDialog);

@@ -21,8 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".Test"></activity>
+        <activity android:name=".Test">
+        </activity>
         <activity android:name=".GroupInfo" />
+        <activity android:name=".GroupMessageInfo"/>
         <activity
             android:name=".ShareActivity"
             android:theme="@style/AppTheme.NoActionBar"/>
@@ -32,7 +34,6 @@
             android:theme="@style/AppTheme.NoActionBar"/>
         <activity
             android:name=".CreateGroupActivity"
-            android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".Images" />

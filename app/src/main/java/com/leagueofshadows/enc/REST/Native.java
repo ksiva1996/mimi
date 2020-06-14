@@ -294,7 +294,6 @@ public class Native {
     }
 
     public void sendGroupUpdatedNotification(Group group, User currentUser) {
-
         try {
             final JSONObject jsonObject = new JSONObject();
             jsonObject.put(GROUP_UPDATE, group.getId());

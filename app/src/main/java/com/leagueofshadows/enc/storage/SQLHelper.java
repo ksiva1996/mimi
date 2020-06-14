@@ -9,7 +9,7 @@ public class SQLHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "SAL-1";
 
     static final String ID = "ID";
-    static final String TABLE_MESSAGES = "Messages";
+    private static final String TABLE_MESSAGES = "Messages";
     static final String MESSAGES_ID = "Messages_id";
     static final String MESSAGES_TO = "Messages_to";
     static final String MESSAGES_FROM = "Messages_from";
