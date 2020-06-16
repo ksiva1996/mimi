@@ -153,7 +153,6 @@ public class Native {
 
     public void sendGroupMessageSeenStatus(final Message message, final String groupId, final String userId)
     {
-        Log.e("send group seen",message.getContent());
         databaseReference.child(message.getFrom()).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -293,11 +292,11 @@ public class Native {
         }
     }
 
-    public void sendGroupUpdatedNotification(Group group, User currentUser) {
+    public void sendGroupUpdatedNotification(String groupId,ArrayList<User> users, User currentUser) {
         try {
             final JSONObject jsonObject = new JSONObject();
-            jsonObject.put(GROUP_UPDATE, group.getId());
-            for (User u : group.getUsers()) {
+            jsonObject.put(GROUP_UPDATE, groupId);
+            for (User u :users) {
                 if(!currentUser.getId().equals(u.getId())) {
                     DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
                     dr.addListenerForSingleValueEvent(new ValueEventListener() {

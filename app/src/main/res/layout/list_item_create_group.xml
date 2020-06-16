@@ -9,7 +9,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/gradient_bg"
+        android:background="@drawable/list_selector"
         android:clickable="true"
         android:orientation="horizontal"
         android:id="@+id/container"

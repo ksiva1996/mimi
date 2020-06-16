@@ -71,6 +71,13 @@ public class App extends Application {
 
         if(this.groupsUpdatedCallbacks==null)
             this.groupsUpdatedCallbacks = new ArrayList<>();
+        if(!this.groupsUpdatedCallbacks.contains(groupsUpdatedCallback))
         this.groupsUpdatedCallbacks.add(groupsUpdatedCallback);
+    }
+
+    public void removeGroupsUpdatedCallback(GroupsUpdatedCallback groupsUpdatedCallback){
+        if(groupsUpdatedCallbacks!=null){
+            groupsUpdatedCallbacks.remove(groupsUpdatedCallback);
+        }
     }
 }

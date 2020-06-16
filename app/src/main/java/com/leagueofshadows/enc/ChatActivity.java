@@ -97,6 +97,7 @@ import static com.leagueofshadows.enc.Util.MESSAGE_INFO;
 import static com.leagueofshadows.enc.Util.MESSAGE_REPLIED;
 import static com.leagueofshadows.enc.Util.MESSAGE_REPLIED_ID;
 import static com.leagueofshadows.enc.Util.MESSAGE_REPLY;
+import static com.leagueofshadows.enc.Util.MESSAGE_SHARE;
 import static com.leagueofshadows.enc.Util.OPEN_CAMERA_REQUEST;
 import static com.leagueofshadows.enc.Util.RECEIVE_ERROR;
 import static com.leagueofshadows.enc.Util.RECEIVE_FILE;
@@ -724,6 +725,40 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         builder.create().show();
     }
 
+     private void shareMessage(Message message) {
+         try {
+             Intent intent = new Intent(this, ShareActivity.class);
+             intent.setAction(Intent.ACTION_SEND);
+             if (message.getType() == Message.MESSAGE_TYPE_ONLYTEXT) {
+                 intent.setType("text/*");
+                 intent.putExtra(Intent.EXTRA_TEXT, getMessageContent(message.getContent()));
+             }
+             if (message.getType() == Message.MESSAGE_TYPE_IMAGE) {
+                 intent.setType("image/*");
+                 String path;
+                 if (message.getFrom().equals(currentUserId))
+                     path = Util.sentImagesPath + getMessageContent(message.getContent());
+                 else
+                     path = Util.imagesPath + getMessageContent(message.getContent());
+                 File file = new File(path);
+                 intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this, this.getPackageName() + ".fileProvider", file));
+             }
+             if (message.getType() == Message.MESSAGE_TYPE_FILE) {
+                 intent.setType("application/*");
+                 String path;
+                 if (message.getFrom().equals(currentUserId))
+                     path = Util.sentImagesPath + getMessageContent(message.getContent());
+                 else
+                     path = Util.imagesPath + getMessageContent(message.getContent());
+                 File file = new File(path);
+                 intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this, this.getPackageName() + ".fileProvider", file));
+             }
+             startActivity(intent);
+         }catch (Exception e){
+             e.printStackTrace();
+         }
+     }
+
     void replyToMessage(Message message)
     {
         chatReplyLayout.setVisibility(View.VISIBLE);
@@ -750,8 +785,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         }
     }
 
-     void updateRecyclerAdapter(final int position)
-     {
+     void updateRecyclerAdapter(final int position) {
          runOnUiThread(new Runnable() {
              @Override
              public void run() {
@@ -760,14 +794,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          });
      }
 
-     void updateMessageRemoved(final int position)
-     {
+     void updateMessageRemoved(final int position) {
          runOnUiThread(new Runnable() {
              @Override
-             public void run() {
-                 recyclerAdapter.notifyItemRangeRemoved(position,1);
-             }
-         });
+             public void run() { recyclerAdapter.notifyItemRangeRemoved(position,1); }});
      }
 
      //MessageSentCallback override methods
@@ -938,6 +968,10 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  }
                  case MESSAGE_REPLY: {
                      replyToMessage(message);
+                     return;
+                 }
+                 case MESSAGE_SHARE:{
+                     shareMessage(message);
                  }
              }
          }catch (Exception e){
@@ -986,13 +1020,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             ImageButton copyButton;
             ImageButton replyButton;
             ImageButton deleteButton;
-            ImageButton infoButton;
             RelativeLayout replyLayout;
             TextView replyName;
             TextView replyMessage;
             TextView lengthCorrector;
             LinearLayout bubble;
             ImageView replyThumbnail;
+            ImageButton shareButton;
 
             TextReceived(View view) {
                 super(view);
@@ -1003,13 +1037,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 copyButton = view.findViewById(R.id.copy_button);
                 replyButton = view.findViewById(R.id.reply_button);
                 deleteButton = view.findViewById(R.id.delete_button);
-                infoButton = view.findViewById(R.id.info_button);
                 replyLayout = view.findViewById(R.id.reply_receive_layout);
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 lengthCorrector = view.findViewById(R.id.messag);
                 bubble = view.findViewById(R.id.incoming_layout_bubble);
                 replyThumbnail = view.findViewById(R.id.thumbnail);
+                shareButton = view.findViewById(R.id.share_button);
             }
         }
 
@@ -1032,6 +1066,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView lengthCorrector;
              LinearLayout bubble;
              ImageView replyThumbnail;
+             ImageButton shareButton;
 
              TextSent(View view) {
                  super(view);
@@ -1053,6 +1088,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  lengthCorrector = view.findViewById(R.id.messag);
                  bubble = view.findViewById(R.id.outgoing_layout_bubble);
                  replyThumbnail = view.findViewById(R.id.thumbnail);
+                 shareButton = view.findViewById(R.id.share_button);
              }
          }
 
@@ -1074,6 +1110,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView replyName;
              TextView replyMessage;
              ImageView replyThumbnail;
+             ImageButton shareButton;
 
             ImageSent(View view) {
                 super(view);
@@ -1093,6 +1130,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 replyThumbnail = view.findViewById(R.id.thumbnail);
+                shareButton = view.findViewById(R.id.share_button);
             }
          }
 
@@ -1103,7 +1141,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              ImageButton copyButton;
              ImageButton replyButton;
              ImageButton deleteButton;
-             ImageButton infoButton;
              ImageView main;
              TextView time;
              LinearLayout imageDownloadContainer;
@@ -1113,6 +1150,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView replyName;
              TextView replyMessage;
              ImageView replyThumbnail;
+             ImageButton shareButton;
 
             ImageReceived(View view) {
                 super(view);
@@ -1121,7 +1159,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 copyButton = view.findViewById(R.id.copy_button);
                 replyButton = view.findViewById(R.id.reply_button);
                 deleteButton = view.findViewById(R.id.delete_button);
-                infoButton = view.findViewById(R.id.info_button);
                 main = view.findViewById(R.id.main);
                 time = view.findViewById(R.id.time);
                 imageDownloadContainer = view.findViewById(R.id.image_overlay);
@@ -1131,6 +1168,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 replyThumbnail = view.findViewById(R.id.thumbnail);
+                shareButton = view.findViewById(R.id.share_button);
             }
          }
 
@@ -1152,6 +1190,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView replyName;
              TextView replyMessage;
              ImageView replyThumbnail;
+             ImageButton shareButton;
 
             FileSent(View view){
                 super(view);
@@ -1171,6 +1210,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 replyThumbnail = view.findViewById(R.id.thumbnail);
+                shareButton = view.findViewById(R.id.share_button);
             }
          }
 
@@ -1181,7 +1221,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              ImageButton copyButton;
              ImageButton replyButton;
              ImageButton deleteButton;
-             ImageButton infoButton;
              TextView fileName;
              TextView time;
              ImageButton download;
@@ -1191,6 +1230,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              TextView replyName;
              TextView replyMessage;
              ImageView replyThumbnail;
+             ImageButton shareButton;
 
             FileReceived(View view){
                 super(view);
@@ -1199,7 +1239,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 copyButton = view.findViewById(R.id.copy_button);
                 replyButton = view.findViewById(R.id.reply_button);
                 deleteButton = view.findViewById(R.id.delete_button);
-                infoButton = view.findViewById(R.id.info_button);
                 fileName = view.findViewById(R.id.file_name);
                 time = view.findViewById(R.id.time);
                 download = view.findViewById(R.id.download_file);
@@ -1209,6 +1248,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 replyName = view.findViewById(R.id.name);
                 replyMessage = view.findViewById(R.id.reply_text);
                 replyThumbnail = view.findViewById(R.id.thumbnail);
+                shareButton = view.findViewById(R.id.share_button);
             }
          }
 
@@ -1378,16 +1418,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          h.corner.setVisibility(View.INVISIBLE);
                      else
                          h.corner.setVisibility(View.VISIBLE);
-
-                     h.infoButton.setOnClickListener(new View.OnClickListener() {
-                         @Override
-                         public void onClick(View view) {
-                             if(h.container.isOpen()) {
-                                 messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
-                                 h.container.close(true);
-                             }
-                         }
-                     });
                      h.deleteButton.setOnClickListener(new View.OnClickListener() {
                          @Override
                          public void onClick(View view) {
@@ -1411,6 +1441,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                          public void onClick(View view) {
                              if(h.container.isOpen()) {
                                  messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                 h.container.close(true);
+                             }
+                         }
+                     });
+                     h.shareButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
                                  h.container.close(true);
                              }
                          }
@@ -1514,6 +1553,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                              }
                          }
                      });
+                     h.shareButton.setOnClickListener(new View.OnClickListener() {
+                         @Override
+                         public void onClick(View view) {
+                             if(h.container.isOpen()) {
+                                 messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
+                                 h.container.close(true);
+                             }
+                         }
+                     });
                  }
              }
             else if(message.getType()==Message.MESSAGE_TYPE_IMAGE)
@@ -1544,15 +1592,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                    else
                        h.corner.setVisibility(View.VISIBLE);
 
-                   h.infoButton.setOnClickListener(new View.OnClickListener() {
-                       @Override
-                       public void onClick(View view) {
-                           if(h.container.isOpen()) {
-                               messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
-                               h.container.close(true);
-                           }
-                       }
-                   });
                    h.deleteButton.setOnClickListener(new View.OnClickListener() {
                        @Override
                        public void onClick(View view) {
@@ -1576,6 +1615,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                        public void onClick(View view) {
                            if(h.container.isOpen()) {
                                messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
+                   h.shareButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
                                h.container.close(true);
                            }
                        }
@@ -1692,6 +1740,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                            }
                        }
                    });
+                   h.shareButton.setOnClickListener(new View.OnClickListener() {
+                       @Override
+                       public void onClick(View view) {
+                           if(h.container.isOpen()) {
+                               messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
+                               h.container.close(true);
+                           }
+                       }
+                   });
                    String path = Util.sentImagesPath+messageContent;
                    File file = new File(path);
                    if (file.exists()) {
@@ -1774,15 +1831,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                     else
                         h.corner.setVisibility(View.VISIBLE);
 
-                    h.infoButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            if(h.container.isOpen()) {
-                                messageOptionsCallback.onOptionsSelected(MESSAGE_INFO, position);
-                                h.container.close(true);
-                            }
-                        }
-                    });
                     h.deleteButton.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
@@ -1806,6 +1854,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.shareButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
                                 h.container.close(true);
                             }
                         }
@@ -1920,6 +1977,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                         public void onClick(View view) {
                             if(h.container.isOpen()) {
                                 messageOptionsCallback.onOptionsSelected(MESSAGE_COPY, position);
+                                h.container.close(true);
+                            }
+                        }
+                    });
+                    h.shareButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(h.container.isOpen()) {
+                                messageOptionsCallback.onOptionsSelected(MESSAGE_SHARE, position);
                                 h.container.close(true);
                             }
                         }

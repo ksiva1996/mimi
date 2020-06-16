@@ -8,7 +8,7 @@
     android:id="@+id/container"
     android:layout_marginTop="5dp">
 
-    <include layout="@layout/message_options_layout"/>
+    <include layout="@layout/message_options_layout_sent"/>
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -35,7 +35,7 @@
             android:layout_marginRight="15dp"
             android:background="@drawable/from_msg_background"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="@dimen/message_padding">
 
            <include layout="@layout/message_sent_reply_layout"/>
 
@@ -45,6 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:autoLink="web"
+                android:textSize="@dimen/message_text_size"
                 android:textColor="#ccffffff" />
 
             <LinearLayout
@@ -59,7 +60,8 @@
                     style="@style/chat_timings"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="5dp" />
+                    android:layout_marginEnd="5dp"
+                    android:textSize="@dimen/message_time_size"/>
 
                 <ImageView
                     android:id="@+id/sent"

@@ -12,6 +12,7 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.MessageInfo;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.storage.DatabaseManager;
@@ -33,6 +34,11 @@ public class GroupMessageInfo extends AppCompatActivity {
     TextView deliveredNumber;
     ListView listView;
     CustomAdapter customAdapter;
+    String currentUserId;
+    Message message;
+    View image;
+    View text;
+    View file;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +49,15 @@ public class GroupMessageInfo extends AppCompatActivity {
         readNumber = findViewById(R.id.read);
         deliveredNumber = findViewById(R.id.deliver);
 
+        image = findViewById(R.id.image);
+        text = findViewById(R.id.text);
+        file = findViewById(R.id.file);
+
         messageInfos = new ArrayList<>();
         Intent intent = getIntent();
 
+        setTitle("Message Info");
+        currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
         messageId = intent.getStringExtra(Util.messageId);
         groupId = intent.getStringExtra(Util.id);
         DatabaseManager.initializeInstance(new SQLHelper(this));
@@ -58,17 +70,27 @@ public class GroupMessageInfo extends AppCompatActivity {
     }
 
     private void load() {
+        message = databaseManager.getMessage(messageId,groupId);
         messageInfos.clear();
         messageInfos.addAll(databaseManager.getMessageInfo(messageId,groupId));
 
         int rc = 0;
         int dc = 0;
+        MessageInfo toBeRemoved = null;
         for (MessageInfo mi:messageInfos) {
+            if(mi.getUserId().equals(currentUserId))
+            {
+                toBeRemoved = mi;
+                continue;
+            }
             if (mi.getReceivedTimestamp()==null)
                 dc++;
             if(mi.getSeenTimestamp()==null)
                 rc++;
         }
+        if(toBeRemoved != null)
+            messageInfos.remove(toBeRemoved);
+
         readNumber.setText(rc+" remaining");
         deliveredNumber.setText(dc+" remaining");
         customAdapter.notifyDataSetChanged();
@@ -111,19 +133,20 @@ public class GroupMessageInfo extends AppCompatActivity {
             TextView thumbnail = view.findViewById(R.id.thumbnail);
             TextView receivedTime = view.findViewById(R.id.deliver_text);
             TextView seenTime = view.findViewById(R.id.read_text);
-
-            MessageInfo messageInfo = mi.get(i);
-
-            User user = databaseManager.getUser(messageInfo.getUserId());
-            name.setText(user.getName());
-            number.setText(user.getNumber());
-            thumbnail.setText(user.getName().substring(0,1));
-            if(messageInfo.getSeenTimestamp()!=null)
-                seenTime.setText(messageInfo.getSeenTimestamp());
-            if(messageInfo.getReceivedTimestamp()!=null)
-                receivedTime.setText(messageInfo.getReceivedTimestamp());
-            thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(userColors[i]))));
-
+            try {
+                MessageInfo messageInfo = mi.get(i);
+                User user = databaseManager.getUser(messageInfo.getUserId());
+                name.setText(user.getName());
+                number.setText(user.getNumber());
+                thumbnail.setText(user.getName().substring(0, 1));
+                if (messageInfo.getSeenTimestamp() != null)
+                    seenTime.setText(messageInfo.getSeenTimestamp());
+                if (messageInfo.getReceivedTimestamp() != null)
+                    receivedTime.setText(messageInfo.getReceivedTimestamp());
+                thumbnail.setBackgroundTintList(ColorStateList.valueOf((Color.parseColor(userColors[i]))));
+            }catch (Exception e){
+                e.printStackTrace();
+            }
             return view;
         }
     }

@@ -10,5 +10,9 @@
     <dimen name="st_130">-130dp</dimen>
     <dimen name="st_65">-65dp</dimen>
     <dimen name="appbar_padding">16dp</dimen>
+    <dimen name="message_text_size">15sp</dimen>
+    <dimen name="message_time_size">12sp</dimen>
+    <dimen name="message_padding">5dp</dimen>
+    <dimen name="message_reply_margin_bottom">5dp</dimen>
 
 </resources>

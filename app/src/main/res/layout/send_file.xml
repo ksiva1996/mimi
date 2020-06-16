@@ -10,7 +10,7 @@
     tools:ignore="ContentDescription"
     android:layout_marginTop="5dp">
 
-    <include layout="@layout/message_options_layout"/>
+    <include layout="@layout/message_options_layout_sent"/>
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -37,7 +37,7 @@
                 android:layout_marginEnd="15dp"
                 android:background="@drawable/from_msg_background"
                 android:orientation="vertical"
-                android:padding="10dp">
+                android:padding="@dimen/message_padding">
 
                 <include
                     android:layout_width="match_parent"
@@ -73,7 +73,7 @@
                         android:layout_weight="1"
                         android:text="app-debu.apk app-"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp" />
+                        android:textSize="@dimen/message_text_size" />
 
                 </RelativeLayout>
 
@@ -92,6 +92,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="5dp"
+                        android:textSize="@dimen/message_time_size"
                         android:text="11:15 PM" />
 
                     <View

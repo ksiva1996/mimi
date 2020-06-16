@@ -9,6 +9,6 @@
         android:padding="@dimen/appbar_padding"
         android:id="@+id/name"
         android:textColor="@color/white"
-        android:textSize="20sp"/>
+        android:textSize="16sp"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

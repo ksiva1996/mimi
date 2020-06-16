@@ -773,23 +773,27 @@ public class DatabaseManager {
 
     public ArrayList<Message> getResendMessages()
     {
-        ArrayList<Message> messages = new ArrayList<>();
-        String raw = "SELECT * FROM "+TABLE_RESEND_MESSAGE;
-        Cursor cursor =openDatabase().rawQuery(raw,null);
-        if(cursor.moveToFirst())
-        {
-            do {
-                Message message = getMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID))
-                        ,cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_USER_ID)));
-                if(message!=null) {
-                    messages.add(message);
-                }
-                else
-                    deleteResendMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID)));
-            }while(cursor.moveToNext());
+        try {
+            ArrayList<Message> messages = new ArrayList<>();
+            String raw = "SELECT * FROM " + TABLE_RESEND_MESSAGE;
+            Cursor cursor = openDatabase().rawQuery(raw, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    Message message = getMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID))
+                            , cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_USER_ID)));
+                    if (message != null) {
+                        messages.add(message);
+                    } else
+                        deleteResendMessage(cursor.getString(cursor.getColumnIndex(RESEND_MESSAGE_MESSAGE_ID)));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            return messages;
         }
-        cursor.close();
-        return messages;
+        catch (Exception e){
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
     }
     public void deleteResendMessage(String messageId) {
         openDatabase().delete(TABLE_RESEND_MESSAGE,RESEND_MESSAGE_MESSAGE_ID+" = ?", new String[]{messageId});
@@ -860,7 +864,7 @@ public class DatabaseManager {
             cursor.moveToFirst();
             String name = cursor.getString(cursor.getColumnIndex(GROUPS_NAME));
             String admins = cursor.getString(cursor.getColumnIndex(GROUPS_ADMINS));
-            int groupActive = cursor.getInt(cursor.getColumnIndex(GROUPS_ADMINS));
+            int groupActive = cursor.getInt(cursor.getColumnIndex(GROUPS_ACTIVE));
             rawQuery = "SELECT * FROM "+TABLE_GROUP_PARTICIPANTS+" WHERE "+GROUP_PARTICIPANTS_GROUP_ID+" = ?";
             Cursor cursor1 = sqLiteDatabase.rawQuery(rawQuery, new String[]{groupId});
             ArrayList<User> users = new ArrayList<>();
@@ -915,6 +919,7 @@ public class DatabaseManager {
     }
 
     public void markGroupAsDeleted(String groupId){
+        Log.e("egj","upadtemarked");
         SQLiteDatabase sqLiteDatabase = openDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(GROUPS_ACTIVE,Group.GROUP_NOT_ACTIVE);
@@ -935,6 +940,9 @@ public class DatabaseManager {
             for (User u:group.getUsers()) {
                 insertNewUserIntoGroup(group.getId(),u.getId());
             }
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(GROUPS_ACTIVE,Group.GROUP_ACTIVE);
+            sqLiteDatabase.update(TABLE_GROUPS,contentValues,GROUPS_ID+"= ?", new String[]{group.getId()});
         }
     }
 

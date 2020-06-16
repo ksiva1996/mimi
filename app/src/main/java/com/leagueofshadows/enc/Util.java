@@ -91,6 +91,7 @@ public class Util {
     static final int MESSAGE_DELETE = 2;
     static final int MESSAGE_COPY = 3;
     static final int MESSAGE_REPLY = 4;
+    static final int MESSAGE_SHARE = 5;
 
     static final String MESSAGE_CONTENT = "M_C";
     static final String MESSAGE_REPLIED = "M_R";

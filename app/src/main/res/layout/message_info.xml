@@ -14,7 +14,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="3dp"
-            android:background="@drawable/gradient_bg"
             android:clickable="true"
             android:focusable="true"
             android:orientation="horizontal"
@@ -22,8 +21,8 @@
 
             <TextView
                 android:id="@+id/read_image"
-                android:layout_width="35dp"
-                android:layout_height="25dp"
+                android:layout_width="25dp"
+                android:layout_height="15dp"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="15dp"
@@ -40,7 +39,7 @@
                 android:layout_toEndOf="@id/read_image"
                 android:text="@string/read"
                 android:textColor="#ffffff"
-                android:textSize="20sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:typeface="sans" />
 
@@ -53,7 +52,7 @@
                 android:layout_toEndOf="@id/read_image"
                 android:text="--"
                 android:textColor="@color/main_screen_normal"
-                android:textSize="16sp" />
+                android:textSize="15sp" />
 
         </RelativeLayout>
 
@@ -61,7 +60,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="3dp"
-            android:background="@drawable/gradient_bg"
             android:clickable="true"
             android:focusable="true"
             android:orientation="horizontal"
@@ -69,8 +67,8 @@
 
             <TextView
                 android:id="@+id/deliver_image"
-                android:layout_width="35dp"
-                android:layout_height="25dp"
+                android:layout_width="25dp"
+                android:layout_height="15dp"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="15dp"
@@ -88,7 +86,7 @@
                 android:layout_toEndOf="@id/deliver_image"
                 android:text="@string/delivered"
                 android:textColor="#ffffff"
-                android:textSize="20sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:typeface="sans" />
 
@@ -101,7 +99,7 @@
                 android:layout_toEndOf="@id/deliver_image"
                 android:text="--"
                 android:textColor="@color/main_screen_normal"
-                android:textSize="16sp" />
+                android:textSize="15sp" />
 
         </RelativeLayout>
 

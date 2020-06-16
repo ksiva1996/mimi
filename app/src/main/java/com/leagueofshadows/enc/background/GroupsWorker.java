@@ -42,7 +42,7 @@ public class GroupsWorker extends Service {
     int id = 1478;
     FirebaseHelper firebaseHelper;
     App app;
-    private String userId;
+    private String currentUserId;
 
     @Override
     public void onCreate() {
@@ -52,8 +52,8 @@ public class GroupsWorker extends Service {
         databaseManager = DatabaseManager.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference();
         firebaseHelper = new FirebaseHelper(this);
-        userId =getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
-        assert userId != null;
+        currentUserId =getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        assert currentUserId != null;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class GroupsWorker extends Service {
 
         final ArrayList<String> groupIds = new ArrayList<>();
 
-        databaseReference.child(Groups).child(Users).child(userId).child(Groups).addListenerForSingleValueEvent(new ValueEventListener() {
+        databaseReference.child(Groups).child(Users).child(currentUserId).child(Groups).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for(DataSnapshot d:dataSnapshot.getChildren()){
@@ -99,7 +99,7 @@ public class GroupsWorker extends Service {
                     String groupName = (String) d.child(Util.name).getValue();
                     String groupId = (String) d.child(Util.id).getValue();
                     String admins = (String) d.child(Util.admins).getValue();
-                    int groupActive = Integer.parseInt(Long.toString((Long) d.child(Util.groupActive).getValue()));
+                    int active = Group.GROUP_NOT_ACTIVE;
 
                     ArrayList<User> users = new ArrayList<>();
                     for(DataSnapshot d1:d.child("users").getChildren()){
@@ -107,9 +107,18 @@ public class GroupsWorker extends Service {
                         String id = (String) d1.child(Util.id).getValue();
                         String number = (String) d1.child(Util.number).getValue();
                         String Base64PublicKey = (String) d1.child(Util.base64EncodedPublicKey).getValue();
-                        if (!id.equals(userId))
+                        if (!id.equals(currentUserId))
                             users.add(new User(id,name,number,Base64PublicKey));
+                        else
+                            active = Group.GROUP_ACTIVE;
                     }
+
+                    if(active==Group.GROUP_NOT_ACTIVE){
+                        FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(currentUserId).child(Groups).removeValue();
+                        databaseManager.markGroupAsDeleted(groupId);
+                        return;
+                    }
+
                     for (final User u:users) {
 
                         if(databaseManager.getUser(u.getId())==null)
@@ -123,11 +132,18 @@ public class GroupsWorker extends Service {
                             public void onCancelled(String error) { }
                         });
                     }
-                    Group group = new Group(groupId,groupName,users,admins,groupActive);
-                    databaseManager.addNewGroup(group);
-                    if (!app.isnull()) {
-                        ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
-                        for (GroupsUpdatedCallback g:groupsUpdatedCallbacks) { g.onComplete(); }
+                    Group group = new Group(groupId,groupName,users,admins,active);
+                    try {
+                        if(groupId!=null&&groupName!=null)
+                        databaseManager.addNewGroup(group);
+                        if (!app.isnull()) {
+                            ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
+                            for (GroupsUpdatedCallback g : groupsUpdatedCallbacks) {
+                                g.onComplete();
+                            }
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
                     }
                 }
                 @Override

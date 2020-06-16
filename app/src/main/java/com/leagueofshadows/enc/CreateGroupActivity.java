@@ -258,9 +258,20 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
         if(allSuccess) {
             Native restHelper = new Native(this);
             if(editMode){
-
+                ArrayList<User> users = new ArrayList<>();
+                users.addAll(databaseManager.getGroup(groupId).getUsers());
+                users.addAll(existingGroup.getUsers());
+                restHelper.sendGroupUpdatedNotification(groupId,users, currentUser);
                 databaseManager.updateGroupUsers(existingGroup);
-                restHelper.sendGroupUpdatedNotification(existingGroup, currentUser);
+                App app = (App) getApplication();
+                if(!app.isnull()){
+                    ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
+                    if(groupsUpdatedCallbacks!=null){
+                        for (GroupsUpdatedCallback gr:groupsUpdatedCallbacks) {
+                            gr.onComplete();
+                        }
+                    }
+                }
                 finish();
             }
             else {

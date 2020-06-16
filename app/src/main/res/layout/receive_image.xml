@@ -10,7 +10,7 @@
     tools:ignore="ContentDescription"
     android:layout_marginTop="5dp">
 
-    <include layout="@layout/message_options_layout"/>
+    <include layout="@layout/message_options_layout_received"/>
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -35,7 +35,7 @@
         android:layout_marginEnd="60dp"
         android:background="@drawable/to_msg_background"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="@dimen/message_padding">
 
         <include
             android:layout_width="match_parent"
@@ -89,6 +89,7 @@
             style="@style/chat_timings"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:textSize="@dimen/message_time_size"
             android:layout_gravity="bottom|right"
             android:layout_marginTop="5dp"
             android:text="11:15 PM" />

@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -53,7 +54,6 @@ public class FirebaseReceiver extends FirebaseMessagingService {
     private static final String GROUP_ID = "GROUP_ID";
     private String currentUserId;
     private DatabaseManager databaseManager;
-    private App app;
     private FirebaseHelper firebaseHelper;
 
     @Override
@@ -78,7 +78,7 @@ public class FirebaseReceiver extends FirebaseMessagingService {
             else
                 databaseManager.updateMessageSeenStatus(data.get(SEEN_STATUS),id,userId,groupId,currentUserId);
 
-            app = (App) getApplication();
+            App app = (App) getApplication();
             MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
             if(messagesRetrievedCallback!=null) {
                 messagesRetrievedCallback.onUpdateMessageStatus(id,userId);
@@ -153,38 +153,70 @@ public class FirebaseReceiver extends FirebaseMessagingService {
         FirebaseDatabase.getInstance().getReference().child(Groups).child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot d) {
-                String groupName = (String) d.child(Util.name).getValue();
-                String groupId = (String) d.child(Util.id).getValue();
-                String admins = (String) d.child(Util.admins).getValue();
-                int groupActive = Integer.parseInt(Long.toString((Long) d.child(Util.groupActive).getValue()));
+                try {
+                    String groupName = (String) d.child(Util.name).getValue();
+                    String groupId = (String) d.child(Util.id).getValue();
+                    String admins = (String) d.child(Util.admins).getValue();
+                    int groupActive = Group.GROUP_NOT_ACTIVE;
 
-                ArrayList<User> users = new ArrayList<>();
-                for(DataSnapshot d1:d.child("users").getChildren()){
-                    String name = (String) d1.child(Util.name).getValue();
-                    String id = (String) d1.child(Util.id).getValue();
-                    String number = (String) d1.child(Util.number).getValue();
-                    String Base64PublicKey = (String) d1.child(Util.base64EncodedPublicKey).getValue();
-                    if (!id.equals(currentUserId))
-                        users.add(new User(id,name,number,Base64PublicKey));
-                }
-                for (final User u:users) {
-                    if(databaseManager.getUser(u.getId())==null)
-                        databaseManager.insertUser(u);
-
-                    firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
-                        @Override
-                        public void onSuccess(String Base64PublicKey) {
-                            databaseManager.insertPublicKey(Base64PublicKey,u.getId());
+                    ArrayList<User> users = new ArrayList<>();
+                    for (DataSnapshot d1 : d.child("users").getChildren()) {
+                        String name = (String) d1.child(Util.name).getValue();
+                        String id = (String) d1.child(Util.id).getValue();
+                        String number = (String) d1.child(Util.number).getValue();
+                        String Base64PublicKey = (String) d1.child(Util.base64EncodedPublicKey).getValue();
+                        if (!id.equals(currentUserId))
+                            users.add(new User(id, name, number, Base64PublicKey));
+                        else {
+                            groupActive = Group.GROUP_ACTIVE;
                         }
-                        @Override
-                        public void onCancelled(String error) { }
-                    });
+                    }
+
+                    if (groupActive == Group.GROUP_NOT_ACTIVE) {
+
+                        Log.e("group removed","group removed");
+
+                        removeNode(FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(Groups).child(groupId));
+                        databaseManager.markGroupAsDeleted(groupId);
+                        App app = (App) getApplication();
+                        if(app!=null){
+                            for (GroupsUpdatedCallback g:app.getGroupsUpdatedCallback()) {
+                                g.onComplete();
+                            }
+                        }
+                        showNotification("You have been removed from \"" + groupName + "\". Open app to see changes");
+                        return;
+                    }
+
+                    for (final User u : users) {
+                        if (databaseManager.getUser(u.getId()) == null)
+                            databaseManager.insertUser(u);
+
+                        firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
+                            @Override
+                            public void onSuccess(String Base64PublicKey) {
+                                databaseManager.insertPublicKey(Base64PublicKey, u.getId());
+                            }
+
+                            @Override
+                            public void onCancelled(String error) {
+                            }
+                        });
+                    }
+                    Group group = new Group(groupId, groupName, users, admins, groupActive);
+                    databaseManager.updateGroupUsers(group);
+                    databaseManager.updateGroupName(groupName, groupId);
+                    App app = (App) getApplication();
+                    if (!app.isnull()) {
+                        ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
+                        for (GroupsUpdatedCallback g : groupsUpdatedCallbacks) {
+                            g.onComplete();
+                        }
+                    }
+                    showNotification("\"" + groupName + "\" has been updated. Open app to see changes");
                 }
-                Group group = new Group(groupId,groupName,users,admins,groupActive);
-                databaseManager.updateGroupUsers(group);
-                if (!app.isnull()) {
-                    ArrayList<GroupsUpdatedCallback> groupsUpdatedCallbacks = app.getGroupsUpdatedCallback();
-                    for (GroupsUpdatedCallback g:groupsUpdatedCallbacks) { g.onComplete(); }
+                catch (Exception e){
+                    e.printStackTrace();
                 }
             }
             @Override

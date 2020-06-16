@@ -20,12 +20,11 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
@@ -45,7 +44,7 @@ import static com.leagueofshadows.enc.CreateGroupActivity.userColors;
 import static com.leagueofshadows.enc.FirebaseHelper.Groups;
 import static com.leagueofshadows.enc.FirebaseHelper.Users;
 
-public class GroupInfo extends AppCompatActivity {
+public class GroupInfo extends AppCompatActivity implements GroupsUpdatedCallback {
 
     Group group;
     String groupId;
@@ -66,6 +65,25 @@ public class GroupInfo extends AppCompatActivity {
         setContentView(R.layout.activity_group_info);
         groupId = getIntent().getStringExtra(Util.id);
         load();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        App app = (App) getApplication();
+        app.addGroupsUpdatedCallback(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        try {
+            App app = (App) getApplication();
+            app.removeGroupsUpdatedCallback(this);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        super.onDestroy();
     }
 
     private void load(){
@@ -158,6 +176,7 @@ public class GroupInfo extends AppCompatActivity {
                 builder.setView(view);
                 final AlertDialog alertDialog = builder.create();
                 final EditText name = view.findViewById(R.id.name);
+                name.setText(group.getName());
                 ImageButton confirm = view.findViewById(R.id.confirm);
                 confirm.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -203,7 +222,7 @@ public class GroupInfo extends AppCompatActivity {
             @Override
             public void onSuccess(Void aVoid) {
                 Native restHelper = new Native(GroupInfo.this);
-                restHelper.sendGroupUpdatedNotification(group,currentUser);
+                restHelper.sendGroupUpdatedNotification(group.getId(),group.getUsers(),currentUser);
                 progressDialog.dismiss();
                 databaseManager.updateGroupName(n,groupId);
                 name.setText(n);
@@ -241,15 +260,20 @@ public class GroupInfo extends AppCompatActivity {
             if(group.getUsers().size()==1)
                 deleteGroup();
             else{
-                FirebaseDatabase.getInstance().getReference().child(Groups).child(groupId).child(admins)
-                        .setValue(group.getUsers().get(0).getId()).addOnCompleteListener(new OnCompleteListener<Void>() {
+
+                ArrayList<User> u = new ArrayList<>(group.getUsers());
+                u.remove(currentUser);
+                Group g = new Group(groupId,group.getName(),u,u.get(0).getId(),Group.GROUP_ACTIVE);
+                FirebaseDatabase.getInstance().getReference().child(Groups).child(groupId).setValue(g).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(currentUserId).child(groupId).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                    public void onSuccess(Void aVoid) {
+                        FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(currentUserId).child(Groups).child(groupId).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
                                 sendUserRemovedNotification();
                                 databaseManager.markGroupAsDeleted(groupId);
+                                sendGroupChanged();
+                                finish();
                             }
                         }).addOnFailureListener(new OnFailureListener() {
                             @Override
@@ -265,17 +289,54 @@ public class GroupInfo extends AppCompatActivity {
                     }
                 });
             }
+        }else{
+            ArrayList<User> u = new ArrayList<>(group.getUsers());
+            u.remove(currentUser);
+            Group g = new Group(groupId,group.getName(),u,group.getAdmins(),Group.GROUP_ACTIVE);
+            FirebaseDatabase.getInstance().getReference().child(Groups).child(groupId).setValue(g).addOnSuccessListener(new OnSuccessListener<Void>() {
+                @Override
+                public void onSuccess(Void aVoid) {
+                    FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(currentUserId).child(Groups).child(groupId).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            sendUserRemovedNotification();
+                            databaseManager.markGroupAsDeleted(groupId);
+                            sendGroupChanged();
+                            finish();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(GroupInfo.this,"Something went wrong, please try again",Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Toast.makeText(GroupInfo.this,"Something went wrong, please try again",Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private void sendGroupChanged(){
+        App app = (App) getApplication();
+        if(!app.isnull()){
+            for (GroupsUpdatedCallback g:app.getGroupsUpdatedCallback()) {
+              g.onComplete();
+            }
         }
     }
 
     private void sendUserRemovedNotification() {
         Native restHelper = new Native(this);
-        restHelper.sendGroupUpdatedNotification(group,currentUser);
+        restHelper.sendGroupUpdatedNotification(group.getId(),group.getUsers(),currentUser);
     }
 
     private void showDeleteGroupDialog() {
         if(admins.contains(currentUserId)){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this,R.style.AlertDialog);
         builder.setMessage("Are you sure you want to delete this group?");
         builder.setPositiveButton("ok", new DialogInterface.OnClickListener() {
             @Override
@@ -293,6 +354,7 @@ public class GroupInfo extends AppCompatActivity {
             public void onSuccess(Void aVoid) {
                 sendGroupDeleteNotification();
                 databaseManager.markGroupAsDeleted(groupId);
+                sendGroupChanged();
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -307,6 +369,11 @@ public class GroupInfo extends AppCompatActivity {
         String name = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.name,currentUserId);
         String text = name+" has deleted group - \""+group.getName()+"\"";
         restHelper.sendGroupDeleteNotification(groupId,group.getUsers(),text,currentUserId);
+    }
+
+    @Override
+    public void onComplete() {
+        load();
     }
 
     static class ContactListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {

@@ -10,12 +10,12 @@
     tools:ignore="ContentDescription"
     android:layout_marginTop="5dp">
 
-    <include layout="@layout/message_options_layout"/>
+    <include layout="@layout/message_options_layout_received"/>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="@dimen/message_reply_margin_bottom"
         android:background="@color/mainBackground">
 
         <ImageView
@@ -35,7 +35,7 @@
             android:layout_marginEnd="60dp"
             android:background="@drawable/to_msg_background"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="@dimen/message_padding">
 
             <TextView
                 android:id="@+id/userName"
@@ -47,7 +47,7 @@
                 android:layout_marginEnd="2dp"
                 android:layout_marginBottom="2dp"
                 android:paddingBottom="3dp"
-                android:textSize="16sp"/>
+                android:textSize="@dimen/message_text_size"/>
 
             <include
                 android:layout_width="match_parent"
@@ -57,7 +57,7 @@
             <RelativeLayout
                 android:layout_width="300dp"
                 android:layout_height="300dp"
-                android:layout_marginTop="10dp">
+                android:layout_marginTop="@dimen/message_reply_margin_bottom">
 
                 <ImageView
                     android:id="@+id/main"
@@ -103,6 +103,7 @@
                 android:layout_height="match_parent"
                 android:layout_gravity="bottom|right"
                 android:layout_marginTop="5dp"
+                android:textSize="@dimen/message_time_size"
                 android:text="11:15 PM" />
         </LinearLayout>
     </RelativeLayout>

@@ -115,7 +115,7 @@
             android:layout_marginTop="30dp"
             android:background="@drawable/msg_circle"
             android:gravity="center"
-            android:text="2"
+            android:text=""
             android:textColor="@android:color/white"
             android:textSize="14sp" />
 

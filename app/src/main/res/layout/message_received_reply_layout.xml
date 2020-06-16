@@ -3,10 +3,10 @@
     android:id="@+id/reply_receive_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="@dimen/message_reply_margin_bottom"
     android:background="@drawable/reply_receive_background"
     android:orientation="horizontal"
-    android:padding="10dp"
+    android:padding="@dimen/message_padding"
     android:visibility="visible"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -21,6 +21,7 @@
             android:layout_margin="2dp"
             android:maxLines="1"
             android:text="you"
+            android:textSize="@dimen/message_text_size"
             android:textColor="#000833"
             android:textStyle="bold" />
 
@@ -40,6 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="1"
+            android:textSize="@dimen/message_text_size"
             android:text="message text"
             android:textColor="#A3A3A3" />
     </LinearLayout>
