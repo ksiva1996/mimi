@@ -1,4 +1,4 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Service;
 import android.content.Intent;
@@ -61,14 +61,12 @@ public class DecryptMessageWorker extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
                 startProcess();
             }
         });
-
         return START_NOT_STICKY;
     }
 
@@ -77,8 +75,7 @@ public class DecryptMessageWorker extends Service {
         databaseManager = DatabaseManager.getInstance();
         ArrayList<EncryptedMessage> es = databaseManager.getEncryptedMessages();
 
-        if(es.isEmpty())
-        {
+        if(es.isEmpty()) {
             stopSelf();
             return;
         }
@@ -116,12 +113,10 @@ public class DecryptMessageWorker extends Service {
         catch (NoSuchAlgorithmException | NoSuchPaddingException ex) {
             ex.printStackTrace();
         }
-
     }
 
     private synchronized void update(EncryptedMessage e) {
         encryptedMessages.remove(e);
-
         if(encryptedMessages.isEmpty()) {
                 stopSelf();
         }
@@ -226,10 +221,8 @@ public class DecryptMessageWorker extends Service {
                         @Override
                         public void onCancelled(String error) {}
                         });
-
                         ex.printStackTrace();
                     }
-
                 }
             }
         });

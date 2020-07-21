@@ -34,7 +34,6 @@ public class ImagePreview extends AppCompatActivity {
     String path;
     Uri uri;
     boolean isVisible = true;
-    ActionBar actionBar;
 
     @Override
     @SuppressLint("ClickableViewAccessibility")

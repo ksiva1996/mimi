@@ -1,19 +1,29 @@
 package com.leagueofshadows.enc;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.util.Base64;
-import android.util.Log;
 import android.widget.Toast;
 
+import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.storage.DatabaseManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,11 +34,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
 import androidx.annotation.NonNull;
-
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 public class Util {
 
-
+    static final int MESSAGE_CACHE = 1000;
     static final String TOKEN_SENT = "TOKEN_SENT";
 
     private static final String originalPath = Environment.getExternalStorageDirectory().getPath()+"/Mimi/";
@@ -48,12 +59,13 @@ public class Util {
     public static String messageType = "messageType";
     public static String admins = "admins";
     public static String groupActive = "groupActive";
+    static long timeOfTyping = 5;
     static String camera = "camera";
 
     public static String ServiceNotificationChannelID = "ServiceNotificationChannelID";
-    public static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";
-    public static String ServiceNotificationChannelTitle = "Service notifications channel";
-    public static String NewMessageNotificationChannelTitle = "New Message notifications";
+    private static String NewMessageNotificationChannelID = "NewMessageNotificationChannelID";
+    private static String ServiceNotificationChannelTitle = "Service notifications channel";
+    private static String NewMessageNotificationChannelTitle = "New Message notifications";
 
     static String CheckMessageEncrypted = "CheckMessageEncrypted";
 
@@ -97,16 +109,22 @@ public class Util {
     static final String MESSAGE_REPLIED = "M_R";
     static final String MESSAGE_REPLIED_ID = "M_I";
 
-    static final int THUMBNAIL_SIZE = 64;
+    private static final int THUMBNAIL_SIZE = 64;
     static final int LOAD_THUMBNAIL_SIZE = 128;
+
+    public static final int BACKGROUND_NOTIFICATION_ID = 15478;
 
     static String getMessageContent(String messageContent)
     {
-        try {
-            JSONObject jsonObject = new JSONObject(messageContent);
-            return jsonObject.getString(MESSAGE_CONTENT);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(messageContent!=null) {
+            try {
+                JSONObject jsonObject = new JSONObject(messageContent);
+                return jsonObject.getString(MESSAGE_CONTENT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "";
+            }
+        }else {
             return "";
         }
     }
@@ -166,8 +184,7 @@ public class Util {
             return upperCompression;
         else if(byteCount<byteLowerLimit)
             return lowerCompression;
-        else
-        {
+        else {
             int factor = (byteUpperLimit - byteLowerLimit)/(lowerCompression-upperCompression);
             return 80 - (byteCount-byteLowerLimit)/factor;
         }
@@ -175,7 +192,6 @@ public class Util {
 
     static String prepareMessage(String messageContent, Message replyMessage, String currentUserId)
     {
-
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put(MESSAGE_CONTENT,messageContent);
@@ -219,7 +235,6 @@ public class Util {
             height = (THUMBNAIL_SIZE*height)/width;
             width = THUMBNAIL_SIZE;
         }
-        Log.e(""+height,""+width);
 
         bitmap = Bitmap.createScaledBitmap(bitmap,width,height,false);
 
@@ -239,5 +254,85 @@ public class Util {
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void sendNewMessageNotification(final Message message, final DatabaseManager databaseManager, final Context context, final Intent notificationIntent){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    String text;
+                    int notificationId;
+                    User user = databaseManager.getUser(message.getFrom());
+                    if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_GROUP_MESSAGE) {
+                        Group group = databaseManager.getGroup(message.getTo());
+                        text = "New message from " + user.getName() + " in group - "+group.getName();
+                        notificationId = group.getId().hashCode();
+                    }else {
+                        text = "New message from " + user.getName();
+                        notificationId = user.getId().hashCode();
+                    }
+                    Util.createMessageNotificationChannel(context);
+                    Util.showNewMessageNotification(context,text,notificationId,notificationIntent);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public static void showNewMessageNotification(Context context,String notificationText, int notificationId,Intent notificationIntent){
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(context,1,notificationIntent,0);
+        Notification notification = new NotificationCompat.Builder(context,Util.NewMessageNotificationChannelID).setContentTitle(context.getString(R.string.app_name))
+                .setContentText(notificationText)
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(false)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                .build();
+        NotificationManagerCompat.from(context).notify(notificationId,notification);
+    }
+
+    public static void createMessageNotificationChannel(Context context){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
+            NotificationChannel serviceChannel = new NotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle, NotificationManager.IMPORTANCE_HIGH);
+            //serviceChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            assert notificationManager != null;
+            notificationManager.createNotificationChannel(serviceChannel);
+
+        }
+    }
+    public static void createServiceNotificationChannel(Context context){
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
+            NotificationChannel serviceChannel = new NotificationChannel(ServiceNotificationChannelID,ServiceNotificationChannelTitle, NotificationManager.IMPORTANCE_LOW);
+            //serviceChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            assert notificationManager != null;
+            notificationManager.createNotificationChannel(serviceChannel);
+
+        }
+    }
+
+    static void clearNewMessageNotification(int id,Context context){
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(context);
+        notificationManagerCompat.cancel(id);
+    }
+
+    public static Intent getNotificationIntent(Message message,Context context) {
+        Intent intent;
+        if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_SINGLE_USER) {
+            intent = new Intent(context, ChatActivity.class);
+            intent.putExtra(userId,message.getFrom());
+        }
+        else {
+            intent = new Intent(context, GroupChatActivity.class);
+            intent.putExtra(userId,message.getTo());
+        }
+        return intent;
     }
 }

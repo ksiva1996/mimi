@@ -25,7 +25,7 @@ import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.Interfaces.UserCallback;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.background.ContactsWorker;
+import com.leagueofshadows.enc.Background.ContactsWorker;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -39,7 +39,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import static com.leagueofshadows.enc.background.ContactsWorker.FLAG;
+import static com.leagueofshadows.enc.Background.ContactsWorker.FLAG;
 
 public class OTP extends AppCompatActivity implements UserCallback {
 

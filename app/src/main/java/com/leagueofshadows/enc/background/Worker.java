@@ -1,12 +1,9 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -15,6 +12,10 @@ import com.leagueofshadows.enc.FirebaseHelper;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
+import com.leagueofshadows.enc.Items.Group;
+import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.User;
+import com.leagueofshadows.enc.MainActivity;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.SplashActivity;
 import com.leagueofshadows.enc.Util;
@@ -25,7 +26,6 @@ import java.util.ArrayList;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 public class Worker extends Service implements CompleteCallback{
 
@@ -44,7 +44,7 @@ public class Worker extends Service implements CompleteCallback{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
+        Util.createServiceNotificationChannel(this);
         Intent notificationIntent = new Intent(this, SplashActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,1,notificationIntent,0);
         Notification notification = new NotificationCompat.Builder(this,Util.ServiceNotificationChannelID).setContentTitle(getString(R.string.app_name))
@@ -54,34 +54,25 @@ public class Worker extends Service implements CompleteCallback{
 
         startForeground(id,notification);
 
-
         DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
         databaseManager = DatabaseManager.getInstance();
 
         firebaseHelper = new FirebaseHelper(getApplicationContext());
-        String userId = intent.getStringExtra(Util.userId);
-
-        String currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        String userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
 
         try {
-            assert currentUserId != null;
-            if(userId==null)
-                userId = currentUserId;
-
             firebaseHelper.getNewMessages(userId,this);
         }
         catch (DeviceOfflineException e) {
             e.printStackTrace();
         }
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     private void work()
     {
         ArrayList<EncryptedMessage> encryptedMessages = databaseManager.getEncryptedMessages();
-
         this.encryptedMessages.addAll(encryptedMessages);
-
         if(encryptedMessages.isEmpty())
         {
             stopSelf();
@@ -108,75 +99,26 @@ public class Worker extends Service implements CompleteCallback{
             }
         }
 
-        createNotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle);
-
-        Intent notificationIntent = new Intent(getApplicationContext(),SplashActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
-        Notification notification = new NotificationCompat.Builder(getApplicationContext(),Util.NewMessageNotificationChannelID).setContentTitle(getString(R.string.app_name))
-                .setContentText("New message/messages")
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentIntent(pendingIntent).setAutoCancel(false)
-                .build();
-        NotificationManagerCompat.from(getApplicationContext()).notify((int) System.currentTimeMillis(),notification);
-
     }
 
     private synchronized void update(EncryptedMessage e) {
 
         encryptedMessages.remove(e);
         if(encryptedMessages.isEmpty()) {
+            Util.createMessageNotificationChannel(this);
+            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+            String text;
+            User user = databaseManager.getUser(e.getFrom());
+            if(e.getIsGroupMessage()== Message.MESSAGE_TYPE_SINGLE_USER)
+                text = "New message from "+user.getName();
+            else{
+                Group group = databaseManager.getGroup(e.getTo());
+                text = "New message from "+user.getName()+"in group -"+group.getName();
+            }
+            Util.showNewMessageNotification(this,text,Util.BACKGROUND_NOTIFICATION_ID,intent);
            stopSelf();
         }
     }
-
-    /*void decryptMessage(final EncryptedMessage e, final AESHelper aesHelper, final String Base64PublicKey)  {
-
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                if (e.getType() == EncryptedMessage.MESSAGE_TYPE_ONLY_TEXT)
-                {
-                    final App app = (App) getApplication();
-
-                    try {
-                        String  m = aesHelper.DecryptMessage(e.getContent(), app.getPrivateKey(), Base64PublicKey);
-                        String timeStamp = Calendar.getInstance().getTime().toString();
-                        Message message = new Message(0, e.getId(), e.getTo(), e.getFrom(), m, e.getFilePath(), e.getTimeStamp(), e.getType(),
-                                e.getTimeStamp(), timeStamp,null);
-                        databaseManager.insertNewMessage(message,message.getFrom());
-                        databaseManager.deleteEncryptedMessage(e.getId());
-
-                        if(app.getMessagesRetrievedCallback()!=null) {
-
-                            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
-                            messagesRetrievedCallback.onNewMessage(message);
-                        }
-                        else {
-                        }
-                        update(e);
-                    } catch (NoSuchPaddingException | NoSuchAlgorithmException | IllegalBlockSizeException | BadPaddingException |
-                            InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException |
-                            DataCorruptedException | RunningOnMainThreadException ex) {
-                        databaseManager.deleteEncryptedMessage(e.getId());
-                        update(e);
-                        ex.printStackTrace();
-                    }
-                }
-            }
-        });
-    }*/
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
-        }
-    }
-
 
     @Nullable
     @Override
@@ -186,7 +128,6 @@ public class Worker extends Service implements CompleteCallback{
 
     @Override
     public void onComplete(int numberOfMessages) {
-
         work();
     }
 

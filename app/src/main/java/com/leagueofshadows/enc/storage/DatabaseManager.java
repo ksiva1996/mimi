@@ -2,9 +2,9 @@ package com.leagueofshadows.enc.storage;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
@@ -114,7 +114,7 @@ public class DatabaseManager {
 
     //Messages database operation
 
-    public void insertNewMessage(Message message,String id,String currentUserId)
+    public void insertNewMessage(Message message, String id, String currentUserId)
     {
         String tableName;
         if(message.getIsGroupMessage()==Message.MESSAGE_TYPE_GROUP_MESSAGE)
@@ -660,6 +660,15 @@ public class DatabaseManager {
         sqLiteDatabase.update(TABLE_USER_DATA,contentValues,USER_DATA_USERS_ID+" = ?", new String[]{userId});
     }
 
+    public boolean checkForNewMessages(){
+        boolean flag = false;
+        long x = DatabaseUtils.queryNumEntries(openDatabase(),TABLE_ENCRYPTED_MESSAGES);
+        long y = DatabaseUtils.queryNumEntries(openDatabase(),TABLE_USER_DATA,USER_DATA_NEW_MESSAGE_COUNT+" > 1");
+        if(x!=0 || y!=0)
+            flag = true;
+        return flag;
+    }
+
     public ArrayList<ChatData> getUserData()
     {
         ArrayList<ChatData> chatDataArrayList = new ArrayList<>();
@@ -919,7 +928,6 @@ public class DatabaseManager {
     }
 
     public void markGroupAsDeleted(String groupId){
-        Log.e("egj","upadtemarked");
         SQLiteDatabase sqLiteDatabase = openDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(GROUPS_ACTIVE,Group.GROUP_NOT_ACTIVE);
@@ -974,7 +982,6 @@ public class DatabaseManager {
                 Cursor cursor1 = sqLiteDatabase.rawQuery(seenRaw, params);
                 String seenTimestamp = null;
                 if (cursor1.moveToFirst()) {
-                    Log.e("stamp",cursor1.getString(cursor1.getColumnIndex(SEEN_STATUS_TIMESTAMP)));
                     seenTimestamp = cursor1.getString(cursor1.getColumnIndex(SEEN_STATUS_TIMESTAMP));
                     cursor1.close();
                 }

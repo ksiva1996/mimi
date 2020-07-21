@@ -1,8 +1,6 @@
 package com.leagueofshadows.enc;
 
 import android.annotation.SuppressLint;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -14,6 +12,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,8 +30,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.leagueofshadows.enc.Background.Downloader;
+import com.leagueofshadows.enc.Background.FileUploadService;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
@@ -41,12 +44,11 @@ import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
 import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
+import com.leagueofshadows.enc.Interfaces.UserTypingCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.background.Downloader;
-import com.leagueofshadows.enc.background.FileUploadService;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -66,7 +68,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Random;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -76,8 +79,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScroller;
@@ -115,11 +116,11 @@ import static com.leagueofshadows.enc.Util.prepareMessage;
 
 @SuppressLint("InflateParams")
 public class ChatActivity extends AppCompatActivity implements MessagesRetrievedCallback, MessageSentCallback,
-        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback
- {
+        ScrollEndCallback, PublicKeyCallback, ResendMessageCallback, MessageOptionsCallback, UserTypingCallback, TextWatcher {
 
     ArrayList<Message> messages;
     ArrayList<String> messageIds;
+    ArrayList<String> unSeenMessageIds;
     RecyclerView listView;
     RecyclerAdapter recyclerAdapter;
     User otherUser;
@@ -138,7 +139,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     ImageButton closeReplyLayout;
     ImageView imageThumbnail;
 
-    ImageButton send;
+    FloatingActionButton send;
     AESHelper aesHelper;
     Native restHelper;
 
@@ -147,13 +148,15 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     ImageButton addFile;
     ImageButton addImage;
     ImageButton openCamera;
-    ImageButton attachment;
+    FloatingActionButton attachment;
     boolean isAttachmentLayoutOpen = false;
+    boolean initialLoading = true;
 
      RecyclerView.SmoothScroller smoothScroller;
      private LinearLayoutManager layoutManager;
-     private NotificationChannel serviceChannel;
 
+     private boolean userPresent;
+     App app;
 
      @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,6 +165,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
         Intent receivedIntent = getIntent();
         otherUserId = receivedIntent.getStringExtra(Util.userId);
+
+        app = (App) getApplication();
+        if(app.isnull() || otherUserId==null){
+            finishAndStartLogin();
+        }
 
         DatabaseManager.initializeInstance(new SQLHelper(this));
         databaseManager = DatabaseManager.getInstance();
@@ -179,6 +187,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
         messages = new ArrayList<>();
         messageIds = new ArrayList<>();
+        unSeenMessageIds = new ArrayList<>();
         firebaseHelper = new FirebaseHelper(this);
          try {
              aesHelper = new AESHelper(this);
@@ -245,7 +254,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
              }
          });
 
-
          smoothScroller = new LinearSmoothScroller(this){
             @Override
             protected int getVerticalSnapPreference() {
@@ -254,6 +262,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
         };
 
         messageField = findViewById(R.id.chat_edit_text);
+        messageField.addTextChangedListener(this);
 
         chatReplyLayout = findViewById(R.id.chat_reply);
         chatReplyLayout.setVisibility(GONE);
@@ -278,13 +287,14 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             }
         });
 
-
-        checkPath(IMAGE_ATTACHMENT_REQUEST);
-        checkPath(FILE_ATTACHMENT_REQUEST);
+        String x = sp.getString(otherUserId,null);
+        if (x!=null) {
+            messageField.setText(x);
+            sp.edit().remove(otherUserId).apply();
+        }
 
         if(receivedIntent.getAction()!=null&&receivedIntent.getAction().equals(Intent.ACTION_SEND))
         {
-            Log.e("chat activity","log");
             try {
                 String type = receivedIntent.getType();
 
@@ -308,6 +318,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                 e.printStackTrace();
             }
         }
+        userPresent = true;
     }
 
      @Override
@@ -387,16 +398,14 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      @Override
      protected void onResume() {
          super.onResume();
-         App app = (App) getApplication();
+         userPresent = true;
+         sendSeenStatusOfUnseenMessages();
+         Util.clearNewMessageNotification(otherUserId.hashCode(),this);
 
-         if(app.isnull())
-         {
-             Intent intent = new Intent(ChatActivity.this,Login.class);
-             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
-             startActivity(intent);
-             finish();
+         if(app.isnull()) {
+             finishAndStartLogin();
          }
-
+         app.setUserTypingCallback(this);
          app.setMessagesRetrievedCallback(this);
          app.setResendMessageCallback(this);
          app.setMessageSentCallback(this);
@@ -404,6 +413,39 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          if(messages.isEmpty()) {
              getMessages();
          }
+     }
+    private void finishAndStartLogin() {
+        Intent intent = new Intent(this,Login.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+     private void sendSeenStatusOfUnseenMessages() {
+         databaseManager.setNewMessageCounter(otherUserId);
+         try {
+             for (String messageId : unSeenMessageIds) {
+                 int pos = messageIds.indexOf(messageId);
+                 markMessageAsRead(messages.get(pos));
+             }
+         }catch (Exception e){
+             e.printStackTrace();
+         }
+     }
+
+     @Override
+     protected void onStop() {
+         userPresent = false;
+         super.onStop();
+     }
+
+     @Override
+     protected void onDestroy() {
+         String x = messageField.getText().toString();
+         if (!x.equals("")){
+             sp.edit().putString(otherUserId,x).apply();
+         }
+         super.onDestroy();
      }
 
      private void setAttachmentLayout() {
@@ -432,8 +474,11 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      }
 
      void getMessages() {
+         final ArrayList<Message> m = databaseManager.getMessages(otherUser.getId(),messages.size(),Util.MESSAGE_CACHE);
+         final int x = messages.size();
+         if (m.size()==0)
+             return;
 
-         ArrayList<Message> m = databaseManager.getMessages(otherUser.getId(),messages.size(),100);
          for (int i = m.size()-1;i>=0;i--) {
              Message message = m.get(i);
              if(message.getSeen()==null && message.getFrom().equals(otherUserId))
@@ -450,12 +495,18 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          listView.post(new Runnable() {
              @Override
              public void run() {
-                 recyclerAdapter.notifyDataSetChanged();
-                 int x = messages.size()-1;
+                 if(initialLoading){
+                     recyclerAdapter.notifyDataSetChanged();
+                     initialLoading=false;
+                 }
+                 else {
+                     recyclerAdapter.notifyItemRangeInserted(0, m.size());
+                 }
+                 /*int x = messages.size()-1;
                  if(x>=0) {
                      smoothScroller.setTargetPosition(messages.size() - 1);
                      layoutManager.startSmoothScroll(smoothScroller);
-                 }
+                 }*/
              }
          });
      }
@@ -811,8 +862,12 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             {
                 int position = messageIds.indexOf(messageId);
                 message = databaseManager.getMessage(messageId,message.getTo());
-                messages.set(position,message);
-                updateRecyclerAdapter(position);
+                if(message!=null) {
+                    messages.set(position, message);
+                    updateRecyclerAdapter(position);
+                }else{
+                    Log.e("Chat activity","message null - OnComplete");
+                }
             }
         }
         else {
@@ -845,52 +900,47 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      @Override
      public void onNewMessage(final Message message) {
 
-         if(message.getFrom().equals(otherUserId))
+         if(message.getFrom().equals(otherUserId) && message.getTo().equals(currentUserId))
          {
-             databaseManager.setNewMessageCounter(otherUserId);
-             String timeStamp = Calendar.getInstance().getTime().toString();
-             message.setSeen(timeStamp);
-             restHelper.sendMessageSeenStatus(message);
-             databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId,null,currentUserId);
+             if(userPresent) {
+                 databaseManager.setNewMessageCounter(otherUserId);
+                 markMessageAsRead(message);
+             }else{
+                 if(!unSeenMessageIds.contains(message.getMessage_id())) {
+                     unSeenMessageIds.add(message.getMessage_id());
+
+                 Util.sendNewMessageNotification(message,databaseManager,this,Util.getNotificationIntent(message,ChatActivity.this));
+                 }
+             }
              runOnUiThread(new Runnable() {
                  @Override
                  public void run() {
                      if(!messageIds.contains(message.getMessage_id())) {
                          Message m = databaseManager.getMessage(message.getMessage_id(),message.getFrom());
-                         messages.add(m);
-                         messageIds.add(m.getMessage_id());
-                         recyclerAdapter.notifyDataSetChanged();
-                         smoothScroller.setTargetPosition(messages.size() - 1);
-                         layoutManager.startSmoothScroll(smoothScroller);
+                         if(m!=null) {
+                             messages.add(m);
+                             messageIds.add(m.getMessage_id());
+                             recyclerAdapter.notifyDataSetChanged();
+                             smoothScroller.setTargetPosition(messages.size() - 1);
+                             layoutManager.startSmoothScroll(smoothScroller);
+                         }
+                         else{
+                             Log.e("message null","ChatActivity - onNewMessage");
+                         }
                      }
                  }
              });
          }
-         else
-         {
-             User user = databaseManager.getUser(message.getFrom());
-             createNotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle);
-             final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-             final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Util.ServiceNotificationChannelID);
-             builder.setContentTitle(getResources().getString(R.string.app_name))
-                     .setContentText("New message from "+user.getName())
-                     .setSmallIcon(R.mipmap.ic_launcher_round)
-                     .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-             int n = new Random().nextInt();
-             notificationManagerCompat.notify(n,builder.build());
+         else {
+             Util.sendNewMessageNotification(message,databaseManager,this,Util.getNotificationIntent(message,this));
          }
      }
 
-     private void createNotificationChannel(String channelId,String channelTitle) {
-
-         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-             if(serviceChannel==null) {
-                 serviceChannel = new NotificationChannel(channelId, channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-                 NotificationManager notificationManager = getSystemService(NotificationManager.class);
-                 assert notificationManager != null;
-                 notificationManager.createNotificationChannel(serviceChannel);
-             }
-         }
+     void markMessageAsRead(Message message){
+         String timeStamp = Calendar.getInstance().getTime().toString();
+         message.setSeen(timeStamp);
+         restHelper.sendMessageSeenStatus(message);
+         databaseManager.updateMessageSeenStatus(timeStamp, message.getMessage_id(), otherUserId, null, currentUserId);
      }
 
      @Override
@@ -902,8 +952,13 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
             {
                 int position = messageIds.indexOf(messageId);
                 Message message = databaseManager.getMessage(messageId,userId);
-                messages.set(position,message);
-                updateRecyclerAdapter(position);
+                if(message!=null) {
+                    messages.set(position, message);
+                    updateRecyclerAdapter(position);
+                }
+                else{
+                    Log.e("message null","ChatActivity - onUpdateMessageStatus");
+                }
             }
         }
      }
@@ -941,9 +996,14 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          if(messageIds.contains(message.getMessage_id()))
          {
              message = databaseManager.getMessage(message.getMessage_id(),message.getFrom());
-             int position = messageIds.indexOf(message.getMessage_id());
-             messages.set(position,message);
-             updateRecyclerAdapter(position);
+             if(message!=null) {
+                 int position = messageIds.indexOf(message.getMessage_id());
+                 messages.set(position, message);
+                 updateRecyclerAdapter(position);
+             }
+             else{
+                 Log.e("message null","ChatActivity - newResendMessageCallback");
+             }
          }
      }
 
@@ -979,7 +1039,61 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          }
      }
 
-     static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+     // user typing callback methods
+
+    void setTypingSubTitle(boolean x){
+         String y = null;
+         if(x)
+             y = "typing...";
+        final String finalY = y;
+        runOnUiThread(new Runnable() {
+             @Override
+             public void run() {
+                 try {
+                     getSupportActionBar().setSubtitle(finalY);
+                 }catch (Exception e){
+                     e.printStackTrace();
+                 }
+             }
+         });
+    }
+
+     @Override
+     public void userTypingInSingleChat(String userId) {
+         if (userId.equals(otherUserId)){
+             setTypingSubTitle(true);
+             ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+             executor.schedule(new Runnable() {
+                 @Override
+                 public void run() {
+                     runOnUiThread(new Runnable() {
+                         @Override
+                         public void run() {
+                             setTypingSubTitle(false);
+                         }
+                     });
+                 }
+             },Util.timeOfTyping, TimeUnit.SECONDS);
+         }
+     }
+
+     @Override
+     public void userTypingInGroupChat(String userId, String groupId) { }
+
+    @Override
+    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+        if(charSequence.length()==0){
+            restHelper.sendTypingNotification(otherUserId,false,currentUserId);
+        }
+    }
+    @Override
+    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+
+    @Override
+    public void afterTextChanged(Editable editable) {}
+
+
+    static class RecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
          private final String name;
          private ArrayList<Message> messages;
          private ScrollEndCallback scrollEndCallback;
@@ -1335,10 +1449,6 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
          @SuppressLint("SetTextI18n")
          @Override
         public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
-
-            if(position==0&&messages.size()>100) {
-                scrollEndCallback.scrollEndReached();
-            }
 
              final Message message = messages.get(position);
              boolean flag = false;
@@ -2047,6 +2157,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                     }
                 }
             }
+             if(position==0&&messages.size()>=Util.MESSAGE_CACHE) {
+                 scrollEndCallback.scrollEndReached();
+             }
         }
 
         private String formatName(String name){

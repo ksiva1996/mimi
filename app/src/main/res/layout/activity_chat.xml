@@ -8,200 +8,67 @@
     android:background="@color/mainBackground"
     tools:context=".ChatActivity">
 
-<RelativeLayout
-    android:id="@+id/chat_layout"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:fitsSystemWindows="true">
-
-    <View
-        android:id="@+id/test_layout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/transparent"
-        android:visibility="visible" />
-
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/listView"
-        android:padding="5dp"
-        android:layout_marginBottom="10dp"
-        android:layout_above="@+id/bottomlayout"/>
-
-
-    <LinearLayout
-        android:id="@+id/bottomlayout"
+    <RelativeLayout
+        android:id="@+id/chat_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:paddingBottom="10dp"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
+        android:fitsSystemWindows="true">
+
+        <View
+            android:id="@+id/test_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/transparent"
+            android:visibility="visible" />
+
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/listView"
+            android:padding="5dp"
+            android:layout_above="@+id/bottomlayout"/>
+
+        <include layout="@layout/chat_bottom_layout"/>
+
+    </RelativeLayout>
+
+    <ImageButton
+        android:id="@+id/camera"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|left"
         android:layout_marginBottom="10dp"
-        android:orientation="horizontal">
+        android:background="@drawable/input_circle"
+        android:src="@drawable/baseline_camera_alt_white_24"
+        android:translationX="10dp"
+        android:translationY="@dimen/st_normal"
+        android:visibility="invisible" />
 
 
-            <ImageButton
-                android:id="@+id/attachment"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_gravity="bottom"
-                android:background="@drawable/input_circle"
-                android:rotation="135"
-                android:src="@drawable/baseline_attachment_white_24"
-                android:tint="#FFFFFF" />
+    <ImageButton
+        android:id="@+id/image"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|left"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/input_circle"
+        android:src="@drawable/baseline_insert_photo_white_24"
+        android:translationX="10dp"
+        android:translationY="@dimen/st_normal"
+        android:visibility="invisible" />
 
-
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_weight="1"
-            android:background="@drawable/to_msg_background"
-            android:minHeight="50dp"
-            android:orientation="vertical"
-            android:padding="10dp">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="visible"
-                android:id="@+id/chat_reply">
-
-                <LinearLayout
-
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:background="@drawable/reply_receive_background"
-                    android:orientation="vertical"
-                    android:padding="10dp"
-                    android:id="@+id/cc"
-                    android:visibility="visible">
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="3dp"
-                        android:gravity="right"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/reply_name"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_margin="2dp"
-                            android:text="You"
-                            android:textColor="#000833"
-                            android:textStyle="bold" />
-
-                        <View
-                            android:id="@+id/view"
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1" />
-
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/reply_message"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:maxWidth="180dp"
-                        android:text="Test view here"
-                        android:textColor="#A3A3A3" />
-                </LinearLayout>
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignEnd="@+id/cc"
-                    android:id="@+id/thumbnail"
-                    android:layout_centerInParent="true"
-                    android:layout_margin="10dp"
-                    android:contentDescription="@string/image_reply_thumbnail" />
-
-                <ImageButton
-                    android:id="@+id/close_reply"
-                    android:layout_width="15dp"
-                    android:layout_height="15dp"
-                    android:layout_margin="8dp"
-                    android:rotation="45"
-                    android:layout_alignParentEnd="true"
-                    app:srcCompat="@drawable/add" />
-            </RelativeLayout>
-
-            <EditText
-                android:id="@+id/chat_edit_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:background="@null"
-                android:hint="Type your message"
-                android:inputType="textMultiLine"
-                android:singleLine="false"
-                android:maxLines="6"
-                android:scrollbars="vertical"
-                android:textColor="#ccffffff"
-                android:textColorHint="#c4c0bd"
-                android:textSize="18sp" />
-
-        </LinearLayout>
-
-        <ImageButton
-            android:id="@+id/send"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="bottom"
-            android:background="@drawable/input_circle"
-            android:src="@drawable/input_send" />
-
-    </LinearLayout>
-
-</RelativeLayout>
-
-
-            <ImageButton
-                android:id="@+id/camera"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom|left"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/input_circle"
-                android:src="@drawable/baseline_camera_alt_white_24"
-                android:translationX="10dp"
-                android:translationY="@dimen/st_normal"
-                android:visibility="invisible" />
-
-
-            <ImageButton
-                android:id="@+id/image"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom|left"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/input_circle"
-                android:src="@drawable/baseline_insert_photo_white_24"
-                android:translationX="10dp"
-                android:translationY="@dimen/st_normal"
-                android:visibility="invisible" />
-
-            <ImageButton
-                android:id="@+id/file"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom|left"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/input_circle"
-                android:src="@drawable/baseline_insert_drive_file_white_24"
-                android:tint="#FFFFFF"
-                android:translationX="10dp"
-                android:translationY="@dimen/st_normal"
-                android:visibility="invisible" />
+    <ImageButton
+        android:id="@+id/file"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom|left"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/input_circle"
+        android:src="@drawable/baseline_insert_drive_file_white_24"
+        android:tint="#FFFFFF"
+        android:translationX="10dp"
+        android:translationY="@dimen/st_normal"
+        android:visibility="invisible" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -79,7 +79,6 @@ public class AESHelper {
         init();
     }
 
-
     private void init() throws NoSuchAlgorithmException, NoSuchPaddingException {
         secureRandom = new SecureRandom();
         keyGenerator = KeyGenerator.getInstance(algorithm);
@@ -117,6 +116,29 @@ public class AESHelper {
         return secretKey;
     }
 
+    public String encryptMessageContent(String content,SecretKey masterKey) throws InvalidAlgorithmParameterException,
+            InvalidKeyException, BadPaddingException, IllegalBlockSizeException
+    {
+        byte[] iv = getNewIV();
+        cipher.init(Cipher.ENCRYPT_MODE,masterKey,new IvParameterSpec(iv));
+        byte[] encryptedBytes = cipher.doFinal(content.getBytes());
+        byte[] finalBytes = new byte[iv.length+encryptedBytes.length];
+        System.arraycopy(iv, 0, finalBytes, 0, iv.length);
+        System.arraycopy(encryptedBytes,0,finalBytes,iv.length,encryptedBytes.length);
+        return getBase64(finalBytes);
+    }
+
+    public String decryptMessageContent(String cipherText,SecretKey masterKey) throws InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException
+    {
+        byte[] finalBytes = getbytes(cipherText);
+        byte[] iv = Arrays.copyOfRange(finalBytes,0,16);
+        byte[] encryptedBytes = Arrays.copyOfRange(finalBytes,16,finalBytes.length);
+        cipher.init(Cipher.DECRYPT_MODE,masterKey,new IvParameterSpec(iv));
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        return new String(decryptedBytes);
+    }
+
     public String encryptCheckMessage(@NonNull String message,String password) throws
             InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException,
             IllegalBlockSizeException, InvalidKeySpecException, RunningOnMainThreadException {
@@ -137,7 +159,6 @@ public class AESHelper {
 
         SecretKey secretKey = getMasterKey(password);
         byte[] messageBytes = getbytes(message);
-
 
         cipher.init(Cipher.ENCRYPT_MODE,secretKey,new IvParameterSpec(iv));
         byte[] encryptedMessageBytes =  cipher.doFinal(messageBytes);

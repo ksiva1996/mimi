@@ -52,7 +52,6 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:backgroundTint="@color/background_tab_pressed"
-        android:clickable="true"
         android:elevation="10dp"
         app:fabCustomSize="55dp"
         app:srcCompat="@drawable/baseline_done_white_48" />

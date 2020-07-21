@@ -21,7 +21,7 @@ import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.ChatData;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.background.BackgroundService;
+import com.leagueofshadows.enc.Background.BackgroundService;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -38,6 +38,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import static android.view.View.GONE;
+import static com.leagueofshadows.enc.Util.FILE_ATTACHMENT_REQUEST;
+import static com.leagueofshadows.enc.Util.IMAGE_ATTACHMENT_REQUEST;
+import static com.leagueofshadows.enc.Util.checkPath;
 import static com.leagueofshadows.enc.Util.getMessageContent;
 
 public class MainActivity extends AppCompatActivity implements MessagesRetrievedCallback, ResendMessageCallback, MessageSentCallback, MessageOptionsCallback, GroupsUpdatedCallback {
@@ -52,7 +55,9 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
     FloatingActionButton fab;
     FloatingActionButton newGroup;
     FloatingActionButton newUser;
-    Boolean flag = false;
+    boolean flag = false;
+    private boolean userPresent = false;
+    App app;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +65,11 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        app = (App) getApplication();
+        if(app.isnull()){
+            finishAndStartLogin();
+        }
 
         userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
         assert userId!=null;
@@ -87,6 +97,9 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         newGroup.setVisibility(GONE);
         newUser.setVisibility(GONE);
 
+        checkPath(IMAGE_ATTACHMENT_REQUEST);
+        checkPath(FILE_ATTACHMENT_REQUEST);
+
         newGroup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -100,23 +113,26 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 startActivity(new Intent(MainActivity.this,ContactsActivity.class));
             }
         });
-
         startService(new Intent(this, BackgroundService.class));
-        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
-        notificationManagerCompat.cancelAll();
+        userPresent = true;
+    }
+
+    private void finishAndStartLogin() {
+        Intent intent = new Intent(MainActivity.this,Login.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void setFloatingActionLayout() {
-        if(flag)
-        {
+        if(flag) {
             fab.setImageResource(R.drawable.add);
             newUser.animate().translationY(0);
             newGroup.animate().translationY(0);
             newUser.setVisibility(GONE);
             newGroup.setVisibility(GONE);
         }
-        else
-        {
+        else {
             fab.setImageResource(R.drawable.baseline_close_white_48);
             newUser.setVisibility(View.VISIBLE);
             newGroup.setVisibility(View.VISIBLE);
@@ -130,20 +146,22 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
     @Override
     protected void onResume() {
         super.onResume();
-        App app = (App) getApplication();
-
-        if(app.isnull())
-        {
-            Intent intent = new Intent(MainActivity.this,Login.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+        userPresent = true;
+        if(app.isnull()) {
+           finishAndStartLogin();
         }
+        cancelNewMessageNotifications();
         app.setMessagesRetrievedCallback(this);
         app.setResendMessageCallback(this);
         app.setMessageSentCallback(this);
         app.addGroupsUpdatedCallback(this);
         loadUserData();
+    }
+
+    @Override
+    protected void onStop() {
+        userPresent = false;
+        super.onStop();
     }
 
     @Override
@@ -155,6 +173,11 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
     protected void onDestroy() {
         stopService(new Intent(this,BackgroundService.class));
         super.onDestroy();
+    }
+
+    void cancelNewMessageNotifications(){
+        NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+        notificationManagerCompat.cancelAll();
     }
 
     void loadUserData()
@@ -176,13 +199,16 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         Collections.sort(chatDataArrayList, new Comparator<ChatData>() {
             @Override
             public int compare(ChatData u1, ChatData u2) {
-                return (int)(u2.getTime()-u1.getTime());
+                return Long.compare(u2.getTime(), u1.getTime());
             }
         });
     }
 
     @Override
     public void onNewMessage(Message message) {
+        if(!userPresent){
+            Util.sendNewMessageNotification(message,databaseManager,this,Util.getNotificationIntent(message,this));
+        }
         loadUserData();
     }
 
@@ -311,8 +337,7 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 } else {
                     if(chatData.getType()==ChatData.CHAT_TYPE_SINGLE_USER)
                     holder.message.setText(chatData.getUser().getName() + ": " + getMessageContent(chatData.getLatestMessage().getContent()));
-                    else
-                    {
+                    else {
                         User user = databaseManager.getUser(chatData.getLatestMessage().getFrom());
                         holder.message.setText(user.getName() + ": " + getMessageContent(chatData.getLatestMessage().getContent()));
                     }

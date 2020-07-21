@@ -1,4 +1,4 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Service;
 import android.content.Intent;

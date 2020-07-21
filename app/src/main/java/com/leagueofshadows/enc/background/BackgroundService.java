@@ -1,13 +1,8 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -27,9 +22,7 @@ import com.leagueofshadows.enc.Interfaces.ResendMessageCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.SplashActivity;
 import com.leagueofshadows.enc.Util;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
@@ -47,8 +40,6 @@ import javax.crypto.NoSuchPaddingException;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 import static com.leagueofshadows.enc.FirebaseHelper.Messages;
 import static com.leagueofshadows.enc.FirebaseHelper.resend;
@@ -96,7 +87,6 @@ public class BackgroundService extends Service implements ChildEventListener {
 
     private void bindListeners() {
         for (String id:ids) {
-            Log.e("id",id);
             DatabaseReference dr = databaseReference.child(Messages).child(id);
             dr.addChildEventListener(this);
         }
@@ -231,7 +221,6 @@ public class BackgroundService extends Service implements ChildEventListener {
                             }
                             ex.printStackTrace();
                         }
-
                     }
                 }
             }
@@ -239,27 +228,11 @@ public class BackgroundService extends Service implements ChildEventListener {
     }
 
     private void showNotification(Message message) {
-        if(notificationChannelCreated)
-            createNotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle);
-
-        Intent notificationIntent = new Intent(getApplicationContext(), SplashActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
-        Notification notification = new NotificationCompat.Builder(getApplicationContext(),Util.NewMessageNotificationChannelID).setContentTitle(getString(R.string.app_name))
-                .setContentText("New message from "+message.getFrom())
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentIntent(pendingIntent).setAutoCancel(false)
-                .build();
-        NotificationManagerCompat.from(getApplicationContext()).notify((int) System.currentTimeMillis(),notification);
-    }
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if(!notificationChannelCreated) {
+            Util.createMessageNotificationChannel(this);
             notificationChannelCreated = true;
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
         }
+        Util.sendNewMessageNotification(message,databaseManager,this,Util.getNotificationIntent(message,this));
     }
 
     @Nullable

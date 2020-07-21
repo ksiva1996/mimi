@@ -1,12 +1,9 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Build;
 import android.os.IBinder;
 
 import com.google.firebase.database.DataSnapshot;
@@ -61,7 +58,7 @@ public class GroupsWorker extends Service {
 
         if(app.isnull())
         {
-            createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
+            Util.createServiceNotificationChannel(this);
             Intent notificationIntent = new Intent(this, SplashActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this,1,notificationIntent,0);
             Notification notification = new NotificationCompat.Builder(this,Util.ServiceNotificationChannelID).setContentTitle(getString(R.string.app_name))
@@ -80,7 +77,11 @@ public class GroupsWorker extends Service {
                 for(DataSnapshot d:dataSnapshot.getChildren()){
                     groupIds.add((String) d.getValue());
                 }
-                updateGroups(groupIds);
+                try {
+                    updateGroups(groupIds);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -155,13 +156,4 @@ public class GroupsWorker extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) { return null; }
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
-        }
-    }
 }

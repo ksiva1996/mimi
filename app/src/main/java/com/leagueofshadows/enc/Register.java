@@ -75,7 +75,6 @@ public class Register extends AppCompatActivity {
             }
             if(!x)
                 finish();
-
         }
     }
 

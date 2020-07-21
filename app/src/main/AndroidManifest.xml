@@ -4,6 +4,7 @@
     package="com.leagueofshadows.enc">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -21,24 +22,21 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".Test">
-        </activity>
+
         <activity android:name=".GroupInfo" />
-        <activity android:name=".GroupMessageInfo"/>
+        <activity android:name=".GroupMessageInfo" />
         <activity
             android:name=".ShareActivity"
-            android:theme="@style/AppTheme.NoActionBar"/>
-
-        <activity android:name=".GroupChatActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".GroupChatActivity"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".CreateGroupActivity"
             android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name=".Images" />
-        <activity
-            android:name=".ImagePreview" />
+        <activity android:name=".Images" />
+        <activity android:name=".ImagePreview" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -108,35 +106,35 @@
         </activity>
 
         <service
-            android:name=".background.Worker"
+            android:name=".Background.Worker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.ResendMessageWorker"
+            android:name=".Background.ResendMessageWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.DecryptMessageWorker"
+            android:name=".Background.DecryptMessageWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.ContactsWorker"
+            android:name=".Background.ContactsWorker"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.FileUploadService"
+            android:name=".Background.FileUploadService"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.Downloader"
+            android:name=".Background.Downloader"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.BackgroundService"
+            android:name=".Background.BackgroundService"
             android:enabled="true"
             android:exported="false" />
         <service
-            android:name=".background.GroupsWorker"
+            android:name=".Background.GroupsWorker"
             android:enabled="true"
             android:exported="false" />
         <service
@@ -148,5 +146,15 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
     </application>
+
 </manifest>

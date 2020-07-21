@@ -1,12 +1,9 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -82,7 +79,7 @@ public class Downloader extends Service {
         final int notificationId = new Random().nextInt();
 
 
-        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
+        Util.createServiceNotificationChannel(this);
         final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Util.ServiceNotificationChannelID);
         builder.setContentTitle(getResources().getString(R.string.app_name))
@@ -180,16 +177,5 @@ public class Downloader extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
-        }
     }
 }

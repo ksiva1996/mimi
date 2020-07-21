@@ -17,6 +17,8 @@ import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.Util;
+import com.leagueofshadows.enc.storage.DatabaseManager;
+import com.leagueofshadows.enc.storage.SQLHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,6 +45,7 @@ public class Native {
     public static final String GROUP_DELETE = "GROUP_DELETE";
     public static final String NOTIFICATION_TEXT = "N_T";
     public static final String GROUP_UPDATE = "GROUP_UPDATE";
+    public static final String TYPING_NOTIFICATION = "TY_N";
 
     private Context context;
     private DatabaseReference databaseReference;
@@ -175,7 +178,6 @@ public class Native {
 
     public void sendGroupMessageReceivedStatus(final String messageId,String fromUserId, final String groupId, final String userId,String log)
     {
-        Log.e("send group received",messageId+" "+log);
         databaseReference.child(fromUserId).child(TOKEN).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -309,6 +311,45 @@ public class Native {
                         }
                     });
                 }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void sendTypingNotification(String id,boolean isGroup,String currentUserId){
+        DatabaseManager.initializeInstance(new SQLHelper(context));
+        DatabaseManager databaseManager = DatabaseManager.getInstance();
+        try {
+            final JSONObject j = new JSONObject();
+            j.put(TYPING_NOTIFICATION,TYPING_NOTIFICATION);
+            j.put(USER_ID,currentUserId);
+            if (isGroup) {
+                j.put(GROUP_ID,id);
+                Group group = databaseManager.getGroup(id);
+                for (User u : group.getUsers()) {
+                    DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
+                    dr.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            update(j, (String) dataSnapshot.getValue());
+                        }
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) { }
+                    });
+                }
+            }else{
+                User u = databaseManager.getUser(id);
+                DatabaseReference dr = databaseReference.child(u.getId()).child(TOKEN);
+                dr.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        update(j, (String) dataSnapshot.getValue());
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                    }
+                });
             }
         }catch (Exception e){
             e.printStackTrace();

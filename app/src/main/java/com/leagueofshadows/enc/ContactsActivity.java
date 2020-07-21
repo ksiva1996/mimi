@@ -19,7 +19,7 @@ import android.widget.Toast;
 import com.leagueofshadows.enc.Interfaces.CompleteCallback;
 import com.leagueofshadows.enc.Interfaces.Select;
 import com.leagueofshadows.enc.Items.User;
-import com.leagueofshadows.enc.background.ContactsWorker;
+import com.leagueofshadows.enc.Background.ContactsWorker;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -31,10 +31,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import static com.leagueofshadows.enc.background.ContactsWorker.FLAG;
+import static com.leagueofshadows.enc.Background.ContactsWorker.FLAG;
 
 public class ContactsActivity extends AppCompatActivity implements CompleteCallback, Select {
-
 
     ArrayList<User> users;
     RecyclerView listView;

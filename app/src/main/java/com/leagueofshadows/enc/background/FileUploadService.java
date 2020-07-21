@@ -1,12 +1,9 @@
-package com.leagueofshadows.enc.background;
+package com.leagueofshadows.enc.Background;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -67,7 +64,7 @@ public class FileUploadService extends Service implements MessageSentCallback {
         final int notificationId = new Random().nextInt();
 
 
-        createNotificationChannel(Util.ServiceNotificationChannelID,Util.ServiceNotificationChannelTitle);
+        Util.createServiceNotificationChannel(this);
         final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Util.ServiceNotificationChannelID);
         builder.setContentTitle(getResources().getString(R.string.app_name))
@@ -90,7 +87,6 @@ public class FileUploadService extends Service implements MessageSentCallback {
         FirebaseStorage.getInstance().getReference().child(Files).child(otherUserId).child(timeStamp).putFile(Uri.fromFile(file)).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                Log.e("success","success");
 
                 file.delete();
                 builder.setProgress(0,0,false);
@@ -127,17 +123,6 @@ public class FileUploadService extends Service implements MessageSentCallback {
             }
         });
         return START_STICKY;
-    }
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
-        }
     }
 
     @Nullable

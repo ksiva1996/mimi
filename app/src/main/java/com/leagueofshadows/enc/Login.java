@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -12,13 +11,13 @@ import android.widget.Toast;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
+import com.leagueofshadows.enc.Background.DecryptMessageWorker;
+import com.leagueofshadows.enc.Background.GroupsWorker;
+import com.leagueofshadows.enc.Background.ResendMessageWorker;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.background.DecryptMessageWorker;
-import com.leagueofshadows.enc.background.GroupsWorker;
-import com.leagueofshadows.enc.background.ResendMessageWorker;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -39,6 +38,11 @@ public class Login extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        App app = (App) getApplication();
+        if(!app.isnull())
+            start();
+
         setContentView(R.layout.activity_login);
 
         editText = findViewById(R.id.password);
@@ -93,38 +97,7 @@ public class Login extends AppCompatActivity {
                     if(x.equals(encryptedCheckMessage)) {
                         show();
                         setUp(p);
-
-                        Intent intent = getIntent();
-                        if(intent.getAction()!=null)
-                        {
-                            if (intent.getAction().equals(Intent.ACTION_SEND))
-                            {
-                                Log.e("login activity","log");
-                                Intent intent4 = new Intent(Login.this,ShareActivity.class);
-                                intent4.setAction(Intent.ACTION_SEND);
-                                intent4.setType(intent.getType());
-                                intent4.putExtra(Intent.EXTRA_STREAM,intent.getParcelableExtra(Intent.EXTRA_STREAM));
-                                intent4.putExtra(Intent.EXTRA_TEXT,intent.getStringExtra(Intent.EXTRA_TEXT));
-                                intent4.putExtra(Intent.EXTRA_SUBJECT,intent.getStringExtra(Intent.EXTRA_SUBJECT));
-                                startActivity(intent4);
-                                finish();
-                            }
-                        }
-                        else {
-
-                            Intent intent2 = new Intent(Login.this, ResendMessageWorker.class);
-                            startService(intent2);
-
-                            Intent intent1 = new Intent(Login.this, DecryptMessageWorker.class);
-                            startService(intent1);
-
-                            Intent intent3 = new Intent(Login.this, GroupsWorker.class);
-                            startService(intent3);
-
-                            Intent intent4 = new Intent(Login.this, MainActivity.class);
-                            startActivity(intent4);
-                            finish();
-                        }
+                        start();
                     }
                     else {
                         setError();
@@ -136,6 +109,39 @@ public class Login extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    void start(){
+        Intent intent = getIntent();
+        if(intent.getAction()!=null)
+        {
+            if (intent.getAction().equals(Intent.ACTION_SEND))
+            {
+                Intent intent4 = new Intent(Login.this,ShareActivity.class);
+                intent4.setAction(Intent.ACTION_SEND);
+                intent4.setType(intent.getType());
+                intent4.putExtra(Intent.EXTRA_STREAM,intent.getParcelableExtra(Intent.EXTRA_STREAM));
+                intent4.putExtra(Intent.EXTRA_TEXT,intent.getStringExtra(Intent.EXTRA_TEXT));
+                intent4.putExtra(Intent.EXTRA_SUBJECT,intent.getStringExtra(Intent.EXTRA_SUBJECT));
+                startActivity(intent4);
+                finish();
+            }
+        }
+        else {
+
+            Intent intent2 = new Intent(Login.this, ResendMessageWorker.class);
+            startService(intent2);
+
+            Intent intent1 = new Intent(Login.this, DecryptMessageWorker.class);
+            startService(intent1);
+
+            Intent intent3 = new Intent(Login.this, GroupsWorker.class);
+            startService(intent3);
+
+            Intent intent4 = new Intent(Login.this, MainActivity.class);
+            startActivity(intent4);
+            finish();
+        }
     }
 
     private void setUp(String p) {

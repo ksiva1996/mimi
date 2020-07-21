@@ -1,12 +1,7 @@
 package com.leagueofshadows.enc;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Build;
-import android.util.Log;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -15,15 +10,16 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.leagueofshadows.enc.Background.GroupsWorker;
+import com.leagueofshadows.enc.Background.ResendMessageWorker;
+import com.leagueofshadows.enc.Background.Worker;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
+import com.leagueofshadows.enc.Interfaces.UserTypingCallback;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
-import com.leagueofshadows.enc.background.GroupsWorker;
-import com.leagueofshadows.enc.background.ResendMessageWorker;
-import com.leagueofshadows.enc.background.Worker;
 import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
@@ -31,8 +27,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import static com.leagueofshadows.enc.FirebaseHelper.Groups;
 import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
@@ -42,10 +37,10 @@ import static com.leagueofshadows.enc.REST.Native.GROUP_UPDATE;
 import static com.leagueofshadows.enc.REST.Native.NEW_GROUP;
 import static com.leagueofshadows.enc.REST.Native.NOTIFICATION_TEXT;
 import static com.leagueofshadows.enc.REST.Native.TEMP_USER_ID;
+import static com.leagueofshadows.enc.REST.Native.TYPING_NOTIFICATION;
 import static com.leagueofshadows.enc.REST.Native.USER_ID;
 
 public class FirebaseReceiver extends FirebaseMessagingService {
-
 
     public static final String RECEIVED_STATUS = "RECEIVED_STATUS";
     public static final String SEEN_STATUS = "SEEN_STATUS";
@@ -93,7 +88,7 @@ public class FirebaseReceiver extends FirebaseMessagingService {
                     intent.putExtra(Util.userId,data.get(USER_ID));
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent);
+                    ContextCompat.startForegroundService(getApplicationContext(),intent);
                 } else {
                     startService(intent);
                 }
@@ -147,6 +142,17 @@ public class FirebaseReceiver extends FirebaseMessagingService {
                 e.printStackTrace();
             }
         }
+        else if (data.containsKey(TYPING_NOTIFICATION)){
+            App app = (App) getApplication();
+            UserTypingCallback u = app.getUserTypingCallback();
+            if(u!=null) {
+                String userId = data.get(USER_ID);
+                if (data.containsKey(GROUP_ID))
+                    u.userTypingInGroupChat(userId,data.get(GROUP_ID));
+                else
+                    u.userTypingInSingleChat(userId);
+            }
+        }
     }
 
     private void updateGroup(String groupId) {
@@ -174,8 +180,6 @@ public class FirebaseReceiver extends FirebaseMessagingService {
 
                     if (groupActive == Group.GROUP_NOT_ACTIVE) {
 
-                        Log.e("group removed","group removed");
-
                         removeNode(FirebaseDatabase.getInstance().getReference().child(Groups).child(Users).child(Groups).child(groupId));
                         databaseManager.markGroupAsDeleted(groupId);
                         App app = (App) getApplication();
@@ -197,10 +201,8 @@ public class FirebaseReceiver extends FirebaseMessagingService {
                             public void onSuccess(String Base64PublicKey) {
                                 databaseManager.insertPublicKey(Base64PublicKey, u.getId());
                             }
-
                             @Override
-                            public void onCancelled(String error) {
-                            }
+                            public void onCancelled(String error) { }
                         });
                     }
                     Group group = new Group(groupId, groupName, users, admins, groupActive);
@@ -229,24 +231,9 @@ public class FirebaseReceiver extends FirebaseMessagingService {
     }
 
     private void showNotification(String text) {
-        createNotificationChannel(Util.NewMessageNotificationChannelID,Util.NewMessageNotificationChannelTitle);
-        Intent notificationIntent = new Intent(getApplicationContext(), SplashActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(),1,notificationIntent,0);
-        Notification notification = new NotificationCompat.Builder(getApplicationContext(),Util.NewMessageNotificationChannelID).setContentTitle(getString(R.string.app_name))
-                .setContentText(text)
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setContentIntent(pendingIntent).setAutoCancel(false)
-                .build();
-        NotificationManagerCompat.from(getApplicationContext()).notify((int) System.currentTimeMillis(),notification);
-    }
-
-    private void createNotificationChannel(String channelId,String channelTitle) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(channelId,channelTitle, NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            assert notificationManager != null;
-            notificationManager.createNotificationChannel(serviceChannel);
-        }
+        Util.createMessageNotificationChannel(this);
+        Intent intent = new Intent(getApplicationContext(),MainActivity.class);
+        Util.showNewMessageNotification(this,text,text.hashCode(),intent);
     }
 
     @Override
