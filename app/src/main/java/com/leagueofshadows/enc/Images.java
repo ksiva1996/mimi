@@ -44,16 +44,19 @@ public class Images extends AppCompatActivity {
     Message currentMessage;
     ViewPager2 viewPager2;
     String otherUserId;
-    User otherUser;
     DatabaseManager databaseManager2;
     private CustomImageAdapter customImageAdapter;
     String userId;
+    ArrayList<User> queriedUsers;
+    ArrayList<String> userIds;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_images);
 
+        queriedUsers = new ArrayList<>();
+        userIds = new ArrayList<>();
         viewPager2 = findViewById(R.id.viewPager);
         images = new ArrayList<>();
         Intent intent = getIntent();
@@ -77,9 +80,7 @@ public class Images extends AppCompatActivity {
                 Message message = images.get(position);
                 String title;
                 if(!userId.equals(message.getFrom())) {
-                    //TODO : optimize
-                    otherUser = databaseManager2.getUser(message.getFrom());
-                    title = otherUser.getName();
+                    title = getUserName(message.getFrom());
                 }
                 else
                     title = "You";
@@ -87,8 +88,20 @@ public class Images extends AppCompatActivity {
                 getSupportActionBar().setSubtitle(getMessageContent(message.getContent()));
             }
         });
+
         //get messages which contain images from local database
         getImages();
+    }
+
+    private String getUserName(String from) {
+        if(userIds.contains(from)){
+            return queriedUsers.get(userIds.indexOf(from)).getName();
+        }else{
+            User u = databaseManager2.getUser(from);
+            userIds.add(from);
+            queriedUsers.add(u);
+            return u.getName();
+        }
     }
 
     private void getImages() {

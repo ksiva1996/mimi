@@ -11,6 +11,7 @@ import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
 import com.leagueofshadows.enc.Items.MessageInfo;
+import com.leagueofshadows.enc.Items.MessageStatus;
 import com.leagueofshadows.enc.Items.User;
 
 import java.util.ArrayList;
@@ -55,12 +56,19 @@ import static com.leagueofshadows.enc.storage.SQLHelper.RESEND_MESSAGE_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_MESSAGE_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_TIMESTAMP;
 import static com.leagueofshadows.enc.storage.SQLHelper.SEEN_STATUS_USER_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_FROM_USER_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_MESSAGE_ID;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_MESSAGE_TYPE;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_STATUS_TYPE;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_TIMESTAMP;
+import static com.leagueofshadows.enc.storage.SQLHelper.STATUS_SYNC_USER_ID;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_ENCRYPTED_MESSAGES;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUPS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_GROUP_PARTICIPANTS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_CIPHER_TEXT;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_RECEIVED_STATUS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGES_SEEN_STATUS;
+import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_MESSAGE_STATUS_SYNC;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_RESEND_MESSAGE;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USERS;
 import static com.leagueofshadows.enc.storage.SQLHelper.TABLE_USER_DATA;
@@ -488,6 +496,7 @@ public class DatabaseManager {
         else
         {
             ContentValues contentValues = new ContentValues();
+            contentValues.put(USERS_ID,user.getId());
             contentValues.put(USERS_NAME,user.getName());
             contentValues.put(USERS_NUMBER,user.getNumber());
             contentValues.put(USERS_PUBLICKEY,user.getBase64EncodedPublicKey());
@@ -593,13 +602,13 @@ public class DatabaseManager {
         return users;
     }
 
-    public void insertPublicKey(String Base64PublicKey,String userId)
+    public void insertPublicKey(String Base64PublicKey,String userId,String number)
     {
         SQLiteDatabase sqLiteDatabase = openDatabase();
         String raw = "SELECT * FROM "+TABLE_USERS+" WHERE "+USERS_ID+" = ?";
         Cursor cursor = sqLiteDatabase.rawQuery(raw, new String[]{userId});
         if(cursor.getCount()==0) {
-            insertUser(new User(userId,userId,userId,Base64PublicKey));
+            insertUser(new User(userId,number,number,Base64PublicKey));
         }
         else {
             ContentValues contentValues = new ContentValues();
@@ -851,10 +860,8 @@ public class DatabaseManager {
             contentValues.put(GROUP_PARTICIPANTS_GROUP_ID,groupId);
             contentValues.put(GROUP_PARTICIPANTS_USER_ID,userId);
             sqLiteDatabase.insert(TABLE_GROUP_PARTICIPANTS,null,contentValues);
-            cursor.close();
         }
-        else
-            cursor.close();
+        cursor.close();
     }
 
     void deleteUserFromGroup(String groupId,String userId) {
@@ -1034,5 +1041,36 @@ public class DatabaseManager {
             cursor.close();
             return null;
         }
+    }
+
+    public void syncStatusLocally(MessageStatus messageStatus){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(STATUS_SYNC_MESSAGE_ID,messageStatus.getMessageId());
+        contentValues.put(STATUS_SYNC_FROM_USER_ID,messageStatus.getFromUserId());
+        contentValues.put(STATUS_SYNC_TIMESTAMP,messageStatus.getTimestamp());
+        contentValues.put(STATUS_SYNC_MESSAGE_TYPE,messageStatus.getTypeOfMessage());
+        contentValues.put(STATUS_SYNC_STATUS_TYPE,messageStatus.getTypeOfStatus());
+        contentValues.put(STATUS_SYNC_USER_ID,messageStatus.getUserId());
+        openDatabase().insert(TABLE_MESSAGE_STATUS_SYNC,null,contentValues);
+    }
+
+    public ArrayList<MessageStatus> getMessageStatuses(){
+        ArrayList<MessageStatus> messageStatuses = new ArrayList<>();
+        String raw = "SELECT * FROM "+TABLE_MESSAGE_STATUS_SYNC;
+        Cursor cursor = openDatabase().rawQuery(raw,null);
+        if(cursor!=null){
+            if(cursor.moveToFirst()){
+                do{
+                    MessageStatus ms = new MessageStatus(cursor.getString(cursor.getColumnIndex(STATUS_SYNC_MESSAGE_ID)),cursor.getString(cursor.getColumnIndex(STATUS_SYNC_TIMESTAMP)),cursor.getString(cursor.getColumnIndex(STATUS_SYNC_USER_ID))
+                    ,cursor.getString(cursor.getColumnIndex(STATUS_SYNC_FROM_USER_ID)),cursor.getInt(cursor.getColumnIndex(STATUS_SYNC_STATUS_TYPE)),cursor.getInt(cursor.getColumnIndex(STATUS_SYNC_MESSAGE_TYPE)),cursor.getInt(cursor.getColumnIndex(ID)));
+                    messageStatuses.add(ms);
+                }while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+        return messageStatuses;
+    }
+    public void deleteLocalStatusRecord(int id){
+        openDatabase().delete(TABLE_MESSAGE_STATUS_SYNC,ID+" = ?", new String[]{String.valueOf(id)});
     }
 }

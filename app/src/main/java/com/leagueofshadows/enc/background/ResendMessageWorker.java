@@ -82,8 +82,8 @@ public class ResendMessageWorker extends Service  {
             {
                     firebaseHelper.getUserPublic(m.getTo(), new PublicKeyCallback() {
                         @Override
-                        public void onSuccess(final String Base64PublicKey) {
-                            databaseManager.insertPublicKey(Base64PublicKey,m.getTo());
+                        public void onSuccess(final String Base64PublicKey,String number) {
+                            databaseManager.insertPublicKey(Base64PublicKey,m.getTo(),number);
                                 AsyncTask.execute(new Runnable() {
                                     @Override
                                     public void run() {

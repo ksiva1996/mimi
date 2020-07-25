@@ -9,10 +9,12 @@ import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 import com.leagueofshadows.enc.App;
 import com.leagueofshadows.enc.FirebaseHelper;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
+import com.leagueofshadows.enc.Interfaces.UserDataFetchedCallback;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.R;
 import com.leagueofshadows.enc.SplashActivity;
@@ -21,6 +23,7 @@ import com.leagueofshadows.enc.storage.DatabaseManager;
 import com.leagueofshadows.enc.storage.SQLHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -31,7 +34,10 @@ public class ContactsWorker extends Service {
     public static final String FLAG = "FLAG";
     public static final int UPDATE_EXISTING = 1;
     ArrayList<User> users;
-    private String currentUserId;
+    private FirebaseHelper firebaseHelper;
+    DatabaseManager databaseManager;
+    private String currentUserNumber;
+    private HashMap<String,String> numbers;
 
     @Nullable
     @Override
@@ -43,6 +49,10 @@ public class ContactsWorker extends Service {
     public void onCreate() {
         super.onCreate();
         users = new ArrayList<>();
+        firebaseHelper = new FirebaseHelper(this);
+        DatabaseManager.initializeInstance(new SQLHelper(this));
+        databaseManager = DatabaseManager.getInstance();
+        numbers = new HashMap<>();
     }
 
     @Override
@@ -59,7 +69,7 @@ public class ContactsWorker extends Service {
         int flag = intent.getIntExtra(FLAG,0);
 
         startForeground(id, notification);
-        currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        currentUserNumber = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.number,null);
 
         if(flag==UPDATE_EXISTING) {
             AsyncTask.execute(new Runnable() {
@@ -96,8 +106,8 @@ public class ContactsWorker extends Service {
             FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
             firebaseHelper.getUserPublic(user.getId(), new PublicKeyCallback() {
                 @Override
-                public void onSuccess(String Base64PublicKey) {
-                    databaseManager.insertPublicKey(Base64PublicKey,user.getId());
+                public void onSuccess(String Base64PublicKey,String number) {
+                    databaseManager.insertPublicKey(Base64PublicKey,user.getId(),number);
                     update(user);
                 }
                 @Override
@@ -110,7 +120,6 @@ public class ContactsWorker extends Service {
 
     private synchronized void update(User user) {
         users.remove(user);
-
         if (users.isEmpty()) {
             App app = (App) getApplication();
             if(app.getCompleteCallback()!=null)
@@ -147,23 +156,27 @@ public class ContactsWorker extends Service {
                                     if(number.contains(".")||number.contains("#")||number.contains("$")||number.contains("[")||number.contains("]")) {
                                         continue;
                                     }
-                                    if(number.equals(currentUserId)) {
+                                    if(number.equals(currentUserNumber)) {
                                         continue;
                                     }
+                                    if(numbers.containsKey(number)){
+                                        continue;
+                                    }
+                                    numbers.put(number,number);
                                     final User user = new User(number,name,number,null);
                                     this.users.add(user);
-                                    FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
-                                    firebaseHelper.getUserPublic(user.getId(), new PublicKeyCallback() {
+                                    firebaseHelper.getUserData(user.getNumber(), new UserDataFetchedCallback() {
                                         @Override
-                                        public void onSuccess(String Base64PublicKey) {
-                                            user.setBase64EncodedPublicKey(Base64PublicKey);
-                                            DatabaseManager.initializeInstance(new SQLHelper(getApplicationContext()));
-                                            DatabaseManager databaseManager = DatabaseManager.getInstance();
-                                            databaseManager.insertUser(user);
+                                        public void onComplete(boolean userExists, String uid, String Base64PublicKey,String number) {
+                                            if(userExists) {
+                                                user.setId(uid);
+                                                user.setBase64EncodedPublicKey(Base64PublicKey);
+                                                databaseManager.insertUser(user);
+                                            }
                                             update(user);
                                         }
                                         @Override
-                                        public void onCancelled(String error) {
+                                        public void onError(String error) {
                                             update(user);
                                         }
                                     });

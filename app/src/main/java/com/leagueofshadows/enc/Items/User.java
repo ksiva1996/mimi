@@ -58,7 +58,7 @@ public class User {
             if(obj.getClass().equals(this.getClass())) {
                 User u = (User) obj;
                 try {
-                    return this.id.equals(u.getId());
+                    return this.number.equals(u.getNumber());
                 } catch (Exception e) {
                     return false;
                 }

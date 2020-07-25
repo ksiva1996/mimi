@@ -14,9 +14,7 @@ import com.leagueofshadows.enc.Background.GroupsWorker;
 import com.leagueofshadows.enc.Background.ResendMessageWorker;
 import com.leagueofshadows.enc.Background.Worker;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
-import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
 import com.leagueofshadows.enc.Interfaces.PublicKeyCallback;
-import com.leagueofshadows.enc.Interfaces.UserTypingCallback;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
@@ -30,23 +28,18 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import static com.leagueofshadows.enc.FirebaseHelper.Groups;
-import static com.leagueofshadows.enc.FirebaseHelper.MESSAGE_ID;
 import static com.leagueofshadows.enc.FirebaseHelper.Users;
 import static com.leagueofshadows.enc.REST.Native.GROUP_DELETE;
 import static com.leagueofshadows.enc.REST.Native.GROUP_UPDATE;
 import static com.leagueofshadows.enc.REST.Native.NEW_GROUP;
 import static com.leagueofshadows.enc.REST.Native.NOTIFICATION_TEXT;
 import static com.leagueofshadows.enc.REST.Native.TEMP_USER_ID;
-import static com.leagueofshadows.enc.REST.Native.TYPING_NOTIFICATION;
 import static com.leagueofshadows.enc.REST.Native.USER_ID;
 
 public class FirebaseReceiver extends FirebaseMessagingService {
 
-    public static final String RECEIVED_STATUS = "RECEIVED_STATUS";
-    public static final String SEEN_STATUS = "SEEN_STATUS";
     public static final String NEW_MESSAGE = "NEW_MESSAGE";
     private static final String RESEND_MESSAGE = "RESEND_MESSAGE";
-    private static final String GROUP_ID = "GROUP_ID";
     private String currentUserId;
     private DatabaseManager databaseManager;
     private FirebaseHelper firebaseHelper;
@@ -60,26 +53,7 @@ public class FirebaseReceiver extends FirebaseMessagingService {
         databaseManager = DatabaseManager.getInstance();
         firebaseHelper = new FirebaseHelper(this);
 
-        if(data.containsKey(RECEIVED_STATUS)||data.containsKey(SEEN_STATUS))
-        {
-            String id = data.get(MESSAGE_ID);
-            String userId = data.get(TEMP_USER_ID);
-            String groupId = null;
-            if(data.containsKey(GROUP_ID))
-                groupId = data.get(GROUP_ID);
-
-            if(data.containsKey(RECEIVED_STATUS))
-                databaseManager.updateMessageReceivedStatus(data.get(RECEIVED_STATUS),id,userId,groupId);
-            else
-                databaseManager.updateMessageSeenStatus(data.get(SEEN_STATUS),id,userId,groupId,currentUserId);
-
-            App app = (App) getApplication();
-            MessagesRetrievedCallback messagesRetrievedCallback = app.getMessagesRetrievedCallback();
-            if(messagesRetrievedCallback!=null) {
-                messagesRetrievedCallback.onUpdateMessageStatus(id,userId);
-            }
-        }
-        else if(data.containsKey(NEW_MESSAGE))
+        if(data.containsKey(NEW_MESSAGE))
         {
             App app = (App) getApplication();
             if(app.isnull()) {
@@ -142,17 +116,6 @@ public class FirebaseReceiver extends FirebaseMessagingService {
                 e.printStackTrace();
             }
         }
-        else if (data.containsKey(TYPING_NOTIFICATION)){
-            App app = (App) getApplication();
-            UserTypingCallback u = app.getUserTypingCallback();
-            if(u!=null) {
-                String userId = data.get(USER_ID);
-                if (data.containsKey(GROUP_ID))
-                    u.userTypingInGroupChat(userId,data.get(GROUP_ID));
-                else
-                    u.userTypingInSingleChat(userId);
-            }
-        }
     }
 
     private void updateGroup(String groupId) {
@@ -198,8 +161,8 @@ public class FirebaseReceiver extends FirebaseMessagingService {
 
                         firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
                             @Override
-                            public void onSuccess(String Base64PublicKey) {
-                                databaseManager.insertPublicKey(Base64PublicKey, u.getId());
+                            public void onSuccess(String Base64PublicKey,String number) {
+                                databaseManager.insertPublicKey(Base64PublicKey, u.getId(),u.getNumber());
                             }
                             @Override
                             public void onCancelled(String error) { }

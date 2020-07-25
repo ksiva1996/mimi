@@ -62,6 +62,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
     boolean allSuccess = true;
     int count=0;
     boolean editMode = false;
+    private int MinGroupSize = 1;
 
 
     @Override
@@ -106,7 +107,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
             @Override
             public void onClick(View view) {
 
-                if(groupParticipants.size()<=2) {
+                if(groupParticipants.size()<=MinGroupSize) {
                     Toast.makeText(CreateGroupActivity.this,"dheeniki group endhuku ra... direct message cheyi",Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -214,7 +215,7 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
 
         final ArrayList<String> userIds = new ArrayList<>();
         for (User u:groupParticipants) {
-            u.setName(u.getId());
+            u.setName(u.getNumber());
             userIds.add(u.getId());
         }
         existingGroup = new Group(groupId,finalName,groupParticipants,admins,Group.GROUP_ACTIVE);
@@ -272,7 +273,6 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
                         }
                     }
                 }
-                finish();
             }
             else {
                 groupParticipants.remove(currentUser);
@@ -288,8 +288,8 @@ public class CreateGroupActivity extends AppCompatActivity implements Select, Ch
                         }
                     }
                 }
-                finish();
             }
+            finish();
         }
         else {
             Toast.makeText(this,"Something went wrong,please try again",Toast.LENGTH_SHORT).show();

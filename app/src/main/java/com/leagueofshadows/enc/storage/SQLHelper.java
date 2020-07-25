@@ -73,6 +73,16 @@ public class SQLHelper extends SQLiteOpenHelper {
     static final String CIPHER_TEXT_MESSAGE_ID = "Message_id";
     static final String CIPHER_TEXT_CIPHER = "Cipher";
 
+    static final String TABLE_MESSAGE_STATUS_SYNC = "Message_status_sync";
+
+    static final String STATUS_SYNC_MESSAGE_ID = "Message_id";
+    static final String STATUS_SYNC_USER_ID = "User_id";
+    static final String STATUS_SYNC_TIMESTAMP = "Timestamp";
+    static final String STATUS_SYNC_FROM_USER_ID = "From_user_id";
+    static final String STATUS_SYNC_STATUS_TYPE = "Status_type";
+    static final String STATUS_SYNC_MESSAGE_TYPE = "Message_type";
+
+
     public SQLHelper(Context context) {
         super(context,DATABASE_NAME,null,1);
     }
@@ -161,8 +171,15 @@ public class SQLHelper extends SQLiteOpenHelper {
                 + CIPHER_TEXT_MESSAGE_ID + " TEXT ,"
                 + CIPHER_TEXT_CIPHER+"  TEXT "
                 + ")";
-
-
+        String CREATE_MESSAGE_STATUS_SYNC_TABLE= "CREATE TABLE " + TABLE_MESSAGE_STATUS_SYNC + "("
+                + ID + " INTEGER PRIMARY KEY  ,"
+                + STATUS_SYNC_MESSAGE_ID + " TEXT ,"
+                + STATUS_SYNC_FROM_USER_ID+"  TEXT ,"
+                + STATUS_SYNC_USER_ID+"  TEXT ,"
+                + STATUS_SYNC_TIMESTAMP+"  TEXT , "
+                + STATUS_SYNC_STATUS_TYPE+"  INTEGER , "
+                + STATUS_SYNC_MESSAGE_TYPE+"  INTEGER  "
+                + ")";
 
         sqLiteDatabase.execSQL(CREATE_MESSAGES_TABLE);
         sqLiteDatabase.execSQL(CREATE_ENCRYPTED_MESSAGES_TABLE);
@@ -174,6 +191,7 @@ public class SQLHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL(CREATE_GROUPS_RECEIVED_STATUS_TABLE);
         sqLiteDatabase.execSQL(CREATE_GROUPS_SEEN_STATUS_TABLE);
         sqLiteDatabase.execSQL(CREATE_CIPHER_TEXT_TABLE);
+        sqLiteDatabase.execSQL(CREATE_MESSAGE_STATUS_SYNC_TABLE);
     }
 
 
@@ -188,6 +206,7 @@ public class SQLHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_GROUPS);
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGES_RECEIVED_STATUS);
         sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGES_SEEN_STATUS);
+        sqLiteDatabase.execSQL("DROP TABLE  IF EXISTS "+TABLE_MESSAGE_STATUS_SYNC);
         onCreate(sqLiteDatabase);
     }
 }

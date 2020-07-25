@@ -126,8 +126,8 @@ public class GroupsWorker extends Service {
                             databaseManager.insertUser(u);
                         firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
                             @Override
-                            public void onSuccess(String Base64PublicKey) {
-                                databaseManager.insertPublicKey(Base64PublicKey,u.getId());
+                            public void onSuccess(String Base64PublicKey,String number) {
+                                databaseManager.insertPublicKey(Base64PublicKey,u.getId(),number);
                             }
                             @Override
                             public void onCancelled(String error) { }

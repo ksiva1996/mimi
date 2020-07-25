@@ -36,7 +36,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Background.Downloader;
-import com.leagueofshadows.enc.Background.FileUploadService;
+import com.leagueofshadows.enc.Background.FileUploadWorker;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
@@ -51,6 +51,7 @@ import com.leagueofshadows.enc.Interfaces.UserTypingCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Group;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.TypingNotification;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager;
@@ -377,8 +378,8 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
             if (!u.getId().equals(currentUserId)){
                 firebaseHelper.getUserPublic(u.getId(), new PublicKeyCallback() {
                     @Override
-                    public void onSuccess(String Base64PublicKey) {
-                        databaseManager.insertPublicKey(Base64PublicKey,u.getId());
+                    public void onSuccess(String Base64PublicKey,String num) {
+                        databaseManager.insertPublicKey(Base64PublicKey,u.getId(),u.getNumber());
                     }
                     @Override
                     public void onCancelled(String error) { }
@@ -478,7 +479,6 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
         app.setMessageSentCallback(this);
         app.addGroupsUpdatedCallback(this);
 
-        //TODO :firebaseHelper.getUserPublic(otherUserId,this);
         if(messages.isEmpty()) {
             getMessages();
         }
@@ -561,7 +561,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                 message.setSeen(timeStamp);
                 databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),message.getFrom(),groupId,currentUserId);
                 if(message.getContent()!=null)
-                    restHelper.sendGroupMessageSeenStatus(message,groupId,currentUserId);
+                    firebaseHelper.sendMessageSeenStatus(message,timeStamp);
             }
             messages.add(0,message);
             messageIds.add(0,message.getMessage_id());
@@ -670,7 +670,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
                     FileInputStream fileInputStream1 = new FileInputStream(path);
                     String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),users,messageString);
 
-                    Intent intent = new Intent(GroupChatActivity.this, FileUploadService.class);
+                    Intent intent = new Intent(GroupChatActivity.this, FileUploadWorker.class);
                     intent.putExtra(Util.toUserId,groupId);
                     intent.putExtra(Util.userId,currentUserId);
                     intent.putExtra(Util.fileName,fileName);
@@ -740,7 +740,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
 
                     String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),users,messageString);
 
-                    Intent intent = new Intent(GroupChatActivity.this,FileUploadService.class);
+                    Intent intent = new Intent(GroupChatActivity.this, FileUploadWorker.class);
                     intent.putExtra(Util.toUserId,groupId);
                     intent.putExtra(Util.userId,currentUserId);
                     intent.putExtra(Util.fileName,fileName);
@@ -1003,7 +1003,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     void markMessageAsRead(Message message){
         String timeStamp = Calendar.getInstance().getTime().toString();
         message.setSeen(timeStamp);
-        restHelper.sendGroupMessageSeenStatus(message,groupId,currentUserId);
+        firebaseHelper.sendMessageSeenStatus(message,timeStamp);
         databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),message.getFrom(),groupId,currentUserId);
     }
 
@@ -1129,6 +1129,19 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String userId = intent.getStringExtra(Util.userId);
+        try {
+            if (!userId.equals(groupId)) {
+                onCreate(null);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public void userTypingInSingleChat(String userId) { }
 
     @Override
@@ -1158,7 +1171,7 @@ public class GroupChatActivity extends AppCompatActivity implements MessagesRetr
     @Override
     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
         if(charSequence.length()==0){
-            restHelper.sendTypingNotification(groupId,true,currentUserId);
+            firebaseHelper.sendTypingNotification(new TypingNotification(currentUserId,groupId,System.currentTimeMillis(),true),null,true);
         }
     }
 

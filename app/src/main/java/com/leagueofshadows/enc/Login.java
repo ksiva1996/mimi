@@ -13,6 +13,7 @@ import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
 import com.leagueofshadows.enc.Background.DecryptMessageWorker;
 import com.leagueofshadows.enc.Background.GroupsWorker;
+import com.leagueofshadows.enc.Background.MessageStatusWorker;
 import com.leagueofshadows.enc.Background.ResendMessageWorker;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Crypt.RSAHelper;
@@ -137,6 +138,9 @@ public class Login extends AppCompatActivity {
 
             Intent intent3 = new Intent(Login.this, GroupsWorker.class);
             startService(intent3);
+
+            Intent intent5 = new Intent(Login.this, MessageStatusWorker.class);
+            startService(intent5);
 
             Intent intent4 = new Intent(Login.this, MainActivity.class);
             startActivity(intent4);

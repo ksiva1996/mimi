@@ -83,8 +83,8 @@ public class Worker extends Service implements CompleteCallback{
             {
                 firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
                     @Override
-                    public void onSuccess(String Base64PublicKey) {
-                        databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                    public void onSuccess(String Base64PublicKey,String number) {
+                        databaseManager.insertPublicKey(Base64PublicKey,e.getFrom(),number);
                         update(e);
                     }
                     @Override

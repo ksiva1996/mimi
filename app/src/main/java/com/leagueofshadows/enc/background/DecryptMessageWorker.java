@@ -95,8 +95,8 @@ public class DecryptMessageWorker extends Service {
                     FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                     firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
                         @Override
-                        public void onSuccess(String Base64PublicKey) {
-                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                        public void onSuccess(String Base64PublicKey,String number) {
+                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom(),number);
                             user.setBase64EncodedPublicKey(Base64PublicKey);
                             decryptMessage(e,aesHelper,user);
                         }
@@ -214,8 +214,8 @@ public class DecryptMessageWorker extends Service {
 
                         firebaseHelper.getUserPublic(e.getFrom(), new PublicKeyCallback() {
                         @Override
-                        public void onSuccess(String Base64PublicKey) {
-                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom());
+                        public void onSuccess(String Base64PublicKey,String number) {
+                            databaseManager.insertPublicKey(Base64PublicKey,e.getFrom(),number);
                             update(e);
                         }
                         @Override

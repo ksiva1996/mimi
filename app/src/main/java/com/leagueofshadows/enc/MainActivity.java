@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 import com.leagueofshadows.enc.Interfaces.GroupsUpdatedCallback;
 import com.leagueofshadows.enc.Interfaces.MessageSentCallback;
 import com.leagueofshadows.enc.Interfaces.MessagesRetrievedCallback;
@@ -70,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
         if(app.isnull()){
             finishAndStartLogin();
         }
+
+        Log.e("uid", FirebaseAuth.getInstance().getCurrentUser().getUid());
 
         userId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
         assert userId!=null;
@@ -188,7 +192,6 @@ public class MainActivity extends AppCompatActivity implements MessagesRetrieved
                 chatDataArrayList.clear();
                 chatDataArrayList.addAll( databaseManager.getUserData());
                 sort(chatDataArrayList);
-                //Log.e("size", String.valueOf(userDataArrayList.size()));
                 recyclerAdapter.notifyDataSetChanged();
             }
         });

@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -97,11 +98,14 @@ public class GroupInfo extends AppCompatActivity implements GroupsUpdatedCallbac
         DatabaseManager.initializeInstance(new SQLHelper(this));
         databaseManager = DatabaseManager.getInstance();
 
-        currentUserId = getSharedPreferences(Util.preferences,MODE_PRIVATE).getString(Util.userId,null);
+        SharedPreferences sp = getSharedPreferences(Util.preferences,MODE_PRIVATE);
+        currentUserId = sp.getString(Util.userId,null);
+        String currentUserNumber = sp.getString(Util.number,null);
 
         group = databaseManager.getGroup(groupId);
         admins = group.getAdmins();
-        currentUser = new User(currentUserId,"you",currentUserId,null);
+        assert currentUserNumber != null;
+        currentUser = new User(currentUserId,"you",currentUserNumber,null);
         if (!group.getUsers().contains(currentUser))
             group.getUsers().add(currentUser);
         else {

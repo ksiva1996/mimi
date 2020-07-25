@@ -34,7 +34,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.leagueofshadows.enc.Background.Downloader;
-import com.leagueofshadows.enc.Background.FileUploadService;
+import com.leagueofshadows.enc.Background.FileUploadWorker;
 import com.leagueofshadows.enc.Crypt.AESHelper;
 import com.leagueofshadows.enc.Exceptions.DeviceOfflineException;
 import com.leagueofshadows.enc.Exceptions.RunningOnMainThreadException;
@@ -47,6 +47,7 @@ import com.leagueofshadows.enc.Interfaces.ScrollEndCallback;
 import com.leagueofshadows.enc.Interfaces.UserTypingCallback;
 import com.leagueofshadows.enc.Items.EncryptedMessage;
 import com.leagueofshadows.enc.Items.Message;
+import com.leagueofshadows.enc.Items.TypingNotification;
 import com.leagueofshadows.enc.Items.User;
 import com.leagueofshadows.enc.REST.Native;
 import com.leagueofshadows.enc.storage.DatabaseManager;
@@ -487,7 +488,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  message.setSeen(timeStamp);
                  databaseManager.updateMessageSeenStatus(timeStamp,message.getMessage_id(),otherUserId,null,currentUserId);
                  if(message.getContent()!=null)
-                     restHelper.sendMessageSeenStatus(message);
+                     firebaseHelper.sendMessageSeenStatus(message,timeStamp);
              }
              messages.add(0,message);
              messageIds.add(0,message.getMessage_id());
@@ -594,7 +595,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                      FileInputStream fileInputStream1 = new FileInputStream(path);
                      String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUserArray,messageString);
 
-                     Intent intent = new Intent(ChatActivity.this, FileUploadService.class);
+                     Intent intent = new Intent(ChatActivity.this, FileUploadWorker.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
                      intent.putExtra(Util.fileName,fileName);
@@ -664,7 +665,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
 
                      String cipherText = aesHelper.encryptFile(fileInputStream,fileInputStream1,fileOutputStream,app.getPrivateKey(),otherUserArray,messageString);
 
-                     Intent intent = new Intent(ChatActivity.this,FileUploadService.class);
+                     Intent intent = new Intent(ChatActivity.this, FileUploadWorker.class);
                      intent.putExtra(Util.toUserId,otherUserId);
                      intent.putExtra(Util.userId,currentUserId);
                      intent.putExtra(Util.fileName,fileName);
@@ -694,7 +695,20 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      }
 
 
-     //options for messages
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String userId = intent.getStringExtra(Util.userId);
+        try {
+            if (!userId.equals(currentUserId)) {
+                onCreate(null);
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    //options for messages
      @SuppressWarnings("ResultOfMethodCallIgnored")
     void deleteMessage(final Message message, final int position)
     {
@@ -798,9 +812,9 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
                  intent.setType("application/*");
                  String path;
                  if (message.getFrom().equals(currentUserId))
-                     path = Util.sentImagesPath + getMessageContent(message.getContent());
+                     path = Util.sentDocumentsPath + getMessageContent(message.getContent());
                  else
-                     path = Util.imagesPath + getMessageContent(message.getContent());
+                     path = Util.documentsPath + getMessageContent(message.getContent());
                  File file = new File(path);
                  intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this, this.getPackageName() + ".fileProvider", file));
              }
@@ -939,7 +953,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      void markMessageAsRead(Message message){
          String timeStamp = Calendar.getInstance().getTime().toString();
          message.setSeen(timeStamp);
-         restHelper.sendMessageSeenStatus(message);
+         firebaseHelper.sendMessageSeenStatus(message,timeStamp);
          databaseManager.updateMessageSeenStatus(timeStamp, message.getMessage_id(), otherUserId, null, currentUserId);
      }
 
@@ -980,8 +994,8 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
      //PublicKeyCallback override methods
 
      @Override
-     public void onSuccess(String Base64PublicKey) {
-         databaseManager.insertPublicKey(Base64PublicKey,otherUserId);
+     public void onSuccess(String Base64PublicKey,String number) {
+         databaseManager.insertPublicKey(Base64PublicKey,otherUserId,otherUser.getNumber());
          otherUser = databaseManager.getUser(otherUserId);
          otherUserArray = new User[]{otherUser};
      }
@@ -1083,7 +1097,7 @@ public class ChatActivity extends AppCompatActivity implements MessagesRetrieved
     @Override
     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
         if(charSequence.length()==0){
-            restHelper.sendTypingNotification(otherUserId,false,currentUserId);
+            firebaseHelper.sendTypingNotification(new TypingNotification(currentUserId,null,System.currentTimeMillis(),false),otherUserId,false);
         }
     }
     @Override

@@ -51,6 +51,8 @@ public class OTP extends AppCompatActivity implements UserCallback {
     String name;
     String number;
     String password;
+    String uid;
+    private User user;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,6 +157,8 @@ public class OTP extends AppCompatActivity implements UserCallback {
 
     private void startProcess() {
 
+        //TODO : check uid
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         progressDialog.setMessage("creating key pair...");
         final RSAHelper rsaHelper = new RSAHelper(this);
         AsyncTask.execute(new Runnable() {
@@ -167,8 +171,8 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     if(firebaseHelper.checkConnection())
                     {
                         updateProgressDialog();
-                        firebaseHelper.sendUserData(new User(number,name,number,Base64PublicKeyString), OTP.this);
-
+                        user = new User(uid,name,number,Base64PublicKeyString);
+                        firebaseHelper.sendUserData(user, OTP.this);
                     }
                     else {
                         show("Something went wrong please try again");
@@ -213,7 +217,7 @@ public class OTP extends AppCompatActivity implements UserCallback {
                     String Base64randomString = aesHelper.getBase64(randomBytes);
 
                     String encrypted = aesHelper.encryptCheckMessage(Base64randomString,password);
-                    editor.putString(Util.CheckMessageEncrypted,encrypted).putString(Util.CheckMessage,Base64randomString).putString(Util.userId,number).
+                    editor.putString(Util.CheckMessageEncrypted,encrypted).putString(Util.CheckMessage,Base64randomString).putString(Util.userId,uid).
                             putString(Util.name,name).putString(Util.number,number).apply();
                     password=null;
                     show("verification successful");

@@ -122,7 +122,7 @@ public class Downloader extends Service {
                     FirebaseHelper firebaseHelper = new FirebaseHelper(getApplicationContext());
                     firebaseHelper.getUserPublic(message.getFrom(), new PublicKeyCallback() {
                         @Override
-                        public void onSuccess(final String Base64PublicKey) {
+                        public void onSuccess(final String Base64PublicKey, final String number) {
                             AsyncTask.execute(new Runnable() {
                                 @Override
                                 public void run() {
@@ -132,7 +132,7 @@ public class Downloader extends Service {
                                         AESHelper aesHelper = new AESHelper(Downloader.this);
 
                                         App app = (App) getApplication();
-                                        databaseManager.insertPublicKey(Base64PublicKey,message.getFrom());
+                                        databaseManager.insertPublicKey(Base64PublicKey,message.getFrom(),number);
 
                                         String cipherText = databaseManager.getCipherText(messageId);
                                         aesHelper.decryptFile(fileInputStream,fileOutputStream,app.getPrivateKey(),databaseManager.getUser(message.getFrom()),new File(finalPath),cipherText,id);

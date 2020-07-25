@@ -35,7 +35,7 @@ public class App extends Application {
     private Native restHelper;
 
     public boolean isnull() {
-        return privateKey == null || masterKey == null ;
+        return privateKey == null ;
     }
 
     public CompleteCallback getCompleteCallback() {
