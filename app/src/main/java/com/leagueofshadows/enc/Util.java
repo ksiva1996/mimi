@@ -69,7 +69,7 @@ public class Util {
 
     static String CheckMessageEncrypted = "CheckMessageEncrypted";
 
-    public static String key = "AAAA9mn4XrI:APA91bHmWqrRds17hK0IZCD-5MkA4kpLWV27WhRPhW2NTX0bHzj_onjpQNwzKmKhouKKy-gjI7p4XhtvdnOVvusRlN2x0Ee4DRy1grMHrpx8YVjV5_66cxr47iRwtO5M09ZUj4OYsney";
+    public static String key = "API_KEY";
     public static String uri = "uri";
     public static String timeStamp = "timeStamp";
     public static String fileName = "fileName";
